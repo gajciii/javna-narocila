@@ -1,5 +1,27 @@
 export type MatchLevel = 'high' | 'medium' | 'low';
 export type ConditionState = 'met' | 'unmet' | 'unknown';
+export interface RegistrySource {
+    provider: 'ajpes';
+    via: string;
+    url: string;
+    license: string;
+    attribution: string;
+    retrieved_at: string;
+    dataset_updated_at: string | null;
+    name: string;
+    registration_number: string;
+    address: string;
+    legal_form: string;
+    registration_authority: string;
+}
+export interface CompanySearchResult {
+    results: { name: string; registration_number: string; address: string; legal_form: string; registration_authority: string }[];
+    total: number;
+    source: Pick<RegistrySource, 'provider' | 'via' | 'url' | 'license' | 'attribution' | 'retrieved_at' | 'dataset_updated_at'>;
+    mode: 'live' | 'cached';
+    stale: boolean;
+    warning?: string;
+}
 export interface CompanyReference {
     id: string;
     title: string;
@@ -29,6 +51,7 @@ export interface Profile {
     certifications: string[];
     capacity: string;
     source: 'demo' | 'user';
+    registry_source?: RegistrySource;
     references: CompanyReference[];
     updated_at?: string;
 }
@@ -151,7 +174,7 @@ export interface Bootstrap {
         ai_mode: 'demo' | 'live';
         today: string;
         last_sync: string | null;
-        integrations?: { pjn: { state: string; last_success: string | null; runs_remaining: number; real_count: number }; bizi: { state: string; message: string; url: string } };
+        integrations?: { pjn: { state: string; last_success: string | null; runs_remaining: number; real_count: number }; ajpes: { state: string; last_success: string | null; message: string; url: string } };
     };
 }
 export interface Citation {

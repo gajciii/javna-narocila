@@ -6,6 +6,12 @@ class CompanyProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+class CompanyLookupCache(models.Model):
+    key = models.CharField(max_length=100, primary_key=True)
+    payload = models.JSONField(default=dict)
+    fetched_at = models.DateTimeField()
+
+
 class Tender(models.Model):
     id = models.SlugField(primary_key=True, max_length=100)
     data = models.JSONField(default=dict)

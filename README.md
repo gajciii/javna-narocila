@@ -1,6 +1,6 @@
 # Razpisni radar
 
-Lokalni hackathon prototip, ki poveže javne razpise s profilom podjetja ter pokaže razloge, pogoje in spremembe. Vključuje delujoč zajem e-Naročanja in jasno označene demo primere. Bizi še ni povezan: potreben je odobren API dostop in tehnična dokumentacija.
+Lokalni hackathon prototip, ki poveže javne razpise s profilom podjetja ter pokaže razloge, pogoje in spremembe. Vključuje delujoč zajem e-Naročanja in jasno označene demo primere. Podjetja poiščete v javnem naboru AJPES / PRS prek OPSI, brez API ključa.
 
 ## Hiter zagon
 
@@ -37,7 +37,7 @@ Privzeti zagon zunanjega portala ne osvežuje samodejno. Docker uporablja svoj p
 
 - **Razpisi:** vsebinska priporočila, kombiniranje naprednih filtrov, shranjena iskanja, sortiranje in spremljanje.
 - **Podrobnosti:** razlaga ujemanja, pogoji `izpolnjen / neizpolnjen / neznan`, merila, sklopi, PDF-ji in dokaz na konkretni strani.
-- **Profil:** predogled demo predizpolnitve, urejanje dejavnosti, tehnologij, referenc, kadrov, zmogljivosti in preferenc. Sprememba profila spremeni presojo razpisov.
+- **Profil:** iskanje resničnih podjetij v AJPES prek OPSI, predogled osnovnih podatkov ter urejanje dejavnosti, tehnologij, referenc, kadrov, zmogljivosti in preferenc. Sprememba profila spremeni presojo razpisov.
 - **AI svetovalec:** priporočila, primerjava izbranih razpisov, vprašanja o pogojih in predlogi profila oziroma filtrov, ki jih uporabnik potrdi.
 - **Obvestila:** nova relevantna objava, popravek pogoja in podaljšanje roka. Dogodki so idempotentni; ponovitev istega popravka ne doda drugega obvestila.
 
@@ -84,11 +84,22 @@ Ob omrežni napaki se ohranijo shranjeni podatki in pokaže opozorilo. Uspešen 
 
 Vir: **Javne informacije Slovenije – portal javnih naročil**. [OPSI: dokumentacija API in pogoji ponovne uporabe](https://podatki.gov.si/dataset/api-pjn).
 
-### Predizpolnitev podjetja
+### Predizpolnitev podjetja: AJPES prek OPSI
 
-**Bizi ni povezan.** API dostopa še nimamo. Profil zato omogoča ročni vnos in posebej označen gumb **Demo predloga**, ki pred uporabo pokaže izmišljene podatke. Zahteva za pravo predizpolnitev vrne `503 bizi_access_required`; za poljubno iskano podjetje ne vrne demo podjetja.
+**Povezava deluje brez računa in brez API ključa.** Uporabljamo javni nabor Poslovnega registra Slovenije, ki ga AJPES objavlja na OPSI. To je dvakrat mesečno osvežena zbirka; ne gre za sproten dostop do celotnega ePRS oziroma naročniški `restPrsInfo`.
 
-Za naslednji korak potrebujemo odobren Bizi API dostop in njegovo tehnično dokumentacijo (endpoint, avtentikacija, shema in dovoljeni obseg). Šele nato lahko izvedemo in preverimo pravi adapter. Ključi sodijo v lokalni `.env`, nikoli v Git. Aplikacija ne strga spletnih profilov Bizi. [Bizi API](https://www.bizi.si/storitve/API-dostop/).
+1. Odprite **Profil podjetja** in vnesite ime ali 7- oziroma 10-mestno matično številko.
+2. Izberite pravi poslovni subjekt. Poslovne enote so ločeni zadetki z lastno matično številko in oznako pravne oblike.
+3. Preverite predogled in izberite **Uporabi podatke**. V obrazec se prenesejo **naziv, matična številka in naslov**.
+4. Dopolnite dejavnost, spletno stran, reference, kadre in tehnologije ter izberite **Shrani in osveži priporočila**.
+
+Odprti nabor ne vsebuje dejavnosti SKD, spletne strani, prihodkov, referenc, certifikatov ali zmogljivosti. Teh podatkov ne sklepamo iz naziva. Ob izbiri drugega podjetja se obrazec začne brez prejšnjih referenc in kompetenc, kar je v predogledu izrecno navedeno. Osvežitev iste matične številke ohrani uporabniške dopolnitve. Iskanje in predogled ne spreminjata shranjenega profila; podatki se shranijo šele z uporabnikovo potrditvijo obrazca.
+
+Vsako uvoženo osnovno polje ima oznako vira. Ročna sprememba polja spremeni njegovo oznako v uporabniški vnos. Izvor, datum prevzema, datum posodobitve metapodatkov zbirke in licenca se ohranijo po osvežitvi aplikacije. Prisotnost v objavljenem naboru sama ne potrjuje trenutnega statusa, bonitete ali sposobnosti podjetja za prijavo.
+
+Iskanje uporablja OPSI `datastore_search`, vrne največ 20 zadetkov in pokaže skupno število. Pri imenu gre za besedilno iskanje po naboru; za natančen zadetek uporabite matično številko. Iskanje podjetij ne porablja dnevnih zagonov e-Naročanja. Odgovore hranimo lokalno 24 ur, zato ponovljeno iskanje ne povzroči nove zunanje zahteve. Ob izpadu se že shranjeni rezultati prikažejo z opozorilom in prvotnim datumom; če shranjenega rezultata ni, aplikacija jasno sporoči napako in omogoča ročni vnos. Nobeno neuspešno iskanje ne vrne izmišljenega podjetja. **Demo predloga** ostaja ločen, izrecen gumb.
+
+Vir: **Poslovni register Slovenije, AJPES, prek OPSI**, licenca **CC BY 4.0**. [Zbirka in pogoji ponovne uporabe](https://podatki.gov.si/dataset/poslovni-register-slovenije), [opis odprtega nabora pri AJPES](https://www.ajpes.si/registri/poslovni_register/splosno). Bizi je odstranjen iz uporabniškega toka in ni potreben.
 
 ### Dokumenti in razlaga
 
@@ -129,8 +140,8 @@ Skripta izvede Django sistemski pregled, teste domenske logike/API, TypeScript p
 
 Projekt je organiziran v `frontend/` in `backend/`. Vmesniki in podatkovni objekti so opisani v [CONTRACT.md](CONTRACT.md). SQLite podatki, naložene datoteke, ključi in razvojno okolje niso vključeni v izvorno kodo.
 
-Preverjeno pri izvedbi: 59 avtomatskih testov, produkcijska gradnja in lokalni zagon. **Živi zajem e-Naročanja je bil uspešno izveden 10. 11. 2026:** 20 novih resničnih zapisov, 6 shranjenih datotek, 94 strani izluščenega besedila in 2 neobdelani prilogi. Ti prenosi so v lokalni bazi in medijskih datotekah, ne v Gitu; nov klon projekta jih pridobi z zajemom. Testi uporabljajo tudi vzorčna odziva dejanskega API-ja.
+Preverjeno pri izvedbi: 76 avtomatskih testov, produkcijska gradnja in lokalni zagon. **Živi zajem e-Naročanja je bil uspešno izveden 10. 11. 2026:** 20 novih resničnih zapisov, 6 shranjenih datotek, 94 strani izluščenega besedila in 2 neobdelani prilogi. Ti prenosi so v lokalni bazi in medijskih datotekah, ne v Gitu; nov klon projekta jih pridobi z zajemom. Testi uporabljajo tudi vzorčna odziva dejanskega API-ja.
 
-Konfiguracija Compose je veljavna; zagon vsebnikov ni bil preverjen, ker Docker Engine ni bil zagnan. Živi OpenAI klici niso bili preizkušeni brez ključa. Bizi ni bil povezan brez dostopa in dokumentacije.
+Konfiguracija Compose je veljavna; zagon vsebnikov ni bil preverjen, ker Docker Engine ni bil zagnan. Živi OpenAI klici niso bili preizkušeni brez ključa. Živo iskanje AJPES prek OPSI in predogled po matični številki sta bila uspešno preverjena 10. 11. 2026. Neposredni naročniški API AJPES in Bizi nista uporabljena.
 
 To je lokalni prototip z enim uporabnikom. Produkcijska prijava, izolacija podjetij, pošiljanje e-pošte, OCR in celovit zajem vseh objav ter prilog so nadaljnji koraki pred javno uporabo.

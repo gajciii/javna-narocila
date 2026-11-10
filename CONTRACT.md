@@ -4,9 +4,10 @@ Local single-user hackathon app. Slovenian UI. React/TypeScript/Vite frontend, D
 
 ## API, no trailing slash
 
-- GET /api/bootstrap -> {profile, tenders, notifications, saved_searches, meta:{demo:true,ai_mode:"demo"|"live",today,last_sync,integrations:{pjn:{state:"connected"|"ready",last_success,runs_remaining,real_count,latest_result},bizi:{state:"access_required",message,url}}}}
+- GET /api/bootstrap -> {profile, tenders, notifications, saved_searches, meta:{demo:true,ai_mode:"demo"|"live",today,last_sync,integrations:{pjn:{state:"connected"|"ready",last_success,runs_remaining,real_count,latest_result},ajpes:{state:"connected"|"ready",last_success,provider:"ajpes",via:"OPSI",message,url}}}}
 - GET/PUT /api/profile -> profile
-- POST /api/profile/prefill {query,provider?:"demo"} -> default HTTP 503 {code:"bizi_access_required",message}; explicit provider:"demo" -> {profile,source:"demo",message}; does not mutate until PUT
+- GET /api/companies/search?q=... -> {results:[{name,registration_number,address,legal_form,registration_authority}],total,source:{provider:"ajpes",via:"OPSI",url,license,attribution,retrieved_at,dataset_updated_at,refresh_frequency},mode:"live"|"cached",stale:boolean,warning?}
+- POST /api/profile/prefill {provider?:"ajpes"|"demo",registration_number?:string,query?:string} -> {profile,source:"ajpes"|"demo",message,mode?,stale?,warning?}. Default AJPES requires a selected 7/10-digit registration number; never auto-select a fuzzy name match. Explicit demo returns the fictional template. Neither action mutates the profile until PUT. Invalid input 400, no exact result 404, uncached registry outage 503 {code:"ajpes_unavailable",message}.
 - GET /api/tenders?filters... -> {results:[Tender],count}
 - GET /api/tenders/:id -> Tender (including detail)
 - POST /api/tenders/:id/follow {following:boolean} -> Tender
@@ -24,7 +25,7 @@ Local single-user hackathon app. Slovenian UI. React/TypeScript/Vite frontend, D
 
 ## Objects
 
-Profile: {id:1,name,registration_number,activity,address,website,description,expertise:string[],technologies:string[],keywords:string[],excluded_keywords:string[],regions:string[],min_value:number|null,max_value:number|null,available_from:string,staff_count:number|null,certifications:string[],capacity,source:"demo"|"user",references:[{id,title,description,domain,value:number|null,year:number|null,confirmed:boolean}],updated_at?}
+Profile: {id:1,name,registration_number,activity,address,website,description,expertise:string[],technologies:string[],keywords:string[],excluded_keywords:string[],regions:string[],min_value:number|null,max_value:number|null,available_from:string,staff_count:number|null,certifications:string[],capacity,source:"demo"|"user",references:[{id,title,description,domain,value:number|null,year:number|null,confirmed:boolean}],updated_at?,registry_source?:{provider:"ajpes",via:"OPSI",url,license,attribution,retrieved_at,dataset_updated_at,name,registration_number,address,legal_form,registration_authority}}
 
 Tender: {id:string,title,buyer,region,kind:"services"|"goods"|"works",cpv:string[],value:number|null,published_at:ISODate,deadline:ISODateTime,status:"open"|"closed"|"cancelled"|"unconfirmed",source_type:"demo"|"real",source_url:string|null,summary,topics:string[],technologies:string[],following:boolean,is_new:boolean,has_update:boolean,version:number,match:{level:"high"|"medium"|"low",score:number,recommendation:"recommended"|"review"|"unsuitable"|"closed",reasons:string[],open_question:string,conditions:[{id,title,company_value,status:"met"|"unmet"|"unknown",document_id:string|null,page:number|null,quote:string}]},criteria:[{title,weight:number|null}],documents:[{id,title,url,pages:number,status:"processed"|"unprocessed",version:number,analysis_mode?,error?}],source_metadata?:{notice_id,dossier_id,notice_number,attribution,fetched_at,published_timestamp,phase,previous_notice_id,correction_description,attachment_url,attachments_processed,codelists_as_of},lots:[{id,title,match_level,summary}],changes:[{field,before,after,impact,document_id?,page?}],description?}
 
@@ -52,4 +53,12 @@ A `SyncRun` reserves one of two unique slots per Europe/Ljubljana calendar day; 
 
 Public `/api/datoteka/get` attachments are stored with hashed paths. PDF text preserves page numbers; ZIP members never use archive paths as local output paths. Limits: 10 MB per download/member, 30 ZIP members, 20 MB expanded archive, 150 PDF pages. Unsupported formats, unreadable PDFs and oversized/protected archives remain explicitly unprocessed. Only documents from the current imported version may support current conditions. PDF text extraction does not imply completed AI analysis. Uploaded/demo document behavior is unchanged.
 
-Bizi intentionally has no live adapter until approved API access and technical documentation exist. No scraping, invented endpoints or fake lookup results. Users can enter profile data manually or explicitly preview the demo template.
+## AJPES / OPSI company lookup
+
+AJPES replaces the Bizi placeholder. Uses public `https://podatki.gov.si/api/3/action/datastore_search` resource `beb70929-3d0d-41c6-9af2-25d525d906d3`, with `package_show?id=poslovni-register-slovenije` for dataset metadata. No account, API key, website scraping or full-register download. This is the twice-monthly open dataset, not authenticated restPrsInfo or a real-time ePRS assertion.
+
+Verified wire fields include `Matična številka`, `Popolno ime`, `Ulica`, `Hišna št`, `Hišna št  dodatek`, `Naselje`, `Poštna št`, `Pošta`, `Pravnoorganizacijska oblika`, `Registrski organ`. Keep registration numbers as strings, including leading zeros; seven-digit input expands to the main entity suffix 000. Exact prefill must match the requested ten-digit number. No inferred SKD, website, financial facts or capabilities.
+
+`CompanyLookupCache` persists normalized responses with a 24-hour TTL and fetch time. Transport uses fixed HTTPS OPSI endpoints, bounded 1 MB responses, explicit timeouts and no redirects. Cached data are labeled; expired cache can be used only with a stale warning after a failed refresh. Empty results remain empty. Dataset metadata timestamp is stored with the original lookup so a later metadata refresh cannot relabel old company data as newer.
+
+The UI previews before applying. Switching company clears previous capabilities and references from the draft; reimporting the same identity merges only the three basic fields. Saving is explicit. Imported provenance is reconstructed from server-side exact-lookup cache; arbitrary client provenance is ignored. Each field is labeled as imported only while matching the stored source value. Changing registration number drops old source attribution. Demo reset retains the lookup cache. Bizi is no longer in the product flow.

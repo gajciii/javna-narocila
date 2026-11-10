@@ -69,6 +69,11 @@ def validate_profile(payload, current):
             clean.append(item)
         result['references'] = clean
     result['source'] = 'user'
+    from .ajpes import verified_profile_source
+    provenance = verified_profile_source(result, payload.get('registry_source', current.get('registry_source')))
+    result.pop('registry_source', None)
+    if provenance:
+        result['registry_source'] = provenance
     result['id'] = 1
     result.pop('updated_at', None)
     return result

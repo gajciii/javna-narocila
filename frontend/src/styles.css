@@ -6062,3 +6062,32 @@ input::-webkit-calendar-picker-indicator {
 .section-heading h2,.detail-section>h2 {
   color:#5a6981;
 }
+/* Company lookup uses the public AJPES dataset via OPSI. */
+.company-lookup { padding: 22px; border: 1px solid #ddd8f3; border-radius: 14px; background: #faf9ff; margin-bottom: 12px; }
+.company-lookup-heading { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
+.company-lookup-heading > svg { flex: 0 0 auto; color: #6c55cf; margin-top: 2px; }
+.company-lookup-heading strong { font-size: 15px; }
+.company-lookup-heading p { font-size: 13px; line-height: 1.6; margin: 5px 0 0; color: #747889; }
+.company-lookup-input { display: flex; gap: 10px; }
+.company-lookup-input input { min-width: 0; flex: 1; }
+.company-lookup-input button { flex-shrink: 0; }
+.company-lookup-results { margin-top: 18px; }
+.company-result-count { font-size: 12px; color: #747889; margin-bottom: 9px; }
+.company-result { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 16px; text-align: left; padding: 14px; margin-top: 8px; border: 1px solid #e7e3f2; background: white; border-radius: 9px; color: #30354a; cursor: pointer; }
+.company-result:hover { border-color: #8c77d9; background: #f7f5ff; }
+.company-result:disabled { opacity: .6; cursor: wait; }
+.company-result > span { display: grid; gap: 5px; min-width: 0; }
+.company-result strong { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.company-result span span, .company-result small { font-size: 12px; color: #747889; line-height: 1.5; }
+.company-result > svg { flex-shrink: 0; color: #6c55cf; }
+.company-source-note { font-size: 11px; color: #747889; line-height: 1.7; margin: 14px 0 0; }
+.company-source-note a { display: inline; color: #6c55cf; }
+.company-source-note svg { vertical-align: middle; }
+.company-lookup-warning { color: #946528; font-size: 12px; }
+.company-lookup-error { margin-top: 12px; }
+.profile-demo-action { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #858799; font-size: 12px; margin-bottom: 22px; }
+@media (max-width: 600px) {
+  .company-lookup { padding: 16px; }
+  .company-lookup-input { flex-direction: column; }
+  .profile-demo-action { align-items: flex-start; flex-wrap: wrap; }
+}

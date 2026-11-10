@@ -48,12 +48,32 @@ def prefill_view(request):
     query = request.data.get('query', '')
     if not isinstance(query, str) or len(query) > 300:
         raise ValidationError('Neveljavno iskanje podjetja.')
-    if request.data.get('provider') != 'demo':
-        return Response({'code': 'bizi_access_required', 'message': 'Bizi API dostop še ni urejen. Podjetje vnesite ročno ali najprej uredite API dostop pri Bizi.',
-                         'url': 'https://www.bizi.si/storitve/API-dostop/'}, status=503)
-    # Explicit demo action only; a real company search must never return Lumina.
+    provider = request.data.get('provider', 'ajpes')
+    if provider == 'ajpes':
+        from .ajpes import preview, RegistryUnavailable
+        try:
+            return Response(preview(request.data.get('registration_number', query)))
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+        except LookupError as exc:
+            return Response({'message': str(exc)}, status=404)
+        except RegistryUnavailable as exc:
+            return Response({'code': 'ajpes_unavailable', 'message': str(exc)}, status=503)
+    if provider != 'demo':
+        raise ValidationError('Izberite vir ajpes ali demo.')
     profile = demo_profile()
-    return Response({'profile': profile, 'source': 'demo', 'message': 'Prikazan je izmišljeni demo profil Lumina digital. Povezava z Bizi API ni aktivna. Podatke preverite in shranite izrecno.'})
+    return Response({'profile': profile, 'source': 'demo', 'message': 'Prikazan je izmišljeni demo profil Lumina digital. To niso podatki iz AJPES. Podatke preverite in shranite izrecno.'})
+
+
+@api_view(['GET'])
+def company_search_view(request):
+    from .ajpes import lookup, RegistryUnavailable
+    try:
+        return Response(lookup(request.query_params.get('q', '')))
+    except ValueError as exc:
+        raise ValidationError(str(exc))
+    except RegistryUnavailable as exc:
+        return Response({'code': 'ajpes_unavailable', 'message': str(exc)}, status=503)
 
 
 @api_view(['GET'])

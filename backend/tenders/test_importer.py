@@ -202,8 +202,7 @@ class ImporterTests(TestCase):
         ensure_seed(reset=True)
         self.assertTrue(Tender.objects.filter(pk=record.pk).exists())
 
-    def test_bizi_without_access_never_returns_fake_company(self):
+    def test_prefill_name_without_selection_never_returns_fake_company(self):
         response = self.client.post('/api/profile/prefill', {'query': 'Resnično podjetje'}, content_type='application/json')
-        self.assertEqual(response.status_code, 503)
-        self.assertEqual(response.json()['code'], 'bizi_access_required')
+        self.assertEqual(response.status_code, 400)
         self.assertNotIn('profile', response.json())
