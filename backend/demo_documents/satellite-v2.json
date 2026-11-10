@@ -1,0 +1,53 @@
+{
+  "id": "satellite-v2",
+  "tender_id": "satellite",
+  "version": 2,
+  "title": "Platforma za analizo satelitskih posnetkov",
+  "summary": "Razvoj podatkovne platforme za spremljanje vegetacije s satelitskimi posnetki, analitiko in kartografskim prikazom.",
+  "requirements": [
+    {
+      "id": "satellite-reference",
+      "title": "Najmanj dve primerljivi referenci",
+      "kind": "reference_count",
+      "page": 2,
+      "quote": "Ponudnik mora izkazati najmanj dve zaključeni referenci analize satelitskih posnetkov v zadnjih treh letih.",
+      "domain": "satellite",
+      "minimum": 2,
+      "max_age_years": 3,
+      "document_id": "satellite-v2"
+    }
+  ],
+  "criteria": [
+    {
+      "title": "Ponudbena cena",
+      "weight": 50
+    },
+    {
+      "title": "Kakovost analitične metodologije",
+      "weight": 40
+    },
+    {
+      "title": "Načrt prenosa znanja",
+      "weight": 10
+    }
+  ],
+  "scope": "Predmet je razvoj platforme za analizo satelitskih posnetkov in spremljanje stanja vegetacije. Vključeni so obdelava časovnih vrst, zaznavanje sprememb, strojno učenje, pregled rezultatov na zemljevidu in izvoz podatkov prek API. Rešitev je namenjena strokovnim uporabnikom in javnim organizacijam.",
+  "delivery": "Predvidena izvedba traja osem mesecev. Oddaja vključuje metodologijo, izvorno kodo, načrt validacije in dokumentacijo. POPRAVEK: zahteva glede števila primerljivih referenc se spremeni z ene na dve. Drugi pogoji in merila ostanejo enaki.",
+  "pages": [
+    {
+      "page": 1,
+      "heading": "Predmet in obseg naročila",
+      "text": "To je izmišljen razpis za predstavitev prototipa Razpisni radar. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski.\n\nPredmet je razvoj platforme za analizo satelitskih posnetkov in spremljanje stanja vegetacije. Vključeni so obdelava časovnih vrst, zaznavanje sprememb, strojno učenje, pregled rezultatov na zemljevidu in izvoz podatkov prek API. Rešitev je namenjena strokovnim uporabnikom in javnim organizacijam.\n\nPredvidena izvedba traja osem mesecev. Oddaja vključuje metodologijo, izvorno kodo, načrt validacije in dokumentacijo. POPRAVEK: zahteva glede števila primerljivih referenc se spremeni z ene na dve. Drugi pogoji in merila ostanejo enaki."
+    },
+    {
+      "page": 2,
+      "heading": "Pogoji za sodelovanje",
+      "text": "Ponudnik mora izkazati najmanj dve zaključeni referenci analize satelitskih posnetkov v zadnjih treh letih.\n\nVsaka referenca mora biti potrjena in primerljiva po vsebini. Če podatek ni naveden, izpolnjevanja pogoja ni mogoče potrditi. Podatki o izmišljenem demo podjetju se preverjajo ločeno od tega dokumenta."
+    },
+    {
+      "page": 3,
+      "heading": "Merila za izbor in dokazila",
+      "text": "Ponudbena cena: 50 %.\n\nKakovost analitične metodologije: 40 %.\n\nNačrt prenosa znanja: 10 %.\n\nMerila za izbor se uporabijo za vrednotenje ponudb. Izpolnitev pogojev za sodelovanje je ločena presoja. Ponudnik predloži seznam referenc, opis projektne ekipe, predlog izvedbe in finančno ponudbo.\n\nDatumi objave in roki so za demonstracijo prikazani v aplikaciji. Dokument služi preverjanju ekstrakcije besedila, strani in dokazov."
+    }
+  ]
+}

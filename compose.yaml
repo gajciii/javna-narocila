@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      DATABASE_PATH: /data/db.sqlite3
+      MEDIA_ROOT: /data/media
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+    volumes:
+      - radar-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/bootstrap', timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 5
+      start_period: 15s
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:5174:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  radar-data:

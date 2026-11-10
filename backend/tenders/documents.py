@@ -1,0 +1,106 @@
+import hashlib
+import json
+import re
+import math
+from pathlib import Path
+from django.conf import settings
+from pypdf import PdfReader
+from .models import Document, Tender
+
+
+def normalized(text):
+    return re.sub(r'\s+', ' ', str(text)).strip().casefold()
+
+
+def extract_pages(path):
+    """PDF text extraction, preserving page numbers. Never invent OCR output."""
+    if Path(path).stat().st_size > 10 * 1024 * 1024:
+        raise ValueError('Dokument presega omejitev 10 MB.')
+    reader = PdfReader(path)
+    if reader.is_encrypted:
+        raise ValueError('Zaščitenih PDF-jev v prototipu ne obdelujemo.')
+    if len(reader.pages) > 150:
+        raise ValueError('Dokument presega omejitev 150 strani za prototip.')
+    pages = []
+    for number, page in enumerate(reader.pages, 1):
+        contents = page.get_contents()
+        if contents and len(contents.get_data()) > 12 * 1024 * 1024:
+            raise ValueError('Stran je prevelika za obdelavo v prototipu.')
+        pages.append({'page': number, 'text': page.extract_text() or ''})
+    return pages
+
+
+def evidence_valid(pages, page_number, quote):
+    if not isinstance(page_number, int) or not quote or len(normalized(quote)) < 8:
+        return False
+    page = next((p for p in pages if p['page'] == page_number), None)
+    return bool(page and normalized(quote) in normalized(page['text']))
+
+
+def validated_extraction(data, document):
+    allowed_kinds = {'reference_count', 'reference_value', 'staff', 'technology'}
+    requirements = []
+    for item in data.get('requirements', []):
+        if item.get('kind') not in allowed_kinds:
+            continue
+        if not evidence_valid(document.pages, item.get('page'), item.get('quote')):
+            continue
+        if not isinstance(item.get('title'), str) or not isinstance(item.get('id'), str):
+            continue
+        result = {**item, 'document_id': document.id}
+        if item.get('kind') != 'technology':
+            if isinstance(result.get('minimum'), bool) or not isinstance(result.get('minimum'), (int, float)) or not math.isfinite(result['minimum']) or result['minimum'] < 0:
+                continue
+        age = result.get('max_age_years')
+        if age is not None and (isinstance(age, bool) or not isinstance(age, int) or not 0 <= age <= 100):
+            continue
+        requirements.append(result)
+    return {'summary': str(data.get('summary', ''))[:10000], 'requirements': requirements,
+            'criteria': [c for c in data.get('criteria', []) if isinstance(c, dict) and isinstance(c.get('title'), str) and isinstance(c.get('weight'), (int, float)) and 0 <= c['weight'] <= 100],
+            'mode': data.get('mode', 'demo'), 'rejected_requirements': len(data.get('requirements', [])) - len(requirements)}
+
+
+def load_demo_documents():
+    root = settings.DEMO_DOCUMENTS_ROOT
+    if not root.exists():
+        return
+    for sidecar in root.glob('*.json'):
+        try:
+            metadata = json.loads(sidecar.read_text(encoding='utf-8'))
+            file_path = sidecar.with_suffix('.pdf')
+            if not file_path.exists() or not Tender.objects.filter(pk=metadata['tender_id']).exists():
+                continue
+            digest = hashlib.sha256(file_path.read_bytes()).hexdigest()
+            old = Document.objects.filter(pk=metadata['id']).first()
+            if old and old.sha256 == digest and old.extraction:
+                continue
+            pages = extract_pages(file_path)
+            readable = sum(len(p['text'].strip()) for p in pages) >= 50
+            doc, _ = Document.objects.update_or_create(pk=metadata['id'], defaults={
+                'tender_id': metadata['tender_id'], 'title': metadata['title'],
+                'path': str(file_path.resolve()), 'version': metadata['version'],
+                'pages': pages, 'sha256': digest, 'status': 'processed' if readable else 'unprocessed',
+                'error': '' if readable else 'Manjka besedilna plast; potreben je OCR.'})
+            doc.extraction = validated_extraction({**metadata, 'mode': 'demo'}, doc)
+            doc.save(update_fields=['extraction'])
+        except (KeyError, ValueError, OSError, json.JSONDecodeError):
+            continue
+
+
+def active_documents(tender):
+    records = list(tender.document_records.filter(version__lte=tender.data.get('version', 1)).order_by('id'))
+    if not records:
+        return []
+    # Demo versions replace the same document family, while uploaded attachments remain additive.
+    by_family = {}
+    for doc in records:
+        family = re.sub(r'-v\d+$', '', doc.id)
+        if family not in by_family or doc.version > by_family[family].version:
+            by_family[family] = doc
+    return list(by_family.values())
+
+
+def serialize_document(doc):
+    return {'id': doc.id, 'title': doc.title, 'url': f'/api/documents/{doc.id}', 'pages': len(doc.pages),
+            'status': doc.status, 'version': doc.version, 'error': doc.error,
+            'analysis_mode': doc.extraction.get('mode', 'unprocessed')}

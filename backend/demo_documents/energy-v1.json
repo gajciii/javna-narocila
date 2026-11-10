@@ -1,0 +1,73 @@
+{
+  "id": "energy-v1",
+  "tender_id": "energy-iot",
+  "version": 1,
+  "title": "IoT platforma za spremljanje porabe energije",
+  "summary": "Razvoj spletne platforme za zbiranje podatkov senzorjev, prikaz porabe energije in avtomatska opozorila v javnih stavbah.",
+  "requirements": [
+    {
+      "id": "energy-reference",
+      "title": "Najmanj ena primerljiva energetska referenca",
+      "kind": "reference_count",
+      "page": 2,
+      "quote": "Ponudnik mora izkazati najmanj eno zaključeno referenco na področju energetskega spremljanja v zadnjih treh letih.",
+      "domain": "energy",
+      "minimum": 1,
+      "max_age_years": 3,
+      "document_id": "energy-v1"
+    },
+    {
+      "id": "energy-value",
+      "title": "Vrednost primerljive reference najmanj 80.000 EUR",
+      "kind": "reference_value",
+      "page": 2,
+      "quote": "Vrednost najmanj ene primerljive zaključene reference mora znašati vsaj 80.000 EUR brez DDV.",
+      "domain": "energy",
+      "minimum": 80000,
+      "max_age_years": 3,
+      "document_id": "energy-v1"
+    },
+    {
+      "id": "energy-staff",
+      "title": "Ekipa najmanj treh strokovnjakov",
+      "kind": "staff",
+      "page": 2,
+      "quote": "Ponudnik mora zagotoviti projektno ekipo najmanj treh strokovnjakov.",
+      "minimum": 3,
+      "document_id": "energy-v1"
+    }
+  ],
+  "criteria": [
+    {
+      "title": "Ponudbena cena",
+      "weight": 60
+    },
+    {
+      "title": "Tehnična kakovost rešitve",
+      "weight": 30
+    },
+    {
+      "title": "Načrt podpore",
+      "weight": 10
+    }
+  ],
+  "scope": "Predmet je razvoj programske platforme po meri za spremljanje porabe električne energije, vode in toplote. Rešitev vključuje integracijo obstoječih IoT senzorjev, zajem podatkov prek MQTT, REST API, spletno nadzorno ploščo in opozorila. Sama dobava merilnikov ni predmet naročila.",
+  "delivery": "Predvidena izvedba traja šest mesecev. Ponudnik pripravi analizo, prototip, produkcijsko rešitev, dokumentacijo API in usposabljanje. Podprta morata biti izvoz podatkov in pregled sprememb.",
+  "pages": [
+    {
+      "page": 1,
+      "heading": "Predmet in obseg naročila",
+      "text": "To je izmišljen razpis za predstavitev prototipa Razpisni radar. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski.\n\nPredmet je razvoj programske platforme po meri za spremljanje porabe električne energije, vode in toplote. Rešitev vključuje integracijo obstoječih IoT senzorjev, zajem podatkov prek MQTT, REST API, spletno nadzorno ploščo in opozorila. Sama dobava merilnikov ni predmet naročila.\n\nPredvidena izvedba traja šest mesecev. Ponudnik pripravi analizo, prototip, produkcijsko rešitev, dokumentacijo API in usposabljanje. Podprta morata biti izvoz podatkov in pregled sprememb."
+    },
+    {
+      "page": 2,
+      "heading": "Pogoji za sodelovanje",
+      "text": "Ponudnik mora izkazati najmanj eno zaključeno referenco na področju energetskega spremljanja v zadnjih treh letih.\n\nVrednost najmanj ene primerljive zaključene reference mora znašati vsaj 80.000 EUR brez DDV.\n\nPonudnik mora zagotoviti projektno ekipo najmanj treh strokovnjakov.\n\nVsaka referenca mora biti potrjena in primerljiva po vsebini. Če podatek ni naveden, izpolnjevanja pogoja ni mogoče potrditi. Podatki o izmišljenem demo podjetju se preverjajo ločeno od tega dokumenta."
+    },
+    {
+      "page": 3,
+      "heading": "Merila za izbor in dokazila",
+      "text": "Ponudbena cena: 60 %.\n\nTehnična kakovost rešitve: 30 %.\n\nNačrt podpore: 10 %.\n\nMerila za izbor se uporabijo za vrednotenje ponudb. Izpolnitev pogojev za sodelovanje je ločena presoja. Ponudnik predloži seznam referenc, opis projektne ekipe, predlog izvedbe in finančno ponudbo.\n\nDatumi objave in roki so za demonstracijo prikazani v aplikaciji. Dokument služi preverjanju ekstrakcije besedila, strani in dokazov."
+    }
+  ]
+}

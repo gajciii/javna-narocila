@@ -1,0 +1,60 @@
+{
+  "id": "sport-v1",
+  "tender_id": "sport-portal",
+  "version": 1,
+  "title": "Spletni portal za upravljanje športnih tekmovanj",
+  "summary": "Spletna platforma za prijavo tekmovalcev, urnike, rezultate v živo in integracijo merilnih sistemov.",
+  "requirements": [
+    {
+      "id": "sport-reference",
+      "title": "Zaključena primerljiva športna referenca",
+      "kind": "reference_count",
+      "page": 2,
+      "quote": "Ponudnik mora izkazati najmanj eno zaključeno referenco razvoja spletne platforme za športna tekmovanja v zadnjih treh letih.",
+      "domain": "sport",
+      "minimum": 1,
+      "max_age_years": 3,
+      "document_id": "sport-v1"
+    },
+    {
+      "id": "sport-value",
+      "title": "Športna referenca v vrednosti vsaj 60.000 EUR",
+      "kind": "reference_value",
+      "page": 2,
+      "quote": "Primerljiva referenca mora imeti vrednost najmanj 60.000 EUR brez DDV; dokazilo mora vsebovati vrednost in datum zaključka.",
+      "domain": "sport",
+      "minimum": 60000,
+      "max_age_years": 3,
+      "document_id": "sport-v1"
+    }
+  ],
+  "criteria": [
+    {
+      "title": "Ponudbena cena",
+      "weight": 70
+    },
+    {
+      "title": "Uporabniška izkušnja in načrt izvedbe",
+      "weight": 30
+    }
+  ],
+  "scope": "Naročnik potrebuje razvoj spletne aplikacije za organizacijo športnih tekmovanj. Rešitev vključuje prijave tekmovalcev, upravljanje kategorij, rezultate v realnem času, mobilno prilagoditev in povezovanje merilne opreme prek API. Administracija mora omogočati vloge organizatorja, sodnika in urednika.",
+  "delivery": "Predvidena izvedba traja štiri mesece. Obvezna sta uvoz obstoječih rezultatov in preizkus na demonstracijskem tekmovanju. Datum in vrednost primerljive reference sta potrebna za presojo referenčnega pogoja.",
+  "pages": [
+    {
+      "page": 1,
+      "heading": "Predmet in obseg naročila",
+      "text": "To je izmišljen razpis za predstavitev prototipa Razpisni radar. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski.\n\nNaročnik potrebuje razvoj spletne aplikacije za organizacijo športnih tekmovanj. Rešitev vključuje prijave tekmovalcev, upravljanje kategorij, rezultate v realnem času, mobilno prilagoditev in povezovanje merilne opreme prek API. Administracija mora omogočati vloge organizatorja, sodnika in urednika.\n\nPredvidena izvedba traja štiri mesece. Obvezna sta uvoz obstoječih rezultatov in preizkus na demonstracijskem tekmovanju. Datum in vrednost primerljive reference sta potrebna za presojo referenčnega pogoja."
+    },
+    {
+      "page": 2,
+      "heading": "Pogoji za sodelovanje",
+      "text": "Ponudnik mora izkazati najmanj eno zaključeno referenco razvoja spletne platforme za športna tekmovanja v zadnjih treh letih.\n\nPrimerljiva referenca mora imeti vrednost najmanj 60.000 EUR brez DDV; dokazilo mora vsebovati vrednost in datum zaključka.\n\nVsaka referenca mora biti potrjena in primerljiva po vsebini. Če podatek ni naveden, izpolnjevanja pogoja ni mogoče potrditi. Podatki o izmišljenem demo podjetju se preverjajo ločeno od tega dokumenta."
+    },
+    {
+      "page": 3,
+      "heading": "Merila za izbor in dokazila",
+      "text": "Ponudbena cena: 70 %.\n\nUporabniška izkušnja in načrt izvedbe: 30 %.\n\nMerila za izbor se uporabijo za vrednotenje ponudb. Izpolnitev pogojev za sodelovanje je ločena presoja. Ponudnik predloži seznam referenc, opis projektne ekipe, predlog izvedbe in finančno ponudbo.\n\nDatumi objave in roki so za demonstracijo prikazani v aplikaciji. Dokument služi preverjanju ekstrakcije besedila, strani in dokazov."
+    }
+  ]
+}
