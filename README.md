@@ -1,6 +1,6 @@
 # Razpisni radar
 
-Lokalni hackathon prototip, ki poveže javne razpise s profilom podjetja ter pokaže razloge, pogoje in spremembe. Splošna rešitev v slovenščini, z izmišljenim tehnološkim podjetjem in jasno označenimi demo podatki.
+Lokalni hackathon prototip, ki poveže javne razpise s profilom podjetja ter pokaže razloge, pogoje in spremembe. Vključuje delujoč zajem e-Naročanja in jasno označene demo primere. Bizi še ni povezan: potreben je odobren API dostop in tehnična dokumentacija.
 
 ## Hiter zagon
 
@@ -25,6 +25,14 @@ docker compose up --build
 
 Aplikacija je na istem naslovu **http://localhost:5174**. SQLite, naložene datoteke in uporabniške spremembe ostanejo v nosilcu `radar-data`. Zaustavitev: `docker compose down`. Potreben je delujoč Docker Engine oziroma Docker Desktop. API ni objavljen neposredno zunaj Docker omrežja; spletni port je vezan na lokalni računalnik.
 
+Za samodejni zajem ob zagonu in nato vsakih 12 ur vključite dodatni proces:
+
+```bash
+docker compose --profile sync up --build
+```
+
+Privzeti zagon zunanjega portala ne osvežuje samodejno. Docker uporablja svoj podatkovni nosilec; podatki lokalnega Python zagona se vanj ne prenesejo samodejno.
+
 ## Kaj lahko preizkusite
 
 - **Razpisi:** vsebinska priporočila, kombiniranje naprednih filtrov, shranjena iskanja, sortiranje in spremljanje.
@@ -45,23 +53,50 @@ Aplikacija je na istem naslovu **http://localhost:5174**. SQLite, naložene dato
 
 ## Podatki in meje prototipa
 
-V naboru je šest **izmišljenih demo razpisov** in en **resničen arhivski zapis**. Za tri demo razpise so priloženi kratki besedilni PDF-ji, satelitski razpis pa ima še popravljeno različico. Demo datumi se ob prvi pripravi oziroma ponastavitvi izračunajo glede na datum v časovnem pasu Europe/Ljubljana. Datumi resničnega arhiva se ne premikajo.
+Začetni nabor vsebuje šest **izmišljenih demo razpisov** in en **resničen arhivski zapis**. Zajem doda dejanske objave. S filtrom **Izvor podatkov → e-Naročanje / Demo primeri** jih lahko ločite. Za tri demo razpise so priloženi kratki besedilni PDF-ji, satelitski razpis pa ima še popravljeno različico. Demo datumi se ob prvi pripravi oziroma ponastavitvi izračunajo glede na datum v časovnem pasu Europe/Ljubljana. Datumi resničnega arhiva se ne premikajo. Ponastavitev demo stanja ohrani resnične uvožene objave in njihova obvestila.
 
 Arhivski zapis je »Razvoj in vzdrževanje spletne platforme IJS z informacijskim in uredniškim sistemom«, `JN006195/2026-EUe16/01`, z rokom 7. 9. 2026 ob 10.00 ter stanjem **Ustavljeno**, preverjenim 10. 11. 2026. Ne predstavlja aktualne priložnosti. [Izvorni e-JN zapis](https://ejn.gov.si/ponudba/pages/aktualno/aktualno_jnc_podrobno.xhtml?zadevaId=77669).
 
 ### Zajem e-Naročanje
 
-Uvoz po ID-ju oziroma URL-ju uporablja uradni endpoint za posamezno objavo. Adapter shranjuje izvorni odziv in omejuje zunanje sinhronizacije na največ dvakrat dnevno. Dostop do zunanjega vira lahko v omrežju odpove; aplikacija takrat vrne označen shranjen arhivski primer ali jasno napako, ne izmišljene nove objave. Celovit zajem seznama novih objav in vseh zunanjih prilog ni del te različice.
+V zgornji vrstici izberite **e-Naročanje**:
+
+- **Nove objave:** prenese največ 20 zadnjih objav iz zadnjih sedmih dni in preveri zadnje različice do 30 spremljanih dosjejev. Priloge prvih treh objav se prenesejo samodejno.
+- **Po povezavi:** uvozi eno objavo po ID-ju oziroma URL-ju, skupaj z dostopno dokumentacijo na portalu.
+
+Oba načina in samodejni proces si delijo omejitev **dveh zagonov zajema na slovenski koledarski dan**. Štejejo tudi neuspešni zagoni. Stanje povezave, datum zadnjega uspešnega zajema in preostali zagoni so vidni v oknu uvoza. En zagon lahko vsebuje več zahtev. Omejitev prototipa je največ 50 objav na ročni CLI zagon, do 30 spremljanih dosjejev in približno minuta obdelave; delni zajem je označen. To ni celovita zgodovina vseh javnih naročil.
+
+Zajem lahko zaženete tudi iz korena projekta:
+
+```bash
+.venv/bin/python backend/manage.py sync_pjn
+.venv/bin/python backend/manage.py sync_pjn --notice 'https://www.enarocanje.si/#/pregled-objav/1229976'
+.venv/bin/python backend/manage.py sync_pjn --watch
+```
+
+Izberite ustrezen ukaz; vsak neposredni zajem porabi en dnevni zagon. `--watch` zajema ob zagonu in vsakih 12 ur, dokler proces teče. Pri običajnem `./scripts/dev.sh` samodejni zajem ni vključen.
+
+Adapter uporablja javni API uradnega portala, shranjuje izvorne odzive ter povezuje različice po dosjeju. Ponovni uvoz iste različice ne doda obvestila, starejša objava pa ne prepiše novejše. Spremembe spremljanih dosjejev ustvarijo obvestilo tudi po zaključku naročila. Če prejšnja različica še ni shranjena, pokažemo izvorni opis popravka brez izmišljene primerjave.
+
+Preslikava polj in šifranti CPV, vrste naročila, faze, lokacije ter valute so preverjeni na dejanskih odzivih. Posnetek šifrantov je v `backend/source_data/pjn-codelists.json`, zajet 10. 11. 2026; ne osvežuje se samodejno. Neznane vrednosti ostanejo neznane. Status objave »Objavljen« sam ne pomeni odprtega roka. Širša CPV kategorija sama ne zadošča za visoko vsebinsko ujemanje; trenutno gre za razložljivo hevristiko, ne za potrjeno presojo sposobnosti podjetja.
+
+Ob omrežni napaki se ohranijo shranjeni podatki in pokaže opozorilo. Uspešen zajem metapodatkov ne pomeni, da so že preverjeni vsi pogoji dokumentacije.
 
 Vir: **Javne informacije Slovenije – portal javnih naročil**. [OPSI: dokumentacija API in pogoji ponovne uporabe](https://podatki.gov.si/dataset/api-pjn).
 
 ### Predizpolnitev podjetja
 
-Predizpolnitev je **demo adapter**, ki uporablja izmišljene podatke in ne dostopa do Bizi. Pred shranjevanjem uporabnik vidi predogled. Pravi Bizi API zahteva ustrezen dostop in dogovor; ni delujoč brez njiju. [Bizi API](https://www.bizi.si/storitve/API-dostop/).
+**Bizi ni povezan.** API dostopa še nimamo. Profil zato omogoča ročni vnos in posebej označen gumb **Demo predloga**, ki pred uporabo pokaže izmišljene podatke. Zahteva za pravo predizpolnitev vrne `503 bizi_access_required`; za poljubno iskano podjetje ne vrne demo podjetja.
+
+Za naslednji korak potrebujemo odobren Bizi API dostop in njegovo tehnično dokumentacijo (endpoint, avtentikacija, shema in dovoljeni obseg). Šele nato lahko izvedemo in preverimo pravi adapter. Ključi sodijo v lokalni `.env`, nikoli v Git. Aplikacija ne strga spletnih profilov Bizi. [Bizi API](https://www.bizi.si/storitve/API-dostop/).
 
 ### Dokumenti in razlaga
 
-`pypdf` izlušči besedilo po straneh. Priložene datoteke JSON vsebujejo pričakovano strukturirano demo analizo; povezave na dokaze se preverijo glede na dejansko izluščeno besedilo PDF-ja. Skenirani PDF-ji brez besedila in nepodprte priloge ostanejo označeni kot neobdelani. Vsebinsko ujemanje je ločeno od preverjanja obveznih pogojev; manjkajoči podatki niso dokaz izpolnitve. Analiza zajema obdelane pogoje, ne zagotavlja popolnosti celotne dokumentacije ali uspeha prijave.
+Zajem prenese javne priloge z uradne poti `/api/datoteka/get`. Podpira besedilne PDF-je in ZIP arhive. Omejitve: 10 MB na prenos, do 30 datotek in 20 MB razpakirane vsebine, do 150 strani na PDF. Zunanje povezave na druge strežnike in omejeno dostopna dokumentacija zahtevajo ročni pregled. Word, Excel, skenirani ali zaščiteni dokumenti ostanejo označeni kot neobdelani.
+
+`pypdf` izlušči besedilo po straneh. **Prenos besedila in AI analiza pogojev sta ločena koraka.** Za dejansko AI ekstrakcijo potrebujete ključ ter gumb za osvežitev analize na zavihku Pogoji. Brez ključa se pogoji resničnih dokumentov ne izmišljajo. Priložene demo datoteke JSON vsebujejo pripravljeno strukturirano analizo; povezave na dokaze se preverijo glede na dejansko besedilo PDF-ja. Stara dokumentacija ne potrjuje pogojev nove različice objave.
+
+Vsebinsko ujemanje je ločeno od preverjanja obveznih pogojev; manjkajoči podatki niso dokaz izpolnitve. Analiza zajema obdelane pogoje, ne zagotavlja popolnosti celotne dokumentacije ali uspeha prijave.
 
 Demo PDF-je lahko ponovno ustvarite z:
 
@@ -94,6 +129,8 @@ Skripta izvede Django sistemski pregled, teste domenske logike/API, TypeScript p
 
 Projekt je organiziran v `frontend/` in `backend/`. Vmesniki in podatkovni objekti so opisani v [CONTRACT.md](CONTRACT.md). SQLite podatki, naložene datoteke, ključi in razvojno okolje niso vključeni v izvorno kodo.
 
-Preverjeno pri izvedbi: 50 avtomatskih testov, produkcijska gradnja, lokalni zagon ter ključni uporabniški tokovi v namiznem in mobilnem prikazu brskalnika. Konfiguracija Compose je veljavna; zagon vsebnikov ni bil preverjen, ker Docker Engine ni bil zagnan. Živi OpenAI klici niso bili preizkušeni brez ključa. Dostop do API e-Naročanje je v razvojnem omrežju vrnil napako posredniškega strežnika HTTP 407, zato je adapter preverjen s testnimi odzivi in shranjenim arhivom; dejansko obliko živega odziva je treba potrditi ob uspešni povezavi.
+Preverjeno pri izvedbi: 59 avtomatskih testov, produkcijska gradnja in lokalni zagon. **Živi zajem e-Naročanja je bil uspešno izveden 10. 11. 2026:** 20 novih resničnih zapisov, 6 shranjenih datotek, 94 strani izluščenega besedila in 2 neobdelani prilogi. Ti prenosi so v lokalni bazi in medijskih datotekah, ne v Gitu; nov klon projekta jih pridobi z zajemom. Testi uporabljajo tudi vzorčna odziva dejanskega API-ja.
 
-To je lokalni prototip z enim uporabnikom. Produkcijska prijava, izolacija podjetij, pošiljanje e-pošte, OCR in celovit samodejni zajem so nadaljnji koraki pred javno uporabo.
+Konfiguracija Compose je veljavna; zagon vsebnikov ni bil preverjen, ker Docker Engine ni bil zagnan. Živi OpenAI klici niso bili preizkušeni brez ključa. Bizi ni bil povezan brez dostopa in dokumentacije.
+
+To je lokalni prototip z enim uporabnikom. Produkcijska prijava, izolacija podjetij, pošiljanje e-pošte, OCR in celovit zajem vseh objav ter prilog so nadaljnji koraki pred javno uporabo.

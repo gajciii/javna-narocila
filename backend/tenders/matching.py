@@ -16,8 +16,9 @@ GROUPS = {
     'software': ['programsk', 'spletn', 'aplikacij', 'software', 'web', 'portal', 'informacijsk', 'react', 'django', 'vue', 'asp.net'],
     'iot': ['iot', 'senzor', 'integracij', 'digitalni dvoj', 'spremljanje', 'avtomatizacij', 'websocket'],
     'data': ['podatkov', 'analitik', 'analiz', 'satelit', 'umetna inteligenca', ' ai ', 'machine learning'],
-    'construction': ['gradben', 'gradnja', 'novograd', 'rekonstruk', 'sanacij', 'gradnje'],
+    'construction': ['gradben', 'gradnja', 'novograd', 'izgradnj', 'rekonstruk', 'sanacij', 'gradnje'],
     'supply': ['dobava', 'prodaja', 'trgovina', 'licenc', 'distribucij'],
+    'cybersecurity': ['kibernetsk', 'cybersecurity', 'penetracijsk', 'informacijska varnost'],
 }
 
 
@@ -31,21 +32,32 @@ def content_match(data, profile):
     company_text = ' '.join([profile.get('description', ''), profile.get('activity', '')] + expertise)
     company_categories = categories(company_text)
     tender_text = ' '.join(data.get('topics', []))
-    tender_categories = categories(tender_text or data.get('summary', ''))
+    real_source = data.get('source_type') == 'real'
+    # Imported topics are CPV labels, including broad category descriptions.
+    # Only the actual subject may establish a strong content match.
+    subject = ' '.join([data.get('title', ''), data.get('summary', '')])
+    tender_categories = categories(subject if real_source else tender_text or data.get('summary', ''))
+    cpv_overlap = categories(tender_text) & company_categories if real_source else set()
     overlap = company_categories & tender_categories
     tech = sorted(set(map(text_normalize, profile.get('technologies', []))) & set(map(text_normalize, data.get('technologies', []))))
     if tender_categories:
         score = round(20 + 65 * len(overlap) / len(tender_categories) + min(10, len(tech) * 3))
     else:
         score = 35
-    matched_topics = [topic for topic in data.get('topics', []) if categories(topic) & company_categories or any(text_normalize(topic) in text_normalize(k) for k in expertise)]
+    matched_topics = [topic for topic in data.get('topics', []) if categories(topic) & company_categories or any(text_normalize(topic) in text_normalize(k) for k in expertise)] if not real_source else []
     if not overlap and not tech:
-        score = 18
+        score = 45 if cpv_overlap else 18
     if data.get('kind') == 'goods' and 'supply' not in company_categories:
+        score = min(score, 25)
+    if data.get('kind') == 'works' and 'construction' not in company_categories:
         score = min(score, 25)
     score = max(0, min(score, 99))
     level = 'high' if score >= 70 else 'medium' if score >= 40 else 'low'
     reasons = []
+    if real_source and overlap:
+        reasons.append('Naslov in opis naročila se vsebinsko ujemata z opisanimi dejavnostmi podjetja.')
+    elif real_source and cpv_overlap:
+        reasons.append('Ujema se širša CPV kategorija; konkretna storitev zahteva dodatno vsebinsko presojo.')
     if matched_topics:
         reasons.append('Predmet se ujema s področji podjetja: ' + ', '.join(matched_topics[:3]) + '.')
     if tech:
@@ -55,6 +67,8 @@ def content_match(data, profile):
         reasons = ['Predmet naročila se slabo ujema z opisanimi dejavnostmi podjetja.']
         if data.get('kind') == 'goods':
             reasons.append('Poudarek je na dobavi, profil podjetja pa opisuje razvoj in izvedbo rešitev.')
+        elif data.get('kind') == 'works' and 'construction' not in company_categories:
+            reasons.append('Naročilo je namenjeno gradbenim delom, profil pa ne navaja gradbenih dejavnosti.')
     if not reasons:
         reasons = ['Za natančnejšo vsebinsko presojo dopolnite profil podjetja.']
     if len(reasons) == 1:
@@ -145,7 +159,10 @@ def serialize_tender(tender, profile):
     status = effective_status(data)
     has_unknown = any(c['status'] == 'unknown' for c in conditions)
     has_unmet = any(c['status'] == 'unmet' for c in conditions)
-    if status != 'open':
+    if status == 'unconfirmed':
+        recommendation = 'review'
+        open_question = 'Stanje in rok za prijavo nista potrjena. Preverite izvorno objavo.'
+    elif status != 'open':
         recommendation = 'closed'
         open_question = 'Naročilo ni odprto za prijavo.'
     elif level == 'low' or has_unmet:
@@ -159,7 +176,7 @@ def serialize_tender(tender, profile):
         open_question = 'Preverite dokazila in razpoložljivost ekipe pred odločitvijo.'
     lots = []
     for lot in data.get('lots', []):
-        lot_level, _, _ = content_match({**data, 'topics': lot.get('topics', []), 'summary': lot['summary'], 'technologies': [], 'kind': 'goods' if 'oprem' in text_normalize(lot['title']) else 'services'}, profile)
+        lot_level, _, _ = content_match({**data, 'title': lot['title'], 'topics': lot.get('topics', []), 'summary': lot['summary'], 'technologies': [], 'kind': lot.get('kind') or ('goods' if 'oprem' in text_normalize(lot['title']) else 'services')}, profile)
         lots.append({**lot, 'match_level': lot_level})
     criteria = next((doc.extraction['criteria'] for doc in docs if doc.extraction.get('criteria')), data.get('criteria', []))
     preference_notes = []

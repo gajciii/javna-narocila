@@ -75,17 +75,18 @@ def seed_tenders():
 @transaction.atomic
 def ensure_seed(reset=False):
     if reset:
-        Notification.objects.all().delete()
+        Notification.objects.filter(is_demo=True).delete()
         DemoEvent.objects.all().delete()
         SavedSearch.objects.all().delete()
-        Tender.objects.all().delete()
+        Tender.objects.filter(data__source_type='demo').delete()
         CompanyProfile.objects.all().delete()
     if not CompanyProfile.objects.filter(pk=1).exists():
         CompanyProfile.objects.create(pk=1, data=demo_profile())
-    if not Tender.objects.exists():
+    if reset or not Tender.objects.exists():
         for data in seed_tenders():
-            tender = Tender.objects.create(id=data['id'], data=data, following=data['id'] in ['satellite', 'sport-portal'])
-            TenderVersion.objects.create(tender=tender, version=1, data=data)
+            tender, created = Tender.objects.get_or_create(id=data['id'], defaults={'data': data, 'following': data['id'] in ['satellite', 'sport-portal']})
+            if created:
+                TenderVersion.objects.create(tender=tender, version=1, data=data)
         SavedSearch.objects.create(name='Digitalne priložnosti', filters={'q': 'spletna platforma, integracija, IoT', 'statuses': ['open'], 'min_days': 14, 'view': 'all', 'include_unknown': True})
     from .documents import load_demo_documents
     load_demo_documents()

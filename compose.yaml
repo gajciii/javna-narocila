@@ -23,6 +23,18 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+  pjn-sync:
+    profiles: [sync]
+    build: ./backend
+    command: ["python", "manage.py", "sync_pjn", "--watch"]
+    environment:
+      DATABASE_PATH: /data/db.sqlite3
+      MEDIA_ROOT: /data/media
+    volumes:
+      - radar-data:/data
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   radar-data:

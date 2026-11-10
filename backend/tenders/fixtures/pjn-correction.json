@@ -1,0 +1,303 @@
+{
+  "id": 1230067,
+  "idDosje": 708911,
+  "idObrazecStatus": 100,
+  "obrazecStatusNaziv": "Objavljen",
+  "naslov": "Nadgradnja ČN Šentilj – sever in ČN Šentilj – jug",
+  "kratekOpis": "Predmet javnega naročila je »Nadgradnja ČN Šentilj – sever in ČN Šentilj – jug«.  \nSKLOP 1: ČN Šentilj - sever, ki vključuje nadgradnjo čistilne naprave Šentilj – sever, in sicer:\n•\tnadgradnjo na terciarno stopnjo čiščenja (1.990 PE), \n•\tvzpostavitev sistema za zadrževanje prvega padavinskega vala ter \n•\tizgradnjo solarne elektrarne.\n\nSKLOP 2: ČN Šentilj - jug, ki vključuje nadgradnjo čistilne naprave Šentilj – jug, in sicer:\n•\tpovečanje zmogljivosti iz 1.000 PE in nadgradnjo na terciarno stopnjo čiščenja (oboje na 1.660 PE) ter\n•\tvzpostavitev sistema za zadrževanje prvega padavinskega vala.",
+  "idSifNarociloVrsta": 3,
+  "idSifCpv": 6402,
+  "vrednostOcenjenaBrezDDV": null,
+  "idSifValutaOcenjenaBrezDDV": null,
+  "razpisnaDokumentacijaURL": "https://www.enarocanje.si/api/datoteka/get?id=NjY2MTkzOzAxLjFfUG9nbGF2amVfMV_FoGVudGlsaiDEjE5fTmF2b2RpbGFfUG9wcmF2ZWsgMS5wZGY",
+  "dokumentacijaDostopOmejen": false,
+  "datumDoPonudba": "2026-11-20T10:00:00",
+  "objavaDejanskaDatum": "2026-11-10T14:58:54.193",
+  "objavaIdent": "JN008704/2026-SL1/01-P01",
+  "idSifPostopekFaza": 3,
+  "idObrazecPrejPopravek": 1227844,
+  "popravekOpis": "Podaljšanje roka za sprejem ponudb in datuma odpiranja ponudb ter sprememba dela dokumentacije v zvezi z oddajo javnega naročila.",
+  "sklopiDelitev": true,
+  "obrazecSklop": [
+    {
+      "id": 613531,
+      "idObrazec": 1230067,
+      "vrRed": null,
+      "naslov": "ČN Šentilj - sever",
+      "opis": "ČN Šentilj - sever, ki vključuje nadgradnjo čistilne naprave Šentilj – sever, in sicer:\n•\tnadgradnjo na terciarno stopnjo čiščenja (1.990 PE), \n•\tvzpostavitev sistema za zadrževanje prvega padavinskega vala ter \n•\tizgradnjo solarne elektrarne.",
+      "idSifNarociloVrsta": 3,
+      "idSifNarociloVrstaDodatno": null,
+      "idSifCpv": 6402,
+      "opcijeInfo": null,
+      "idSifTrajanjeTip": 2,
+      "datumZacetek": null,
+      "datumKonec": null,
+      "idSifObdobjeTrajanje": 2,
+      "obdobjeTrajanje": 12,
+      "idSifObdobjeDrugo": null,
+      "podaljsanje": true,
+      "steviloPodaljsanj": 1,
+      "podaljsanjeOpis": "v skladu s predpisi in določili dokumentacije v zvezi z oddajo JN.",
+      "vrednostOcenjenaBrezDDV": null,
+      "idSifValutaOcenjenaBrezDDV": null,
+      "ponovljenoNarocilo": false,
+      "ponovitevOpis": null,
+      "idSifSklopZahtevaKvalifikacije": null,
+      "financiraEU": true,
+      "sporazumVladnaNarocila": false,
+      "malaSrednjaPodjetja": true,
+      "predhodnaObjavaIdent": null,
+      "predhodnaObjavaDelIdent": null,
+      "postopekEnaFaza": null,
+      "postopekDveFazi": null,
+      "prvaFazaDialog": null,
+      "drugaFazaKandidatiOmejitev": null,
+      "steviloDrugaFazaKandidatiMax": null,
+      "steviloDrugaFazaKandidatiMin": null,
+      "fazeManjsajoSteviloKandidatov": null,
+      "pogajanja": true,
+      "oddajaBrezPogajanj": null,
+      "meriloOpis": "V primeru, da bosta dva ali več ponudnikov v ponudbi podala enako najnižjo ponudbeno ceno, bo naročnik najugodnejšega ponudnika izbral z žrebom. Ponudnike bo naročnik pisno obvestil o žrebu in jim omogočil prisotnost na žrebu. Žreb bo potekal v prostorih naročnika. Žreb se izvede samo med ponudniki, ki so ponudili enako najnižjo ponudbeno ceno. Izmed ponudnikov, ki so ponudili enako najnižjo ponudbeno ceno bo prvouvrščen tisti ponudnik, ki bo prvi izžreban, drugo uvrščeni tisti, ki bo izžreban naslednji, do tistega, ki bo izžreban zadnji. Izbran bo ponudnik, ki je bil prvi izžreban. Ponudnikom, za katere se izvede žreb, ki pa ne bodo prisotni na žrebu, bo naročnik posredoval zapisnik žrebanja",
+      "idSifVariantaInfo": 2,
+      "idSifKatalogInfo": 2,
+      "garancijaZahtevana": false,
+      "porostvo": null,
+      "zascitenoZaposlovanje": null,
+      "izvedbaNarocila": null,
+      "idSifElektronskiRacun": 3,
+      "elektronskoNarocanje": false,
+      "elektronskoPlacilo": true,
+      "pravnaOblika": null,
+      "pogojiFinanciranja": null,
+      "pravnaOblikaVeljaZaSkupino": null,
+      "idSifPodizvajalecObveznost": null,
+      "delezMinOddajePodizvajelec": null,
+      "delezMaxOddajePodizvajelec": null,
+      "odlocitevZavezujoca": null,
+      "nagrada": null,
+      "idSifValutaNagrada": null,
+      "nagradaMesto": null,
+      "narociloDodeljenoZmagovalcu": null,
+      "idSifSporazum": 1,
+      "dolocenoSteviloUdelezencevSporazuma": null,
+      "steviloUdelezencevSporazuma": null,
+      "opisTrajanjaSporazum": null,
+      "vredostSporazum": null,
+      "idSifValutaSporazum": null,
+      "elektronskaDrazba": false,
+      "elektronskaDrazbaNaslov": null,
+      "elektronskaDrazbaOpis": null,
+      "direktivaCistaVozila": null,
+      "namen": null,
+      "uredbaTujeSubvencije": null,
+      "idSifIpiVkljucenost": null,
+      "mdTs": "2026-11-10T14:58:54.193",
+      "mdIdUporabnik": 38732,
+      "obrazecSklopCpv": [
+        {
+          "id": 6901
+        },
+        {
+          "id": 6905
+        },
+        {
+          "id": 7016
+        },
+        {
+          "id": 6693
+        },
+        {
+          "id": 6690
+        }
+      ],
+      "obrazecSklopKraj": [
+        {
+          "idSifDrzava": 1,
+          "idSifNuts": 1269,
+          "idSifKrajOmejitev": null
+        }
+      ],
+      "obrazecSklopPogoj": [],
+      "obrazecSklopMerilo": [
+        {
+          "idSifOddajaMerilo": 1,
+          "vrRed": null,
+          "naziv": null,
+          "opis": "Merilo za izbor najugodnejšega ponudnika je ekonomsko najugodnejša ponudba:\n•\tdoločena na podlagi najnižje ponudbene cene v EUR brez DDV.",
+          "idSifPonderTip": null,
+          "idSifPonderTeza": null,
+          "idSifPonderFix": null,
+          "idSifPonderPrag": null,
+          "stevilo": null
+        }
+      ],
+      "obrazecSklopDostopnost": [],
+      "obrazecSklopInovativnoNarocanje": [],
+      "obrazecSklopNavedba": [],
+      "obrazecSklopPonudbaJezik": [
+        {
+          "id": 1
+        }
+      ],
+      "obrazecSklopIzbranUdelezenec": [],
+      "obrazecSklopPridrzano": [
+        {
+          "id": 1
+        }
+      ],
+      "obrazecSklopSocialnoNarocanje": [],
+      "obrazecSklopZelenoNarocanje": [],
+      "obrazecSklopNamen": [],
+      "akcija": [],
+      "validationStatus": null,
+      "validationStatusOpis": null
+    },
+    {
+      "id": 613532,
+      "idObrazec": 1230067,
+      "vrRed": null,
+      "naslov": "ČN Šentilj - jug",
+      "opis": "ČN Šentilj - jug, ki vključuje nadgradnjo čistilne naprave Šentilj – jug, in sicer:\n•\tpovečanje zmogljivosti iz 1.000 PE in nadgradnjo na terciarno stopnjo čiščenja (oboje na 1.660 PE) ter\n•\tvzpostavitev sistema za zadrževanje prvega padavinskega vala.",
+      "idSifNarociloVrsta": 3,
+      "idSifNarociloVrstaDodatno": null,
+      "idSifCpv": 6402,
+      "opcijeInfo": null,
+      "idSifTrajanjeTip": 2,
+      "datumZacetek": null,
+      "datumKonec": null,
+      "idSifObdobjeTrajanje": 2,
+      "obdobjeTrajanje": 12,
+      "idSifObdobjeDrugo": null,
+      "podaljsanje": true,
+      "steviloPodaljsanj": 1,
+      "podaljsanjeOpis": "v skladu s predpisi in določili dokumentacije v zvezi z oddajo JN.",
+      "vrednostOcenjenaBrezDDV": null,
+      "idSifValutaOcenjenaBrezDDV": null,
+      "ponovljenoNarocilo": false,
+      "ponovitevOpis": null,
+      "idSifSklopZahtevaKvalifikacije": null,
+      "financiraEU": true,
+      "sporazumVladnaNarocila": false,
+      "malaSrednjaPodjetja": true,
+      "predhodnaObjavaIdent": null,
+      "predhodnaObjavaDelIdent": null,
+      "postopekEnaFaza": null,
+      "postopekDveFazi": null,
+      "prvaFazaDialog": null,
+      "drugaFazaKandidatiOmejitev": null,
+      "steviloDrugaFazaKandidatiMax": null,
+      "steviloDrugaFazaKandidatiMin": null,
+      "fazeManjsajoSteviloKandidatov": null,
+      "pogajanja": true,
+      "oddajaBrezPogajanj": null,
+      "meriloOpis": "V primeru, da bosta dva ali več ponudnikov v ponudbi podala enako najnižjo ponudbeno ceno, bo naročnik najugodnejšega ponudnika izbral z žrebom. Ponudnike bo naročnik pisno obvestil o žrebu in jim omogočil prisotnost na žrebu. Žreb bo potekal v prostorih naročnika. Žreb se izvede samo med ponudniki, ki so ponudili enako najnižjo ponudbeno ceno. Izmed ponudnikov, ki so ponudili enako najnižjo ponudbeno ceno bo prvouvrščen tisti ponudnik, ki bo prvi izžreban, drugo uvrščeni tisti, ki bo izžreban naslednji, do tistega, ki bo izžreban zadnji. Izbran bo ponudnik, ki je bil prvi izžreban. Ponudnikom, za katere se izvede žreb, ki pa ne bodo prisotni na žrebu, bo naročnik posredoval zapisnik žrebanja",
+      "idSifVariantaInfo": 2,
+      "idSifKatalogInfo": 2,
+      "garancijaZahtevana": false,
+      "porostvo": null,
+      "zascitenoZaposlovanje": null,
+      "izvedbaNarocila": null,
+      "idSifElektronskiRacun": 3,
+      "elektronskoNarocanje": false,
+      "elektronskoPlacilo": true,
+      "pravnaOblika": null,
+      "pogojiFinanciranja": null,
+      "pravnaOblikaVeljaZaSkupino": null,
+      "idSifPodizvajalecObveznost": null,
+      "delezMinOddajePodizvajelec": null,
+      "delezMaxOddajePodizvajelec": null,
+      "odlocitevZavezujoca": null,
+      "nagrada": null,
+      "idSifValutaNagrada": null,
+      "nagradaMesto": null,
+      "narociloDodeljenoZmagovalcu": null,
+      "idSifSporazum": 1,
+      "dolocenoSteviloUdelezencevSporazuma": null,
+      "steviloUdelezencevSporazuma": null,
+      "opisTrajanjaSporazum": null,
+      "vredostSporazum": null,
+      "idSifValutaSporazum": null,
+      "elektronskaDrazba": false,
+      "elektronskaDrazbaNaslov": null,
+      "elektronskaDrazbaOpis": null,
+      "direktivaCistaVozila": null,
+      "namen": null,
+      "uredbaTujeSubvencije": null,
+      "idSifIpiVkljucenost": null,
+      "mdTs": "2026-11-10T14:58:54.193",
+      "mdIdUporabnik": 38732,
+      "obrazecSklopCpv": [
+        {
+          "id": 6901
+        },
+        {
+          "id": 6905
+        },
+        {
+          "id": 7016
+        },
+        {
+          "id": 6693
+        },
+        {
+          "id": 6690
+        }
+      ],
+      "obrazecSklopKraj": [
+        {
+          "idSifDrzava": 1,
+          "idSifNuts": 1269,
+          "idSifKrajOmejitev": null
+        }
+      ],
+      "obrazecSklopPogoj": [],
+      "obrazecSklopMerilo": [
+        {
+          "idSifOddajaMerilo": 1,
+          "vrRed": null,
+          "naziv": null,
+          "opis": "Merilo za izbor najugodnejšega ponudnika je ekonomsko najugodnejša ponudba:\n•\tdoločena na podlagi najnižje ponudbene cene v EUR brez DDV",
+          "idSifPonderTip": null,
+          "idSifPonderTeza": null,
+          "idSifPonderFix": null,
+          "idSifPonderPrag": null,
+          "stevilo": null
+        }
+      ],
+      "obrazecSklopDostopnost": [],
+      "obrazecSklopInovativnoNarocanje": [],
+      "obrazecSklopNavedba": [],
+      "obrazecSklopPonudbaJezik": [
+        {
+          "id": 1
+        }
+      ],
+      "obrazecSklopIzbranUdelezenec": [],
+      "obrazecSklopPridrzano": [
+        {
+          "id": 1
+        }
+      ],
+      "obrazecSklopSocialnoNarocanje": [],
+      "obrazecSklopZelenoNarocanje": [],
+      "obrazecSklopNamen": [],
+      "akcija": [],
+      "validationStatus": null,
+      "validationStatusOpis": null
+    }
+  ],
+  "obrazecKraj": [
+    {
+      "idSifDrzava": 1,
+      "idSifNuts": 1269,
+      "idSifKrajOmejitev": null
+    }
+  ],
+  "obrazecCpv": [],
+  "sifObrazecNaziv": "Obvestilo o naročilu male vrednosti - splošno področje",
+  "narocnik": [
+    {
+      "naziv": "OBČINA ŠENTILJ"
+    }
+  ]
+}

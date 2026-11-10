@@ -48,6 +48,8 @@ export interface TenderDocument {
     pages: number;
     status: 'processed' | 'unprocessed';
     version: number;
+    analysis_mode?: string;
+    error?: string;
 }
 export interface Tender {
     id: string;
@@ -59,9 +61,10 @@ export interface Tender {
     value: number | null;
     published_at: string | null;
     deadline: string | null;
-    status: 'open' | 'closed' | 'cancelled';
+    status: 'open' | 'closed' | 'cancelled' | 'unconfirmed';
     source_type: 'demo' | 'real';
     source_url: string | null;
+    source_metadata?: { notice_number?: string; fetched_at?: string; attachment_url?: string; phase?: string; correction_description?: string };
     summary: string;
     description?: string;
     topics: string[];
@@ -80,7 +83,7 @@ export interface Tender {
     };
     criteria: {
         title: string;
-        weight: number;
+        weight: number | null;
     }[];
     documents: TenderDocument[];
     lots: {
@@ -129,6 +132,7 @@ export interface Filters {
     only_updates?: boolean;
     only_following?: boolean;
     statuses?: string[];
+    source_types?: string[];
     view?: 'recommended' | 'all' | 'following';
     sort?: 'match' | 'deadline' | 'newest' | 'value';
 }
@@ -147,6 +151,7 @@ export interface Bootstrap {
         ai_mode: 'demo' | 'live';
         today: string;
         last_sync: string | null;
+        integrations?: { pjn: { state: string; last_success: string | null; runs_remaining: number; real_count: number }; bizi: { state: string; message: string; url: string } };
     };
 }
 export interface Citation {

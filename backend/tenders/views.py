@@ -48,7 +48,10 @@ def prefill_view(request):
     query = request.data.get('query', '')
     if not isinstance(query, str) or len(query) > 300:
         raise ValidationError('Neveljavno iskanje podjetja.')
-    # No real Bizi request: a clearly named example, never fake scraped business facts.
+    if request.data.get('provider') != 'demo':
+        return Response({'code': 'bizi_access_required', 'message': 'Bizi API dostop še ni urejen. Podjetje vnesite ročno ali najprej uredite API dostop pri Bizi.',
+                         'url': 'https://www.bizi.si/storitve/API-dostop/'}, status=503)
+    # Explicit demo action only; a real company search must never return Lumina.
     profile = demo_profile()
     return Response({'profile': profile, 'source': 'demo', 'message': 'Prikazan je izmišljeni demo profil Lumina digital. Povezava z Bizi API ni aktivna. Podatke preverite in shranite izrecno.'})
 
@@ -163,6 +166,16 @@ def import_view(request):
     if result.get('tender') is not None:
         result['tender'] = serialize_tender(result['tender'], get_profile())
     return Response(result)
+
+
+@api_view(['POST'])
+def sync_view(request):
+    ensure_seed()
+    from .pjn_sync import sync_recent
+    try:
+        return Response(sync_recent(request.data.get('limit', 20)))
+    except ValueError as exc:
+        raise ValidationError(str(exc))
 
 
 @api_view(['POST'])

@@ -25,12 +25,14 @@ def serialize_search(item):
 
 
 def bootstrap():
+    from .pjn_sync import status as pjn_status
     profile = get_profile()
     latest = SyncAttempt.objects.filter(success=True, error='').order_by('-created_at').first()
     return {'profile': profile, 'tenders': all_tenders(profile), 'notifications': all_notifications(),
             'saved_searches': [serialize_search(s) for s in SavedSearch.objects.all()],
             'meta': {'demo': True, 'ai_mode': 'live' if ai_enabled() else 'demo', 'today': today().isoformat(),
-                     'last_sync': latest.created_at.isoformat() if latest else None}}
+                     'last_sync': latest.created_at.isoformat() if latest else None,
+                     'integrations': {'pjn': pjn_status(), 'bizi': {'state': 'access_required', 'url': 'https://www.bizi.si/storitve/API-dostop/', 'message': 'Za povezavo sta potrebna Bizi API dostop in tehnična dokumentacija ponudnika.'}}}}
 
 
 @transaction.atomic

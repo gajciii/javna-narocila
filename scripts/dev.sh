@@ -12,6 +12,7 @@ import socket, sys
 for value in sys.argv[1:]:
     try:
         with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             listener.bind(('127.0.0.1', int(value)))
     except (OSError, ValueError):
         raise SystemExit(f'Vrata {value} niso na voljo. Ustavite prejšnji zagon ali nastavite RADAR_BACKEND_PORT in RADAR_FRONTEND_PORT.')

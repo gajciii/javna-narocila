@@ -19,5 +19,6 @@ urlpatterns = [
     path('api/demo/event', views.event_view),
     path('api/demo/reset', views.reset_view),
     path('api/import', views.import_view),
+    path('api/sources/pjn/sync', views.sync_view),
     path('api/documents/<slug:document_id>', views.document_view),
 ]

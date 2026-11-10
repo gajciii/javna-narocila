@@ -67,3 +67,15 @@ class SyncAttempt(models.Model):
     success = models.BooleanField(default=False)
     raw = models.JSONField(default=dict)
     error = models.TextField(blank=True)
+
+
+class SyncRun(models.Model):
+    day = models.DateField()
+    slot = models.PositiveSmallIntegerField()
+    kind = models.CharField(max_length=20)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True)
+    result = models.JSONField(default=dict)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['day', 'slot'], name='unique_pjn_daily_slot')]

@@ -1,0 +1,173 @@
+{
+  "id": 1229976,
+  "idDosje": 709141,
+  "idObrazecStatus": 100,
+  "obrazecStatusNaziv": "Objavljen",
+  "naslov": "UVEDBA IN IZVAJANJE STORITEV OPERATIVNEGA CENTRA KIBERNETSKE VARNOSTI",
+  "kratekOpis": "UVEDBA IN IZVAJANJE STORITEV OPERATIVNEGA CENTRA KIBERNETSKE VARNOSTI",
+  "idSifNarociloVrsta": 1,
+  "idSifCpv": 8260,
+  "vrednostOcenjenaBrezDDV": 86000.0,
+  "idSifValutaOcenjenaBrezDDV": 1,
+  "razpisnaDokumentacijaURL": "https://www.enarocanje.si/api/datoteka/get?id=NjY2MTQxO1JEX05NVl9JTkZPXzIwMjZfayAoMSkuemlw",
+  "dokumentacijaDostopOmejen": false,
+  "datumDoPonudba": "2026-11-23T10:00:00",
+  "objavaDejanskaDatum": "2026-11-10T13:36:34.913",
+  "objavaIdent": "JN008907/2026-SL1/01",
+  "idSifPostopekFaza": 3,
+  "idObrazecPrejPopravek": null,
+  "popravekOpis": null,
+  "sklopiDelitev": false,
+  "obrazecSklop": [
+    {
+      "id": 613439,
+      "idObrazec": 1229976,
+      "vrRed": null,
+      "naslov": "UVEDBA IN IZVAJANJE STORITEV OPERATIVNEGA CENTRA KIBERNETSKE VARNOSTI",
+      "opis": "UVEDBA IN IZVAJANJE STORITEV OPERATIVNEGA CENTRA KIBERNETSKE VARNOSTI",
+      "idSifNarociloVrsta": 1,
+      "idSifNarociloVrstaDodatno": null,
+      "idSifCpv": 8260,
+      "opcijeInfo": null,
+      "idSifTrajanjeTip": 2,
+      "datumZacetek": null,
+      "datumKonec": null,
+      "idSifObdobjeTrajanje": 2,
+      "obdobjeTrajanje": 36,
+      "idSifObdobjeDrugo": null,
+      "podaljsanje": false,
+      "steviloPodaljsanj": null,
+      "podaljsanjeOpis": null,
+      "vrednostOcenjenaBrezDDV": 86000.0,
+      "idSifValutaOcenjenaBrezDDV": 1,
+      "ponovljenoNarocilo": false,
+      "ponovitevOpis": null,
+      "idSifSklopZahtevaKvalifikacije": null,
+      "financiraEU": false,
+      "sporazumVladnaNarocila": false,
+      "malaSrednjaPodjetja": true,
+      "predhodnaObjavaIdent": null,
+      "predhodnaObjavaDelIdent": null,
+      "postopekEnaFaza": null,
+      "postopekDveFazi": null,
+      "prvaFazaDialog": null,
+      "drugaFazaKandidatiOmejitev": null,
+      "steviloDrugaFazaKandidatiMax": null,
+      "steviloDrugaFazaKandidatiMin": null,
+      "fazeManjsajoSteviloKandidatov": null,
+      "pogajanja": false,
+      "oddajaBrezPogajanj": null,
+      "meriloOpis": "v razpisni dokumentaciji",
+      "idSifVariantaInfo": 2,
+      "idSifKatalogInfo": 2,
+      "garancijaZahtevana": false,
+      "porostvo": null,
+      "zascitenoZaposlovanje": false,
+      "izvedbaNarocila": null,
+      "idSifElektronskiRacun": 3,
+      "elektronskoNarocanje": false,
+      "elektronskoPlacilo": true,
+      "pravnaOblika": null,
+      "pogojiFinanciranja": null,
+      "pravnaOblikaVeljaZaSkupino": false,
+      "idSifPodizvajalecObveznost": null,
+      "delezMinOddajePodizvajelec": null,
+      "delezMaxOddajePodizvajelec": null,
+      "odlocitevZavezujoca": null,
+      "nagrada": null,
+      "idSifValutaNagrada": null,
+      "nagradaMesto": null,
+      "narociloDodeljenoZmagovalcu": null,
+      "idSifSporazum": 1,
+      "dolocenoSteviloUdelezencevSporazuma": null,
+      "steviloUdelezencevSporazuma": null,
+      "opisTrajanjaSporazum": null,
+      "vredostSporazum": null,
+      "idSifValutaSporazum": null,
+      "elektronskaDrazba": false,
+      "elektronskaDrazbaNaslov": null,
+      "elektronskaDrazbaOpis": null,
+      "direktivaCistaVozila": null,
+      "namen": null,
+      "uredbaTujeSubvencije": null,
+      "idSifIpiVkljucenost": null,
+      "mdTs": "2026-11-10T13:36:34.913",
+      "mdIdUporabnik": 28290,
+      "obrazecSklopCpv": [],
+      "obrazecSklopKraj": [
+        {
+          "idSifDrzava": 1,
+          "idSifNuts": 1268,
+          "idSifKrajOmejitev": null
+        }
+      ],
+      "obrazecSklopPogoj": [
+        {
+          "idSifPogojVir": 2,
+          "idSifPogojVrsta": null,
+          "vrRed": null,
+          "naziv": null,
+          "opis": null,
+          "idSifPogojUporaba": null,
+          "zmanjsanjeKandidatov": false,
+          "idSifPogojTip": null,
+          "idSifPonderTeza": null,
+          "idSifPonderPrag": null,
+          "stevilo": null
+        }
+      ],
+      "obrazecSklopMerilo": [
+        {
+          "idSifOddajaMerilo": 1,
+          "vrRed": null,
+          "naziv": "v razpisni dokumentaciji",
+          "opis": "v razpisni dokumentaciji",
+          "idSifPonderTip": null,
+          "idSifPonderTeza": null,
+          "idSifPonderFix": null,
+          "idSifPonderPrag": null,
+          "stevilo": null
+        }
+      ],
+      "obrazecSklopDostopnost": [
+        {
+          "idSifDostopnost": 2,
+          "opis": null
+        }
+      ],
+      "obrazecSklopInovativnoNarocanje": [],
+      "obrazecSklopNavedba": [],
+      "obrazecSklopPonudbaJezik": [
+        {
+          "id": 1
+        }
+      ],
+      "obrazecSklopIzbranUdelezenec": [],
+      "obrazecSklopPridrzano": [
+        {
+          "id": 1
+        }
+      ],
+      "obrazecSklopSocialnoNarocanje": [],
+      "obrazecSklopZelenoNarocanje": [],
+      "obrazecSklopNamen": [],
+      "akcija": [],
+      "validationStatus": null,
+      "validationStatusOpis": null
+    }
+  ],
+  "obrazecKraj": [
+    {
+      "idSifDrzava": 1,
+      "idSifNuts": 1268,
+      "idSifKrajOmejitev": null
+    }
+  ],
+  "obrazecCpv": [],
+  "sifObrazecNaziv": "Obvestilo o naročilu male vrednosti - splošno področje",
+  "narocnik": [
+    {
+      "naziv": "ZDRAVSTVENI DOM MURSKA SOBOTA"
+    }
+  ]
+}

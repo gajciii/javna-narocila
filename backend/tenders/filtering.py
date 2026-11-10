@@ -4,7 +4,7 @@ from .matching import text_normalize
 from .seed import today
 
 
-ARRAY_FIELDS = {'cpv', 'kinds', 'buyers', 'regions', 'levels', 'condition_states', 'statuses'}
+ARRAY_FIELDS = {'cpv', 'kinds', 'buyers', 'regions', 'levels', 'condition_states', 'statuses', 'source_types'}
 BOOL_FIELDS = {'include_unknown', 'only_new', 'only_updates', 'only_following'}
 NUMBER_FIELDS = {'min_value', 'max_value', 'min_days'}
 DATE_FIELDS = {'published_from', 'published_to', 'deadline_from', 'deadline_to'}
@@ -79,7 +79,7 @@ def apply_filters(tenders, filters):
             continue
         if filters.get('cpv') and not any(code.startswith(query.split('-')[0].rstrip('0')) for code in tender.get('cpv', []) for query in filters['cpv']):
             continue
-        if any(filters.get(key) and tender.get(field) not in filters[key] for key, field in [('kinds', 'kind'), ('buyers', 'buyer'), ('regions', 'region'), ('statuses', 'status')]):
+        if any(filters.get(key) and tender.get(field) not in filters[key] for key, field in [('kinds', 'kind'), ('buyers', 'buyer'), ('regions', 'region'), ('statuses', 'status'), ('source_types', 'source_type')]):
             continue
         if filters.get('levels') and tender['match']['level'] not in filters['levels']:
             continue

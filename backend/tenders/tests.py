@@ -224,7 +224,7 @@ class RadarTests(TestCase):
 
     def test_prefill_is_explicit_demo_and_does_not_mutate(self):
         before = get_profile()
-        result = self.client.post('/api/profile/prefill', {'query': 'poljubno podjetje'}, format='json')
+        result = self.client.post('/api/profile/prefill', {'provider': 'demo', 'query': 'poljubno podjetje'}, format='json')
         self.assertEqual(result.data['source'], 'demo')
         self.assertIn('izmišljeni', result.data['message'])
         self.assertEqual(before, get_profile())

@@ -94,6 +94,8 @@ def active_documents(tender):
     # Demo versions replace the same document family, while uploaded attachments remain additive.
     by_family = {}
     for doc in records:
+        if doc.id.startswith('pjn-doc-') and doc.version != tender.data.get('version', 1):
+            continue  # An older source PDF must not validate a corrected notice.
         family = re.sub(r'-v\d+$', '', doc.id)
         if family not in by_family or doc.version > by_family[family].version:
             by_family[family] = doc
