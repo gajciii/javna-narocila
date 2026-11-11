@@ -104,6 +104,16 @@ Podprti so besedilni PDF-ji in ZIP arhivi: največ 10 MB na datoteko, 30 članov
 
 Za živo analizo kopirajte `.env.example` v `.env` in nastavite `OPENROUTER_API_KEY` (privzeti model `openai/gpt-6-luna`, spremenljiv z `OPENROUTER_MODEL`) ali `OPENAI_API_KEY` in `OPENAI_MODEL`, nato znova zaženite backend. Če sta nastavljena oba, ima prednost OpenRouter; zahteve gredo samo k ponudnikom s strukturiranim izhodom, ki ne zbirajo podatkov za učenje. Citati v odgovorih se dobesedno preverijo proti strani dokumenta, sicer je prikazan demo odgovor. Ključ ostane na strežniku; `.env` ni v Gitu. Model prejme ustrezne podatke profila in dokumentacije. Brez ključa se uporabljajo pripravljene demo analize in označeni demo odgovori; pogojev resničnih dokumentov aplikacija ne izmišljuje.
 
+### Primerjava vsebinskega ujemanja
+
+Orodje za razvijalce izmeri, kako dobro trije pristopi presodijo vsebinsko primernost razpisa: sedanja pravila s ključnimi besedami, LLM (OpenRouter oziroma OpenAI) in [Gemini Decisions API](https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/). Aplikacije ne spreminja.
+
+1. `backend/manage.py relevance_eval export` zapiše `backend/eval/relevance_labels.csv`: vsak resničen razpis iz baze v paru s štirimi **izmišljenimi** profili (IT, ceste, tiskarna, optična omrežja). Ponovni izvoz po novem zajemu doda nove vrstice in ohrani oznake.
+2. V stolpec `label` vpišite `primeren` (jedrna dejavnost, podjetje bi naročilo izvedlo samo), `delno` (sorodno področje, potreben partner) ali `neprimeren`; dovolj so tudi `p`, `d`, `n`. Presojate samo predmet naročila, ne pogojev, vrednosti ali roka. Oznake naj določi človek, ne model.
+3. `backend/manage.py relevance_eval run --show-errors` izpiše točnost, makro F1, natančnost in priklic za »primeren«, hude napake (primeren ↔ neprimeren) ter Brierjevo oceno za verjetnostne napovedi. `--out tmp/rezultati.json` shrani napovedi po vrsticah.
+
+LLM se uporabi, če je nastavljen `OPENROUTER_API_KEY` ali `OPENAI_API_KEY`. Gemini zahteva `GEMINI_API_KEY` (model `GEMINI_DECISION_MODEL`, privzeto `gemini-decision-1`). Brez ključa se pristop preskoči. Ponudnikom se pošiljajo samo izmišljeni profili in javni metapodatki razpisov, nikoli shranjeni profil podjetja. Pri brezplačni ravni Gemini API lahko Google vsebino uporabi za izboljšave.
+
 ### Podjetja, partnerji in demo podatki
 
 AJPES/OPSI povezava uporablja javni nabor PRS brez API ključa. Predizpolni samo **naziv, matično številko in naslov**. Rezultati se hranijo 24 ur. [Vir in licenca CC BY 4.0](https://podatki.gov.si/dataset/poslovni-register-slovenije).
@@ -128,6 +138,7 @@ Partnerji prispevajo samo podatke s podprtimi dokazili. Uporabniška potrditev n
 | `backend/tenders/improvements.py`, `partners.py` | Razvojni načrti in partnerski potencial |
 | `backend/tenders/espd.py`, `frontend/src/Espd.tsx` | ESPD osnutek |
 | `backend/tenders/website.py`, `frontend/src/WebsiteImport.tsx` | Predlogi profila s spletne strani podjetja |
+| `backend/tenders/relevance_eval.py`, `backend/eval/` | Primerjava pristopov za vsebinsko ujemanje na označenem naboru |
 | `backend/demo_documents/`, `source_data/` | Demo dokumentacija in šifranti |
 | `scripts/` | Priprava, zagon in preverjanje za Bash |
 
