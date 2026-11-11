@@ -129,13 +129,17 @@ Vir: **Javne informacije Slovenije – portal javnih naročil**. [OPSI: dokument
 3. Preverite predogled in izberite **Uporabi podatke**. V obrazec se prenesejo **naziv, matična številka in naslov**.
 4. Dopolnite dejavnost, spletno stran, reference, kadre in tehnologije ter izberite **Shrani in osveži priporočila**.
 
-Odprti nabor ne vsebuje dejavnosti SKD, spletne strani, prihodkov, referenc, certifikatov ali zmogljivosti. Teh podatkov ne sklepamo iz naziva. Ob izbiri drugega podjetja se obrazec začne brez prejšnjih referenc in kompetenc, kar je v predogledu izrecno navedeno. Osvežitev iste matične številke ohrani uporabniške dopolnitve. Iskanje in predogled ne spreminjata shranjenega profila; podatki se shranijo šele z uporabnikovo potrditvijo obrazca.
+Odprti nabor ne vsebuje dejavnosti SKD, spletne strani (dejavnost lahko predlagate s [spletne strani](#predlogi-s-spletne-strani-podjetja)), prihodkov, referenc, certifikatov ali zmogljivosti. Teh podatkov ne sklepamo iz naziva. Ob izbiri drugega podjetja se obrazec začne brez prejšnjih referenc in kompetenc, kar je v predogledu izrecno navedeno. Osvežitev iste matične številke ohrani uporabniške dopolnitve. Iskanje in predogled ne spreminjata shranjenega profila; podatki se shranijo šele z uporabnikovo potrditvijo obrazca.
 
 Vsako uvoženo osnovno polje ima oznako vira. Ročna sprememba polja spremeni njegovo oznako v uporabniški vnos. Izvor, datum prevzema, datum posodobitve metapodatkov zbirke in licenca se ohranijo po osvežitvi aplikacije. Prisotnost v objavljenem naboru sama ne potrjuje trenutnega statusa, bonitete ali sposobnosti podjetja za prijavo.
 
 Iskanje uporablja OPSI `datastore_search`, vrne največ 20 zadetkov in pokaže skupno število. Pri imenu gre za besedilno iskanje po naboru; za natančen zadetek uporabite matično številko. Iskanje podjetij ne porablja dnevnih zagonov e-Naročanja. Odgovore hranimo lokalno 24 ur, zato ponovljeno iskanje ne povzroči nove zunanje zahteve. Ob izpadu se že shranjeni rezultati prikažejo z opozorilom in prvotnim datumom; če shranjenega rezultata ni, aplikacija jasno sporoči napako in omogoča ročni vnos. Nobeno neuspešno iskanje ne vrne izmišljenega podjetja. **Demo predloga** ostaja ločen, izrecen gumb.
 
 Vir: **Poslovni register Slovenije, AJPES, prek OPSI**, licenca **CC BY 4.0**. [Zbirka in pogoji ponovne uporabe](https://podatki.gov.si/dataset/poslovni-register-slovenije), [opis odprtega nabora pri AJPES](https://www.ajpes.si/registri/poslovni_register/splosno). Bizi je odstranjen iz uporabniškega toka in ni potreben.
+
+### Predlogi s spletne strani podjetja
+
+V **Profilu podjetja** vnesite spletno stran in izberite **Preberi stran**. Aplikacija prebere domačo stran in do sedem podstrani istega spletišča (storitve, o nas, reference; blog, kontakt in pravne strani preskoči) ter predlaga dejavnost, opis, strokovna področja, tehnologije in ključne besede. Vsak predlog ima citat in povezavo do strani, s katere izvira. Brez API ključa gre za pregledno iskanje po ključnih besedah; z ključem AI predlog obdržimo le, če se njegov citat dobesedno pojavi na strani. Stavki z zanikanjem in mnenja strank niso dokaz. Tehnologije, zaznane samo v kodi strani, so posebej označene. Izbrane predloge prenesete v obrazec, shranijo pa se šele s potrditvijo profila. Reference, kadrov, prihodkov in certifikatov s spletne strani ne sklepamo. Dovoljeni so le javni naslovi http(s); notranji in zasebni naslovi so zavrnjeni.
 
 ### Dokumenti in razlaga
 
@@ -157,14 +161,25 @@ Za generiranje potrebujete DejaVu Sans na Linuxu ali Arial na macOS; že vključ
 
 Brez API ključa aplikacija deluje v jasno označenem **demo načinu** z odgovori, sestavljenimi iz trenutnega profila, analiz in izvornih odlomkov.
 
-Za žive strežniške klice kopirajte `.env.example` v `.env` in nastavite:
+Za žive strežniške klice kopirajte `.env.example` v `.env` in nastavite enega od ponudnikov.
+
+**OpenRouter** (en ključ za modele različnih ponudnikov):
+
+```dotenv
+OPENROUTER_API_KEY=sk-or-...
+OPENROUTER_MODEL=openai/gpt-6-luna
+```
+
+**OpenAI** neposredno:
 
 ```dotenv
 OPENAI_API_KEY=vas-kljuc
 OPENAI_MODEL=gpt-4.1-mini
 ```
 
-Znova zaženite Django oziroma Docker. Model je nastavljiv. Ključ se nikoli ne pošlje brskalniku in `.env` je izključen iz različic. Integracija uporablja Responses API, JSON Schema in strežniško preverjanje sklicev; pri nedosegljivem modelu je prehod na demo odgovor označen. Živi model prejme ustrezne podatke profila in odlomke dokumentacije, zato za javni demo uporabljajte izmišljene podatke.
+Če sta nastavljena oba ključa, ima prednost OpenRouter. Znova zaženite Django oziroma Docker. Model je nastavljiv. Privzeti OpenRouter model je `openai/gpt-6-luna` (0,10 $ vhod / 0,50 $ izhod na milijon žetonov), poceni model z zanesljivim strukturiranim izhodom. Drug model mora podpirati strukturiran izhod (JSON Schema); podobno ceno imata npr. `anthropic/claude-haiku-5.5` in `google/gemini-2.5-flash-lite`. Zahteve se usmerijo samo k ponudnikom, ki podpirajo strukturiran izhod in ne zbirajo podatkov za učenje.
+
+Ključ se nikoli ne pošlje brskalniku in `.env` je izključen iz različic. Integracija uporablja JSON Schema (OpenAI prek Responses API, OpenRouter prek Chat Completions) in strežniško preverjanje sklicev; pri nedosegljivem modelu je prehod na demo odgovor označen. Živi model prejme ustrezne podatke profila in odlomke dokumentacije, zato za javni demo uporabljajte izmišljene podatke.
 
 ## Razvoj in preverjanje
 

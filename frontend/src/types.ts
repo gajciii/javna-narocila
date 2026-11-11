@@ -279,3 +279,27 @@ export interface PartnerResults {
     message: string;
 }
 export interface CertificationOption { key: string; label: string; required: boolean }
+export interface WebsiteEvidence {
+    url: string;
+    quote: string;
+    kind: 'text' | 'code' | 'meta';
+}
+export interface WebsiteSuggestion {
+    value: string;
+    evidence: WebsiteEvidence[];
+}
+export interface WebsiteAnalysis {
+    url: string;
+    final_url: string;
+    mode: 'live' | 'heuristic';
+    pages: { url: string; title: string }[];
+    suggestions: {
+        activity: WebsiteSuggestion | null;
+        description: WebsiteSuggestion | null;
+        expertise: WebsiteSuggestion[];
+        technologies: WebsiteSuggestion[];
+        keywords: WebsiteSuggestion[];
+    };
+    warning: string | null;
+    message: string;
+}
