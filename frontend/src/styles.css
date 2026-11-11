@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;750;800&display=swap');
 
 :root {
   font-synthesis:none;
@@ -60,7 +59,7 @@ h1,h2,h3,h4,p {
 }
 
 h1,h2,h3,h4 {
-  font-family:'Manrope','DM Sans',sans-serif;
+  font-family:inherit;
 }
 
 h1 {
@@ -348,7 +347,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .brand>div:last-child {
-  font-family:'Manrope',sans-serif;
+  font-family:inherit;
   font-size:18px;
   font-weight:700;
   letter-spacing:-.7px;
@@ -1840,7 +1839,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .condition-summary strong {
-  font-family:Manrope,sans-serif;
+  font-family:inherit;
   font-size:26px;
   color:#7c9a8d;
   font-weight:600;
@@ -2239,7 +2238,7 @@ input::-webkit-calendar-picker-indicator {
   border-radius:6px;
   background:#eff6f3;
   color:#93beac;
-  font-family:'DM Sans',sans-serif;
+  font-family:inherit;
   font-size:12px;
   font-weight:600;
   margin-right:1px;
@@ -6443,7 +6442,7 @@ input::-webkit-calendar-picker-indicator {
 /* Workspace foundations */
 
 :root {
-  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  font-family:inherit;
   font-size: 14px;
   color: #243b39;
   background: #f5f7f6;
@@ -6899,7 +6898,7 @@ button, a {
 }
 
 .overview-copy > strong {
-  font-family: 'Manrope', sans-serif;
+  font-family:inherit;
   font-size: 34px;
   letter-spacing: -1px;
   font-weight: 650;
