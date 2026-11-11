@@ -107,3 +107,12 @@ Migration 0004 adds nullable notification tender, payload/active/company_key fie
 ## Website profile suggestions
 
 `website.py` reads the company's own public site as untrusted data. Only http(s) on ports 80/443; every hop (including redirects, followed manually) must resolve to globally routable IPs. Limits: 1.5 MB per page, 8 pages (home + same-site service/about pages; blog, contact and legal pages skipped), 25 s budget. Without an AI key a keyword heuristic proposes fields; negated sentences ("cena ne vključuje SEO") and customer testimonials are not evidence. With a key, AI items are kept only if their quote occurs verbatim in the fetched page text. Technologies found only in page source are labeled `code` (how the site is built, not necessarily what the company offers). References, staff, revenue and certificates are never inferred. The UI previews suggestions with sources; lists are merged into the draft and saved only via the normal profile PUT.
+
+## ESPD drafts
+
+- `GET /api/tenders/<id>/espd` returns `Espd` without writing. Without a saved draft, company-level details (operator, place, signatory, role) carry over from the company's latest ESPD; exclusion answers, Part IV responses and date never carry over.
+- `PUT /api/tenders/<id>/espd {operator,participation,exclusion,selection,final}` validates and saves the full answer set (one draft per company identity and tender); `DELETE` removes it (204). Invalid email, VAT ID, unknown lot, invalid exclusion answer or date return 400.
+- `Espd`: `{tender_id,tender_status,part1,part2:[{key,label,value,source:"ajpes"|"profile"|"demo"|"missing"}],registry,part3:[{code,title,items:[{code,label}]}],part4:[EspdRow],answers,sizes,progress:{done,total,missing},warnings,updated_at}`.
+- `EspdRow`: `{id,section,section_label,kind,requirement,document_id,page,quote,status,company_value,suggestion,response,edited,evidence}`. Rows come only from processed active documents; the suggestion uses confirmed profile references (same domain), staff count, matching certificates and technologies. A saved response overrides the suggestion.
+- Part III exclusion grounds (ESPD A–D, plus national ZJN-3 grounds) are never answered automatically. The UI offers an explicit bulk "Ne" only after a confirmation checkbox. Export: browser print (PDF) and JSON. ESPD-EDM XML for import into the e-JN ESPD service is not implemented.
+- Migration 0006 adds `EspdDraft(company_key, tender, answers, timestamps)` with a unique company/tender constraint.

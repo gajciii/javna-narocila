@@ -1,0 +1,57 @@
+/* ESPD draft */
+.espd { display:grid; gap:18px; }
+.espd-loading { display:flex; align-items:center; gap:12px; color:#5f6779; }
+.espd-intro .progress-track { margin:6px 0 14px; }
+.espd-intro .info-box { margin-top:10px; }
+.espd-missing { columns:2; font-size:12px; color:#5f6779; padding-left:18px; }
+.espd-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:16px; }
+.espd .step-number { width:auto; min-width:23px; padding:0 6px; }
+.espd-facts { display:grid; grid-template-columns:minmax(150px, 220px) 1fr; gap:10px 18px; margin:6px 0 14px; font-size:13px; }
+.espd-facts dt { color:#5f6779; }
+.espd-facts dd { margin:0; color:#25304a; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.espd-facts a { display:inline-flex; align-items:center; gap:4px; color:var(--accent); }
+.badge.red { color:#a1343c; background:#fdeeee; }
+.espd-subsection { display:grid; gap:10px; margin-top:20px; font-size:13px; }
+.espd-rep { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:center; }
+.espd-question { display:grid; gap:8px; padding:14px 0; border-top:1px solid #eceef4; }
+.espd-question p { margin:0; font-size:13px; color:#25304a; line-height:1.55; }
+.espd-choice { display:inline-flex; gap:6px; }
+.espd-choice label { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid #d6d9e4; border-radius:999px; font-size:12px; color:#4c576e; cursor:pointer; background:white; }
+.espd-choice label.on { border-color:var(--accent); background:#f1effd; color:#3f35a8; font-weight:600; }
+.espd-choice input { position:absolute; opacity:0; pointer-events:none; }
+.espd-choice label:focus-within { outline:2px solid var(--accent); outline-offset:1px; }
+.espd-bulk { display:grid; gap:10px; justify-items:start; padding:14px; margin-bottom:8px; background:#fffaf0; border:1px solid #f0e2c4; border-radius:10px; }
+.espd-group h3 { font-size:14px; color:#25304a; margin:18px 0 0; }
+.espd-row { display:grid; gap:8px; padding:16px 0; border-top:1px solid #eceef4; }
+.espd-row-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.espd-row-head strong { flex:1; font-size:14px; color:#25304a; }
+.espd-section-tag { font-size:11px; font-weight:700; color:#5045c4; background:#f1effd; border-radius:6px; padding:2px 7px; }
+.espd-row blockquote { margin:0; padding:8px 12px; border-left:2px solid #d9cfee; color:#4c576e; font-size:12px; font-style:italic; line-height:1.6; }
+.espd-row blockquote a { display:inline-flex; align-items:center; gap:3px; color:var(--accent); font-style:normal; margin-left:4px; }
+.espd-company-value { display:flex; align-items:center; gap:6px; margin:0; font-size:12px; color:#4c576e; }
+.espd-row .text-link { justify-self:start; background:none; border:0; padding:0; }
+.espd-declaration { font-size:13px; line-height:1.7; color:#36415a; background:#f7f8fb; border-radius:8px; padding:14px; }
+.espd-print { display:none; }
+@media (max-width:650px) {
+  .espd-facts { grid-template-columns:1fr; gap:2px; }
+  .espd-facts dd { margin-bottom:8px; }
+  .espd-rep { grid-template-columns:1fr; }
+  .espd-missing { columns:1; }
+}
+@media print {
+  body.printing-espd * { visibility:hidden; }
+  body.printing-espd .espd-print, body.printing-espd .espd-print * { visibility:visible; }
+  body.printing-espd .espd-print { display:block; position:absolute; left:0; top:0; width:100%; color:#000; font-size:10.5pt; line-height:1.45; }
+  .espd-print h1 { font-size:15pt; margin:0 0 6pt; }
+  .espd-print h2 { font-size:12pt; margin:16pt 0 6pt; break-after:avoid; }
+  .espd-print-note { font-size:9pt; color:#333; }
+  .espd-print table { width:100%; border-collapse:collapse; margin-bottom:8pt; }
+  .espd-print caption { text-align:left; font-weight:700; padding:6pt 0 3pt; }
+  .espd-print th, .espd-print td { border:0.5pt solid #888; padding:4pt 6pt; vertical-align:top; text-align:left; }
+  .espd-print th { width:42%; font-weight:500; }
+  .espd-print th small { display:block; font-size:8pt; color:#444; font-style:italic; margin-top:3pt; }
+  .espd-print tr { break-inside:avoid; }
+  .espd-print .pre { white-space:pre-wrap; }
+  .espd-print .espd-signature { height:40pt; }
+  @page { margin:16mm; }
+}

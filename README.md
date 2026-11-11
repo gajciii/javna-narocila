@@ -87,6 +87,10 @@ Certifikate izberete iz iskalnega spustnega seznama z večkratno izbiro. Osnovne
 
 Ponovni zagon `./scripts/dev.sh` samodejno izvede migracijo za partnerje. Obstoječi profili, reference in razvojni načrti ostanejo ohranjeni. Demo ponastavitev ohrani ročno vnesene partnerje in ob naslednjem odprtju dopolni morebitne izbrisane začetne demo partnerje.
 
+### ESPD obrazec
+
+Na strani razpisa je zavihek **ESPD**, kjer je pripravljen osnutek enotnega evropskega dokumenta v zvezi z oddajo javnega naročila. Podatki o naročniku in naročilu (del I), podjetju iz AJPES in profila (del II) ter pogoji iz analizirane dokumentacije s predlogi odgovorov iz profila (del IV) so predizpolnjeni in označeni z virom. Razlogov za izključitev (del III) aplikacija ne izpolni sama, ker gre za izjave pod kazensko in materialno odgovornostjo. Osnutek se shrani za posamezno podjetje in razpis; ID za DDV, kontakt in zastopniki se prenesejo v naslednje osnutke. Izvoz: tisk oziroma PDF iz brskalnika in JSON. XML za uvoz v ESPD storitev e-JN še ni podprt.
+
 ## Podatki in meje prototipa
 
 Začetni nabor vsebuje šest **izmišljenih demo razpisov** in en **resničen arhivski zapis**. Zajem doda dejanske objave. S filtrom **Izvor in stanje → e-Naročanje / Demo primeri** jih lahko ločite. Za štiri demo razpise so priloženi kratki besedilni PDF-ji, satelitski razpis pa ima še popravljeno različico. Demo datumi se ob prvi pripravi oziroma ponastavitvi izračunajo glede na datum v časovnem pasu Europe/Ljubljana. Datumi resničnega arhiva se ne premikajo. Ponastavitev demo stanja ohrani resnične uvožene objave in njihova obvestila.
