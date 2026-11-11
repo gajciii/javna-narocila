@@ -1,4 +1,5 @@
 """Relevance comparison harness; no network or real API key is used."""
+import re
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -83,14 +84,18 @@ class ApproachTests(TestCase):
         body = gemini_request('lumina', [row(), row(tender_id='t2')], 'gemini-decision-1')
         self.assertEqual(body['model'], 'models/gemini-decision-1')
         self.assertIn('Lumina', body['input'])
-        self.assertEqual(set(body['questions']), {'t1', 't2'})
-        self.assertEqual(body['questions']['t1']['type'], 'score')
-        self.assertEqual(body['questions']['t1']['criteria'], RUBRIC)
-        self.assertIn('Razvoj spletne platforme', body['questions']['t1']['instructions'])
+        self.assertEqual(set(body['questions']), {'q0', 'q1'})
+        self.assertEqual(body['questions']['q0']['type'], 'score')
+        self.assertEqual(body['questions']['q0']['criteria'], RUBRIC)
+        self.assertIn('Razvoj spletne platforme', body['questions']['q0']['instructions'])
+
+    def test_gemini_question_ids_are_valid_for_any_tender_id(self):
+        body = gemini_request('lumina', [row(tender_id='ocds-70d2nz-001cf86f:lot-1 ' + 'x' * 80)], 'gemini-decision-1')
+        self.assertTrue(all(re.fullmatch(r'[A-Za-z0-9_-]{1,64}', qid) for qid in body['questions']))
 
     @patch('tenders.relevance_eval.requests.post')
     def test_gemini_answer_maps_most_probable_level(self, post):
-        post.return_value = MagicMock(status_code=200, json=lambda: {'answers': {'t1': {
+        post.return_value = MagicMock(status_code=200, json=lambda: {'answers': {'q7': {}, 'q0': {
             'type': 'score', 'score': 1.3, 'confidence': 0.6, 'probabilities': {'0': 0.1, '1': 0.6, '2': 0.3}}}})
         result = predict_gemini([row()], 'test-never-sent', 'gemini-decision-1')
         self.assertEqual(result[('lumina', 't1')]['label'], LABELS[1])

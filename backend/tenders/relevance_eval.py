@@ -178,8 +178,9 @@ def gemini_request(profile_id, group, model):
     return {
         'model': model if model.startswith('models/') else f'models/{model}',
         'input': profile_text(EVAL_PROFILES[profile_id]),
-        'questions': {r['tender_id']: {'type': 'score', 'instructions': instructions + tender_text(r), 'criteria': RUBRIC}
-                      for r in group},
+        # Question IDs must be 1-64 chars of [A-Za-z0-9_-]; tender IDs are not, so use positions.
+        'questions': {f'q{i}': {'type': 'score', 'instructions': instructions + tender_text(r), 'criteria': RUBRIC}
+                      for i, r in enumerate(group)},
     }
 
 
@@ -187,7 +188,8 @@ def predict_gemini(rows, api_key, model):
     out = {}
     for profile_id, group in group_by_profile(rows).items():
         for start in range(0, len(group), GEMINI_MAX_QUESTIONS):
-            body = gemini_request(profile_id, group[start:start + GEMINI_MAX_QUESTIONS], model)
+            chunk = group[start:start + GEMINI_MAX_QUESTIONS]
+            body = gemini_request(profile_id, chunk, model)
             response = requests.post(GEMINI_URL, json=body, timeout=(5, 60),
                                      headers={'x-goog-api-key': api_key, 'Content-Type': 'application/json'})
             if response.status_code != 200:
@@ -197,7 +199,11 @@ def predict_gemini(rows, api_key, model):
             blocked = (data.get('prompt_feedback') or data.get('promptFeedback') or {})
             if blocked.get('block_reason') or blocked.get('blockReason'):
                 raise RuntimeError('Gemini Decisions API je zavrnil vhod (prompt feedback).')
-            for tender_id, answer in (data.get('answers') or {}).items():
+            for qid, answer in (data.get('answers') or {}).items():
+                index = int(qid[1:]) if qid[:1] == 'q' and qid[1:].isdigit() else -1
+                if not 0 <= index < len(chunk):
+                    continue
+                tender_id = chunk[index]['tender_id']
                 probs = [float(answer.get('probabilities', {}).get(str(i), 0.0)) for i in range(len(LABELS))]
                 out[(profile_id, tender_id)] = {'label': LABELS[max(range(len(LABELS)), key=probs.__getitem__)],
                                                 'probabilities': probs, 'confidence': answer.get('confidence'),
