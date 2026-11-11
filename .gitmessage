@@ -1,0 +1,11 @@
+# Naslov: velevnik v angleščini, do ~72 znakov. Spodaj pusti prazno vrstico.
+
+# Why: zakaj je sprememba potrebna (ne kaj; to pove diff)
+# Decisions: pomembne izbire in zavrnjene alternative
+# Migrations/config: migracije, .env spremenljivke, odvisnosti
+# Verified: kaj je bilo dejansko preverjeno
+# Not verified: kaj ni bilo preverjeno
+# Open: kar ostaja odprto (dodaj tudi v AGENTS.md -> Odprte točke)
+#
+# Vrstice, ki ne veljajo, izpusti. Vrstice z # git ne shrani.
+# Podrobnosti: AGENTS.md

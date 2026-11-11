@@ -145,6 +145,16 @@ npm.cmd --prefix frontend run build
 
 Linux / macOS: `./scripts/check.sh` izvede iste preglede in še `docker compose config --quiet`; za slednjega je potreben Docker CLI. Gradnja vmesnika vključuje TypeScript preverjanje in zaznavanje neuporabljene kode.
 
+## Delo z AI agenti
+
+Na projektu sodeluje več ljudi in AI agentov. Pravila so v [AGENTS.md](AGENTS.md). Codex, Cursor in večina drugih agentov jo preberejo samodejno, Claude Code pa prek `CLAUDE.md`.
+
+- **Git log je dnevnik sprememb.** Vsak commit ima poleg naslova telo: zakaj je bila sprememba narejena, katere odločitve so bile sprejete, migracije in konfiguracija, kaj je preverjeno in kaj ne ter kaj ostaja odprto. Predloga je v `.gitmessage`; vključite jo z `git config commit.template .gitmessage`.
+- **Odprte točke** so na dnu `AGENTS.md`. Agent jih ob delu posodablja: rešene briše, nove dodaja.
+- Spremembe API-ja se zapišejo tudi v CONTRACT.md.
+
+Zgodovino z razlagami pregledate z `git log` (brez `--oneline`).
+
 ## Meje prototipa
 
 Gre za lokalno aplikacijo za enega uporabnika. Vsebinsko ujemanje je razložljiva hevristika, ne verjetnost uspeha. Neznani pogoji ostanejo neznani; presoja zajema samo obdelano dokumentacijo. Produkcijska prijava in izolacija uporabnikov, OCR, pošiljanje e-pošte ter celovit zajem vseh objav niso vključeni.
