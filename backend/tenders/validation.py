@@ -23,6 +23,12 @@ def validate_profile(payload, current):
             if not isinstance(values, list) or len(values) > 100 or not all(isinstance(x, str) and len(x) <= 300 for x in values):
                 raise ValidationError({key: 'Pričakovan je seznam besedil.'})
             result[key] = list(dict.fromkeys(v.strip() for v in values if v.strip()))
+            if key == 'certifications':
+                from .matching import certification_key
+                unique = {}
+                for value in result[key]:
+                    unique.setdefault(certification_key(value), value)
+                result[key] = list(unique.values())
     for key in ['min_value', 'max_value', 'staff_count']:
         if key in payload:
             value = payload[key]
@@ -48,11 +54,18 @@ def validate_profile(payload, current):
             if not isinstance(ref, dict):
                 raise ValidationError({'references': 'Neveljavna referenca.'})
             item = {}
-            for key in ['id', 'title', 'description', 'domain']:
+            for key in ['id', 'title', 'description', 'domain', 'project_identifier', 'evidence_source', 'evidence_url']:
                 value = ref.get(key, str(index + 1) if key == 'id' else '')
                 if not isinstance(value, str) or len(value) > 5000:
                     raise ValidationError({'references': 'Neveljavno besedilo reference.'})
-                item[key] = value
+                item[key] = value.strip() if key in ('project_identifier', 'evidence_source', 'evidence_url') else value
+            if item['evidence_url']:
+                from django.core.validators import URLValidator
+                from django.core.exceptions import ValidationError as DjangoValidationError
+                try:
+                    URLValidator(schemes=['http', 'https'])(item['evidence_url'])
+                except DjangoValidationError:
+                    raise ValidationError({'references': 'Povezava do dokazila mora biti veljaven HTTP(S) URL.'})
             if item['id'] in ids:
                 raise ValidationError({'references': 'Reference morajo imeti različne identifikatorje.'})
             ids.add(item['id'])

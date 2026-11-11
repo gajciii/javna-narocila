@@ -1,7 +1,11 @@
 from django.urls import path
-from tenders import views
+from tenders import views, partner_views
 
 urlpatterns = [
+    path('api/partners', partner_views.partners_view),
+    path('api/partners/<int:partner_id>', partner_views.partner_view),
+    path('api/tenders/<slug:tender_id>/partners', partner_views.tender_partners_view),
+    path('api/certifications', partner_views.certifications_view),
     path('api/bootstrap', views.bootstrap_view),
     path('api/profile', views.profile_view),
     path('api/profile/prefill', views.prefill_view),

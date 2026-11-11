@@ -5,8 +5,8 @@ from .seed import today
 
 
 ARRAY_FIELDS = {'cpv', 'kinds', 'buyers', 'regions', 'levels', 'condition_states', 'statuses', 'source_types'}
-BOOL_FIELDS = {'include_unknown', 'only_new', 'only_updates', 'only_following'}
-NUMBER_FIELDS = {'min_value', 'max_value', 'min_days'}
+BOOL_FIELDS = {'include_unknown', 'only_new', 'only_updates', 'only_following', 'include_partner_opportunities'}
+NUMBER_FIELDS = {'min_value', 'max_value', 'min_days', 'min_score'}
 DATE_FIELDS = {'published_from', 'published_to', 'deadline_from', 'deadline_to'}
 TEXT_FIELDS = {'q', 'exclude', 'view', 'sort'}
 
@@ -33,8 +33,12 @@ def validate_filters(raw):
                 raise ValidationError({key: 'Pričakovana je logična vrednost.'})
         elif key in NUMBER_FIELDS:
             try:
+                if isinstance(value, bool):
+                    raise ValueError()
                 number = float(value)
                 if number < 0 or number > 1e12 or number != number:
+                    raise ValueError()
+                if key == 'min_score' and (number > 100 or number != int(number)):
                     raise ValueError()
                 filters[key] = number
             except (ValueError, TypeError):
@@ -62,7 +66,11 @@ def apply_filters(tenders, filters):
     view = filters.get('view', 'recommended')
     output = []
     for tender in tenders:
-        if view == 'recommended' and (tender['status'] != 'open' or tender['match']['level'] == 'low' or tender['match']['recommendation'] == 'unsuitable'):
+        if view == 'recommended':
+            partner_opportunity = filters.get('include_partner_opportunities') and any(c['status'] == 'unmet' for c in tender['match']['conditions'])
+            if tender['status'] != 'open' or tender['match']['level'] == 'low' or (tender['match']['recommendation'] == 'unsuitable' and not partner_opportunity):
+                continue
+        if tender['match']['score'] < filters.get('min_score', 0):
             continue
         if (view == 'following' or filters.get('only_following')) and not tender['following']:
             continue

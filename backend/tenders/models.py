@@ -74,6 +74,14 @@ class ImprovementPlan(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+class Partner(models.Model):
+    company_key = models.CharField(max_length=64, db_index=True)
+    source_type = models.CharField(max_length=10)
+    data = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class DemoEvent(models.Model):
     key = models.CharField(max_length=100, primary_key=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -30,6 +30,9 @@ export interface CompanyReference {
     value: number | null;
     year: number | null;
     confirmed: boolean;
+    project_identifier?: string;
+    evidence_source?: string;
+    evidence_url?: string;
 }
 export interface Profile {
     id: number;
@@ -181,6 +184,8 @@ export interface Filters {
     kinds?: string[];
     buyers?: string[];
     regions?: string[];
+    min_score?: number;
+    include_partner_opportunities?: boolean;
     min_value?: number;
     max_value?: number;
     published_from?: string;
@@ -238,3 +243,39 @@ export interface ChatMessage extends Partial<ChatResponse> {
     id: string;
     applied?: boolean;
 }
+
+export interface CapabilityEvidence { source: string; url: string; confirmed: boolean }
+export interface Partner {
+    id: number;
+    source_type: 'real' | 'demo';
+    profile: Profile;
+    capability_evidence: CapabilityEvidence;
+    updated_at: string;
+}
+export interface PartnerCondition {
+    condition: Condition;
+    partner_condition: Condition;
+    state: 'already_met' | 'potential' | 'unresolved';
+    label: string;
+    explanation: string;
+    evidence: (CapabilityEvidence & { reference_id?: string; title?: string })[];
+}
+export interface PartnerComparison {
+    partner: Partner;
+    supported_conditions: number;
+    remaining_conditions: number;
+    content_score: number;
+    content_level: MatchLevel;
+    conditions: PartnerCondition[];
+    documentation_incomplete: boolean;
+    disclaimer: string;
+}
+export interface PartnerResults {
+    tender_id: string;
+    source_type: 'demo' | 'real';
+    missing_conditions: Condition[];
+    candidates: PartnerComparison[];
+    comparison: PartnerComparison | null;
+    message: string;
+}
+export interface CertificationOption { key: string; label: string; required: boolean }

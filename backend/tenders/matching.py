@@ -97,9 +97,22 @@ def evaluate_requirement(req, profile):
         return result
     if kind in ('reference_count', 'reference_value'):
         refs = [r for r in profile.get('references', []) if not req.get('domain') or text_normalize(r.get('domain', '')) == text_normalize(req['domain'])]
+        # A project identifier denotes one project even when entered more than once.
+        projects, anonymous = {}, []
+        for ref in refs:
+            project = text_normalize(ref.get('project_identifier', '')).strip()
+            if not project:
+                anonymous.append(ref)
+            elif project not in projects:
+                projects[project] = dict(ref)
+            elif any(projects[project].get(k) != ref.get(k) for k in ('domain', 'value', 'year', 'confirmed')):
+                projects[project]['confirmed'] = False
+        refs = anonymous + list(projects.values())
         confirmed = [r for r in refs if r.get('confirmed') is True]
         valid, uncertain = [], []
         for ref in confirmed:
+            if ref.get('year') is not None and ref['year'] > today().year:
+                continue
             if req.get('max_age_years'):
                 year = ref.get('year')
                 if year is None:

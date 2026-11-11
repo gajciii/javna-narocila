@@ -67,6 +67,26 @@ Predlogi se osvežijo ob naslednjem preverjanju obvestil (v odprti aplikaciji vs
 
 Pri nadgradnji ponovno zaženite `./scripts/dev.sh`: izvede migracijo in osveži vključene demo PDF-je brez ponastavitve profila. PDF povezave vsebujejo `#page=...`; nekatere razširitve brskalnika (npr. Adobe Acrobat) fragment prezrejo, zato sta številka strani in citat navedena tudi ob povezavi.
 
+## Ujemanje, partnerji in certifikati
+
+Na vrhu **Filtrov** nastavite **Najmanjše vsebinsko ujemanje** z drsnikom ali številom 0–100. Privzeta 0 ne omeji dodatno izbranega pogleda. Ocena meri vsebinsko podobnost, ne verjetnosti uspeha. Prag in stikalo **Vključi priložnosti s partnerjem** se shranita v shranjeno iskanje. Stara iskanja z visoko/srednjo/nizko stopnjo ostanejo veljavna in vidna med aktivnimi filtri; premik drsnika ta stari filter zamenja.
+
+Stikalo v pogledu **Priporočeno zame** razkrije tudi odprte, vsebinsko ustrezne razpise z neizpolnjenimi pogoji. Tak razpis ima oznako **Manjkajo pogoji** in povezavo **Poišči partnerja**. Stikalo ne potrjuje, da primeren partner že obstaja.
+
+V razpisu odprite **Partnerji**. Aplikacija predlaga največ tri podjetja s podprtim prispevkom k odprtim pogojem. **Poglej skupni potencial** primerja vaše podjetje in enega partnerja, pokaže preostale ovire, izvorni dokument in stran ter partnerjeva dokazila. Neznani podatki dobijo tudi povezavo **Dopolni profil**. Primerjava ne spremeni dejanskega profila, spremljanja ali običajnih priporočil.
+
+**Upravljaj partnerje** je dostopen v razpisu in v **Profil podjetja → Ekipa in certifikati**. Za resničnega partnerja lahko osnovne podatke predizpolnite z AJPES, reference in sposobnosti pa vnesete posebej. Pri dokazilih navedite vir oziroma povezavo in označite uporabniško potrditev. To ni neodvisno preverjanje aplikacije ali AJPES. Nepotrjene podatke lahko shranite, vendar se ne štejejo kot podprt prispevek. Partnerji so vezani na identiteto trenutnega podjetja; to ni produkcijska večuporabniška avtorizacija.
+
+Štiri izmišljene demo partnerje pripravimo ob prvem odprtju imenika oziroma partnerskih priporočil. Demo partnerji se primerjajo samo z demo razpisi, resnični pa samo z resničnimi. Za pravi razpis z neobdelano dokumentacijo ali brez ustreznih partnerjev ostane seznam prazen. Samodejnega zajema referenc ali kontaktiranja podjetij ni.
+
+Za združevanje števila referenc v obeh profilih navedite **identifikator projekta**: enaka oznaka pomeni isti projekt in šteje samo enkrat. Neznane identitete se ne prištevajo, nasprotujoči podatki ostanejo nepotrjeni. Vrednosti različnih projektov se ne seštevajo. Pri kadrih potrebujemo znano razpoložljivost do roka; preverite dejansko razpoložljivost in prekrivanje ekip. Partnerjev certifikat ostane njegov. Rezultat **Potencialno pokrito** vedno zahteva preverjanje dovoljenega načina skupne prijave v dokumentaciji.
+
+Certifikate izberete iz iskalnega spustnega seznama z večkratno izbiro. Osnovne možnosti dopolnjujejo certifikati iz obdelanih razpisov in vašega profila. Možnost **Dodaj drug certifikat** se pojavi ob vnosu novega naziva. Različice standardov ostanejo ločene; posebne zahteve glede veljavnosti ali obsega ostanejo predmet preverjanja.
+
+**Demo tok:** sprožite popravek satelitskega razpisa → vključite priložnosti s partnerjem → odprite partnerje. Pri športnem portalu partner s potrjeno športno referenco potencialno pokrije referenčna pogoja, ISO pa ostane odprt. Partner s certifikatom pokaže obraten primer. Števila izhajajo iz trenutnega profila in dokumentov.
+
+Ponovni zagon `./scripts/dev.sh` samodejno izvede migracijo za partnerje. Obstoječi profili, reference in razvojni načrti ostanejo ohranjeni. Demo ponastavitev ohrani ročno vnesene partnerje in ob naslednjem odprtju dopolni morebitne izbrisane začetne demo partnerje.
+
 ## Podatki in meje prototipa
 
 Začetni nabor vsebuje šest **izmišljenih demo razpisov** in en **resničen arhivski zapis**. Zajem doda dejanske objave. S filtrom **Izvor in stanje → e-Naročanje / Demo primeri** jih lahko ločite. Za štiri demo razpise so priloženi kratki besedilni PDF-ji, satelitski razpis pa ima še popravljeno različico. Demo datumi se ob prvi pripravi oziroma ponastavitvi izračunajo glede na datum v časovnem pasu Europe/Ljubljana. Datumi resničnega arhiva se ne premikajo. Ponastavitev demo stanja ohrani resnične uvožene objave in njihova obvestila.
