@@ -15,7 +15,7 @@ SOURCE = 'Javne informacije Slovenije – portal javnih naročil'
 
 @lru_cache(maxsize=1)
 def codelists():
-    return json.loads((Path(__file__).resolve().parent.parent / 'source_data/pjn-codelists.json').read_text())
+    return json.loads((Path(__file__).resolve().parent.parent / 'source_data/pjn-codelists.json').read_text(encoding='utf-8'))
 
 
 def timestamp(value):

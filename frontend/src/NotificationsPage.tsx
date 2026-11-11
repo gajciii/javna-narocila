@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ArrowUpRight, Bell, CalendarDays, Check, CheckCheck, CircleHelp, FileText, Lightbulb, LoaderCircle, Plus, Save, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CalendarDays, Check, CheckCheck, CircleHelp, FileText, Lightbulb, LoaderCircle, Plus, Save, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react';
 import { api, post } from './api';
 import type { Bootstrap, Condition, ImprovementAction, ImprovementEvaluation, ImprovementImpact, ImprovementPlan, Notification } from './types';
 

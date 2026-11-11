@@ -1,21 +1,60 @@
 # Razpisni radar
 
-Lokalni hackathon prototip, ki poveže javne razpise s profilom podjetja ter pokaže razloge, pogoje in spremembe. Vključuje delujoč zajem e-Naročanja in jasno označene demo primere. Podjetja poiščete v javnem naboru AJPES / PRS prek OPSI, brez API ključa.
+**Je ta javni razpis za nas?** Razpisni radar poveže javna naročila s profilom podjetja in pokaže, zakaj je priložnost zanimiva, kateri pogoji so izpolnjeni in kaj je treba še preveriti.
 
-## Hiter zagon
+Prototip za **hackathon, izziv št. 2: podatkovno inženirstvo in AI za javna naročila**. React, TypeScript, Django REST Framework in SQLite. Za predstavitev deluje tudi brez API ključev.
 
-Potrebujete **Python 3.10+** (priporočeno 3.12), **Node.js 22+** in npm.
+## Kaj ponuja
+
+- **Pregled priložnosti:** priporočeni in spremljani razpisi, neprebrana obvestila ter prihajajoči roki.
+- **Iskanje:** ključne besede, CPV, naročnik, lokacija, vrednost, roki, izvor, stanje in prag ujemanja. Napredni filtri se odprejo po potrebi; iskanja lahko shranite.
+- **Razložljiva presoja:** vsebinsko ujemanje 0–100, ločen pregled obveznih pogojev in dokazi z navedbo dokumenta ter strani.
+- **Profil podjetja:** osnovni podatki iz AJPES prek OPSI; reference, znanja, certifikati in ekipa so uporabniški vnosi. Dejavnost, opis, znanja in tehnologije lahko predlaga branje spletne strani podjetja, vsak predlog z dobesednim virom.
+- **AI pomočnik:** priporočila, preverjanje pogojev, primerjava razpisov in predlogi filtrov oziroma dopolnitve profila, ki jih uporabnik potrdi.
+- **Spremljanje:** spremembe pogojev, podaljšanja rokov in nove priložnosti brez podvajanja istega dogodka.
+- **ESPD osnutek:** zavihek ESPD na razpisu predizpolni podatke o naročilu, podjetju (AJPES, profil) in pogojih iz dokumentacije s predlogi odgovorov. Razlogov za izključitev ne izpolni samodejno. Izvoz v PDF (tisk) in JSON.
+- **Partnerji in razvoj:** potencialna dopolnitev pogojev s partnerjem ter shranjeni načrti za razvoj kompetenc.
+
+Vmesnik uporablja stalno navigacijo, berljive kartice in vidno utemeljitev ocene ter se prilagaja manjšim zaslonom. Oblikovalski referenci sta preglednost poslovnih platform [PRIOT](https://www.priot.io/) in poenostavitev vsakodnevnih opravil v [Telesporju](https://www.priot.io/projects/telespor-user-portal). Projekt ni povezan s podjetjem PRIOT.
+
+## Lokalni zagon
+
+Potrebujete **Python 3.10+** (priporočeno 3.12), **Node.js 22+** in npm. Ukaze izvajajte v korenu projekta.
+
+### Windows / PowerShell
+
+Priprava ob prvem zagonu:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+npm.cmd --prefix frontend ci
+.\.venv\Scripts\python.exe backend/manage.py migrate --noinput
+.\.venv\Scripts\python.exe backend/manage.py seed_demo
+```
+
+V prvem terminalu zaženite API:
+
+```powershell
+.\.venv\Scripts\python.exe backend/manage.py runserver 127.0.0.1:8001
+```
+
+V drugem terminalu zaženite vmesnik:
+
+```powershell
+npm.cmd --prefix frontend run dev -- --host 127.0.0.1 --port 5174 --strictPort
+```
+
+Odprite **http://localhost:5174**. Aktivacija virtualnega okolja ni potrebna. Ob naslednjem zagonu zadoščata zadnja dva ukaza; po posodobitvi projekta po potrebi ponovite namestitev odvisnosti, migracije in `seed_demo`.
+
+### Linux / macOS
 
 ```bash
 ./scripts/setup.sh
 ./scripts/dev.sh
 ```
 
-Odprite **http://localhost:5174**. Django API teče na `127.0.0.1:8001`, Vite posreduje zahteve `/api`. Ctrl+C ustavi lokalni razvojni zagon. Skripta za pripravo ustvari virtualno okolje, namesti odvisnosti, izvede migracije in pripravi začetni nabor. Ponovni običajni zagon ne ponastavi vašega profila ali spremljanja.
-
-Na sistemu z več različicami Pythona lahko uporabite `PYTHON_BIN=/pot/do/python3.12 ./scripts/setup.sh`.
-
-Če sta vrata že zasedena, izberite druga, na primer `RADAR_BACKEND_PORT=8002 RADAR_FRONTEND_PORT=5175 ./scripts/dev.sh`. Skripta bo ustrezno povezala vmesnik in API.
+Vmesnik je na **http://localhost:5174**, API na `127.0.0.1:8001`. Vite posreduje zahteve `/api` v Django. Ctrl+C ustavi razvojni zagon. Za druga vrata: `RADAR_BACKEND_PORT=8002 RADAR_FRONTEND_PORT=5175 ./scripts/dev.sh`.
 
 ### Docker
 
@@ -23,180 +62,89 @@ Na sistemu z več različicami Pythona lahko uporabite `PYTHON_BIN=/pot/do/pytho
 docker compose up --build
 ```
 
-Aplikacija je na istem naslovu **http://localhost:5174**. SQLite, naložene datoteke in uporabniške spremembe ostanejo v nosilcu `radar-data`. Zaustavitev: `docker compose down`. Potreben je delujoč Docker Engine oziroma Docker Desktop. API ni objavljen neposredno zunaj Docker omrežja; spletni port je vezan na lokalni računalnik.
-
-Za samodejni zajem ob zagonu in nato vsakih 12 ur vključite dodatni proces:
+Odprite **http://localhost:5174**. Podatki ostanejo v nosilcu `radar-data`; zaustavitev je `docker compose down`. Docker uporablja ločeno bazo od lokalnega Python zagona. Za zajem ob zagonu in nato vsakih 12 ur:
 
 ```bash
 docker compose --profile sync up --build
 ```
 
-Privzeti zagon zunanjega portala ne osvežuje samodejno. Docker uporablja svoj podatkovni nosilec; podatki lokalnega Python zagona se vanj ne prenesejo samodejno.
-
-## Kaj lahko preizkusite
-
-- **Razpisi:** vsebinska priporočila, kombiniranje naprednih filtrov, shranjena iskanja, sortiranje in spremljanje.
-- **Podrobnosti:** razlaga ujemanja, pogoji `izpolnjen / neizpolnjen / neznan`, merila, sklopi, PDF-ji in dokaz na konkretni strani.
-- **Profil:** iskanje resničnih podjetij v AJPES prek OPSI, predogled osnovnih podatkov ter urejanje dejavnosti, tehnologij, referenc, kadrov, zmogljivosti in preferenc. Sprememba profila spremeni presojo razpisov.
-- **AI pomočnik:** priporočila, primerjava izbranih razpisov, vprašanja o pogojih in predlogi profila oziroma filtrov, ki jih uporabnik potrdi.
-- **Obvestila:** nova relevantna objava, popravek pogoja in podaljšanje roka. Dogodki so idempotentni; ponovitev istega popravka ne doda drugega obvestila.
-
-Napredne filtre odprete z gumbom **Filtri**. Skupine se razširijo na klik; aktivne skupine imajo oznako števila izbir. **Shranjena iskanja** in **Iskanje z opisom** sta pod iskalnikom. Na kartici odprite **Zakaj ta ocena?** za razloge in odprta vprašanja. Profil je razdeljen na štiri zavihke; osnutek ostane ohranjen med preklapljanjem, spremembe pa potrdite s **Shrani profil**.
+Običajni zagon ne sproži zunanjega zajema. `seed_demo` ohrani shranjeni profil in spremljanje; ponastavitev je izrecna akcija v meniju **Demo**.
 
 ## Petminutna predstavitev
 
-1. Odprite profil. Demo podjetje ima energetsko referenco v vrednosti 120.000 EUR, športno referenco brez vrednosti in datuma ter eno satelitsko referenco. Gre izključno za izmišljene podatke.
-2. Na razpisih uporabite filtre za spletne platforme, IoT in podatke. Shranite iskanje in preverite, da je po osvežitvi še vedno na voljo.
-3. Odprite energetski razpis. Pri pogoju izberite dokaz in odprite drugo stran PDF-ja.
-4. Odprite športni portal. Manjkajoča vrednost oziroma datum reference morata ostati označena kot neznana. Dopolnite referenco z vrednostjo 80.000 EUR in letom znotraj zadnjih treh let ter znova preverite pogoje. Za novo priporočilo športnega portala je potreben tudi ISO 27001.
-5. V AI pomočniku izberite »Poišči primerne razpise«, »Preveri pogoje za prijavo« ali »Primerjaj dva razpisa«. Pri zadnjih dveh možnostih vas vmesnik vodi skozi izbiro razpisov.
-6. V meniju **Podatki in demo** sprožite demo popravek satelitskega razpisa. Zahteva se spremeni z ene na dve referenci. Odprite obvestilo ter primerjavo stare in nove različice.
-7. Ponovite isti dogodek in preverite, da novega obvestila ni. Za naslednjo predstavitev uporabite ponastavitev demo stanja.
+1. **Profil podjetja:** pokažite izmišljeno podjetje Lumina digital in njegove reference. Športna referenca namenoma nima vrednosti in datuma.
+2. **Razpisi:** preglejte priporočila, razloge na karticah, rok in vrednost. Preizkusite filtre ali shranite iskanje.
+3. **Energetski razpis → Pogoji:** odprite dokaz na konkretni strani PDF-ja. Pokažite razliko med vsebinsko oceno in preverjanjem pogojev.
+4. **Športni portal:** manjkajoči podatki ostanejo neznani. Dopolnite referenco z vrednostjo 80.000 EUR in letom znotraj zadnjih treh let. Za priporočilo je potreben tudi ISO 27001.
+5. **AI pomočnik:** izberite primerjavo dveh razpisov. Brez ključa je odgovor označen kot demo.
+6. **Demo → Popravek referenčnega pogoja:** satelitski razpis zahteva dve referenci namesto ene. Odprite obvestilo in primerjavo spremembe. Ponovitev dogodka ne doda novega obvestila.
 
-## Predlogi za razvoj podjetja
+Za razširjeno predstavitev odprite **Partnerji** v razpisu ali **Obvestila → Predlogi za razvoj**. [Kratka predstavitvena zgodba](PITCH_PREGLED_APLIKACIJE.md).
 
-V **Obvestila → Predlogi za razvoj** aplikacija sama predlaga izboljšave iz obdelanih pogojev razpisov. Podprti so certifikati, primerljive reference, velikost ekipe in tehnologije. Neznani podatki o ekipi oziroma referencah sprožijo predlog za dopolnitev profila, ne samodejne zahteve po novih zmogljivostih. Pri certifikatu, ki ni naveden, najprej preverite, ali ga podjetje že ima.
+## Podatkovni tok
 
-Izberite **Poglej učinek** za primerjavo zdaj → po izboljšavi, preostale ovire in povezave na dokumentacijo. **Odprti razpisi** in **Pretekli razpisi** imajo ločeni štetji; demo predlogi so ločeni od resničnih. Število dodatno izpolnjenih pogojev ni verjetnost uspeha ali jamstvo upravičenosti. Prikaz uporablja shranjene analize in ne kliče AI ali zunanjih virov. Resnična dokumentacija brez analize ne ustvarja izmišljenih predlogov.
-
-Predlog poimenujte in shranite v **Shranjeni načrti**. Z gumbom **Združi predloge** odprite izbiro in združite več predlogov istega vira; dodate jih lahko tudi obstoječemu načrtu. Ob odprtju se načrt preračuna na aktualnem profilu in dokumentaciji. Predpostavljene reference so zaključene in potrjene letos; čas pridobivanja kompetenc ni ocenjen. Dejanski profil ostane nespremenjen. Načrti so vezani na identiteto podjetja in se ob menjavi podjetja skrijejo; to ni produkcijska večuporabniška avtorizacija. Demo ponastavitev ohrani shranjene načrte, njihov učinek pa znova izračuna.
-
-Predlogi se osvežijo ob naslednjem preverjanju obvestil (v odprti aplikaciji vsakih 30 sekund). Enak predlog se ne podvaja. Ponovno postane neprebran, ko pomaga pri dodatnem odprtem razpisu ali nastane dodatno priporočilo. Prikazanih je največ pet najkoristnejših neshranjenih predlogov; shranjeni predlogi ostanejo dosegljivi. Zgodovinski pogled primerja današnji profil s shranjenimi pogoji zaključenih razpisov in ne napoveduje prihodnjih objav.
-
-**Kratek demo:** v začetnem profilu odprite obvestilo za ISO 27001. Pokaže dodaten pogoj pri športnem portalu ter ločeno pri zaključeni občinski aplikaciji. Športne reference ostanejo neznane. Združite predlog z dopolnitvijo referenc, shranite načrt in osvežite stran. Po dejanskem dopolnjevanju profila se učinek načrta zmanjša oziroma izgine. Za demonstracijo nove reference sprožite popravek satelitskega razpisa.
-
-Pri nadgradnji ponovno zaženite `./scripts/dev.sh`: izvede migracijo in osveži vključene demo PDF-je brez ponastavitve profila. PDF povezave vsebujejo `#page=...`; nekatere razširitve brskalnika (npr. Adobe Acrobat) fragment prezrejo, zato sta številka strani in citat navedena tudi ob povezavi.
-
-## Ujemanje, partnerji in certifikati
-
-Na vrhu **Filtrov** nastavite **Najmanjše vsebinsko ujemanje** z drsnikom ali številom 0–100. Privzeta 0 ne omeji dodatno izbranega pogleda. Ocena meri vsebinsko podobnost, ne verjetnosti uspeha. Prag in stikalo **Vključi priložnosti s partnerjem** se shranita v shranjeno iskanje. Stara iskanja z visoko/srednjo/nizko stopnjo ostanejo veljavna in vidna med aktivnimi filtri; premik drsnika ta stari filter zamenja.
-
-Stikalo v pogledu **Priporočeno zame** razkrije tudi odprte, vsebinsko ustrezne razpise z neizpolnjenimi pogoji. Tak razpis ima oznako **Manjkajo pogoji** in povezavo **Poišči partnerja**. Stikalo ne potrjuje, da primeren partner že obstaja.
-
-V razpisu odprite **Partnerji**. Aplikacija predlaga največ tri podjetja s podprtim prispevkom k odprtim pogojem. **Poglej skupni potencial** primerja vaše podjetje in enega partnerja, pokaže preostale ovire, izvorni dokument in stran ter partnerjeva dokazila. Neznani podatki dobijo tudi povezavo **Dopolni profil**. Primerjava ne spremeni dejanskega profila, spremljanja ali običajnih priporočil.
-
-**Upravljaj partnerje** je dostopen v razpisu in v **Profil podjetja → Ekipa in certifikati**. Za resničnega partnerja lahko osnovne podatke predizpolnite z AJPES, reference in sposobnosti pa vnesete posebej. Pri dokazilih navedite vir oziroma povezavo in označite uporabniško potrditev. To ni neodvisno preverjanje aplikacije ali AJPES. Nepotrjene podatke lahko shranite, vendar se ne štejejo kot podprt prispevek. Partnerji so vezani na identiteto trenutnega podjetja; to ni produkcijska večuporabniška avtorizacija.
-
-Štiri izmišljene demo partnerje pripravimo ob prvem odprtju imenika oziroma partnerskih priporočil. Demo partnerji se primerjajo samo z demo razpisi, resnični pa samo z resničnimi. Za pravi razpis z neobdelano dokumentacijo ali brez ustreznih partnerjev ostane seznam prazen. Samodejnega zajema referenc ali kontaktiranja podjetij ni.
-
-Za združevanje števila referenc v obeh profilih navedite **identifikator projekta**: enaka oznaka pomeni isti projekt in šteje samo enkrat. Neznane identitete se ne prištevajo, nasprotujoči podatki ostanejo nepotrjeni. Vrednosti različnih projektov se ne seštevajo. Pri kadrih potrebujemo znano razpoložljivost do roka; preverite dejansko razpoložljivost in prekrivanje ekip. Partnerjev certifikat ostane njegov. Rezultat **Potencialno pokrito** vedno zahteva preverjanje dovoljenega načina skupne prijave v dokumentaciji.
-
-Certifikate izberete iz iskalnega spustnega seznama z večkratno izbiro. Osnovne možnosti dopolnjujejo certifikati iz obdelanih razpisov in vašega profila. Možnost **Dodaj drug certifikat** se pojavi ob vnosu novega naziva. Različice standardov ostanejo ločene; posebne zahteve glede veljavnosti ali obsega ostanejo predmet preverjanja.
-
-**Demo tok:** sprožite popravek satelitskega razpisa → vključite priložnosti s partnerjem → odprite partnerje. Pri športnem portalu partner s potrjeno športno referenco potencialno pokrije referenčna pogoja, ISO pa ostane odprt. Partner s certifikatom pokaže obraten primer. Števila izhajajo iz trenutnega profila in dokumentov.
-
-Ponovni zagon `./scripts/dev.sh` samodejno izvede migracijo za partnerje. Obstoječi profili, reference in razvojni načrti ostanejo ohranjeni. Demo ponastavitev ohrani ročno vnesene partnerje in ob naslednjem odprtju dopolni morebitne izbrisane začetne demo partnerje.
-
-### ESPD obrazec
-
-Na strani razpisa je zavihek **ESPD**, kjer je pripravljen osnutek enotnega evropskega dokumenta v zvezi z oddajo javnega naročila. Podatki o naročniku in naročilu (del I), podjetju iz AJPES in profila (del II) ter pogoji iz analizirane dokumentacije s predlogi odgovorov iz profila (del IV) so predizpolnjeni in označeni z virom. Razlogov za izključitev (del III) aplikacija ne izpolni sama, ker gre za izjave pod kazensko in materialno odgovornostjo. Osnutek se shrani za posamezno podjetje in razpis; ID za DDV, kontakt in zastopniki se prenesejo v naslednje osnutke. Izvoz: tisk oziroma PDF iz brskalnika in JSON. XML za uvoz v ESPD storitev e-JN še ni podprt.
-
-## Podatki in meje prototipa
-
-Začetni nabor vsebuje šest **izmišljenih demo razpisov** in en **resničen arhivski zapis**. Zajem doda dejanske objave. S filtrom **Izvor in stanje → e-Naročanje / Demo primeri** jih lahko ločite. Za štiri demo razpise so priloženi kratki besedilni PDF-ji, satelitski razpis pa ima še popravljeno različico. Demo datumi se ob prvi pripravi oziroma ponastavitvi izračunajo glede na datum v časovnem pasu Europe/Ljubljana. Datumi resničnega arhiva se ne premikajo. Ponastavitev demo stanja ohrani resnične uvožene objave in njihova obvestila.
-
-Arhivski zapis je »Razvoj in vzdrževanje spletne platforme IJS z informacijskim in uredniškim sistemom«, `JN006195/2026-EUe16/01`, z rokom 7. 9. 2026 ob 10.00 ter stanjem **Ustavljeno**, preverjenim 10. 11. 2026. Ne predstavlja aktualne priložnosti. [Izvorni e-JN zapis](https://ejn.gov.si/ponudba/pages/aktualno/aktualno_jnc_podrobno.xhtml?zadevaId=77669).
-
-### Zajem e-Naročanje
-
-V zgornji vrstici izberite **Podatki in demo → Osveži razpise iz e-Naročanja**:
-
-- **Nove objave:** prenese največ 20 zadnjih objav iz zadnjih sedmih dni in preveri zadnje različice do 30 spremljanih dosjejev. Priloge prvih treh objav se prenesejo samodejno.
-- **Po povezavi:** uvozi eno objavo po ID-ju oziroma URL-ju, skupaj z dostopno dokumentacijo na portalu.
-
-Oba načina in samodejni proces si delijo omejitev **dveh zagonov zajema na slovenski koledarski dan**. Štejejo tudi neuspešni zagoni. Stanje povezave, datum zadnjega uspešnega zajema in preostali zagoni so vidni v oknu uvoza. En zagon lahko vsebuje več zahtev. Omejitev prototipa je največ 50 objav na ročni CLI zagon, do 30 spremljanih dosjejev in približno minuta obdelave; delni zajem je označen. To ni celovita zgodovina vseh javnih naročil.
-
-Zajem lahko zaženete tudi iz korena projekta:
-
-```bash
-.venv/bin/python backend/manage.py sync_pjn
-.venv/bin/python backend/manage.py sync_pjn --notice 'https://www.enarocanje.si/#/pregled-objav/1229976'
-.venv/bin/python backend/manage.py sync_pjn --watch
+```text
+e-Naročanje → zajem in povezava različic → normalizirani metapodatki
+           → PDF / ZIP → besedilo po straneh → analiza pogojev in dokazov
+Profil podjetja + razpis → vsebinsko ujemanje + presoja pogojev
+                        → priporočilo, razlaga in obvestila
 ```
 
-Izberite ustrezen ukaz; vsak neposredni zajem porabi en dnevni zagon. `--watch` zajema ob zagonu in vsakih 12 ur, dokler proces teče. Pri običajnem `./scripts/dev.sh` samodejni zajem ni vključen.
+### e-Naročanje
 
-Adapter uporablja javni API uradnega portala, shranjuje izvorne odzive ter povezuje različice po dosjeju. Ponovni uvoz iste različice ne doda obvestila, starejša objava pa ne prepiše novejše. Spremembe spremljanih dosjejev ustvarijo obvestilo tudi po zaključku naročila. Če prejšnja različica še ni shranjena, pokažemo izvorni opis popravka brez izmišljene primerjave.
+Gumb **Osveži razpise** odpre zajem zadnjih objav ali uvoz po povezavi. Privzeti zajem prenese do 20 objav iz zadnjih sedmih dni, preveri do 30 spremljanih dosjejev in prenese priloge prvih treh objav. Uvoz po povezavi prenese dostopno dokumentacijo izbrane objave.
 
-Preslikava polj in šifranti CPV, vrste naročila, faze, lokacije ter valute so preverjeni na dejanskih odzivih. Posnetek šifrantov je v `backend/source_data/pjn-codelists.json`, zajet 10. 11. 2026; ne osvežuje se samodejno. Neznane vrednosti ostanejo neznane. Status objave »Objavljen« sam ne pomeni odprtega roka. Širša CPV kategorija sama ne zadošča za visoko vsebinsko ujemanje; trenutno gre za razložljivo hevristiko, ne za potrjeno presojo sposobnosti podjetja.
+Vsi načini si delijo omejitev **dveh zagonov na slovenski koledarski dan**; štejejo tudi neuspešni poskusi. Zadnji uspešni zajem in preostali zagoni so prikazani v oknu uvoza. Ob izpadu ostanejo shranjeni podatki dostopni. Šifranti v `backend/source_data/` so posnetek in se ne osvežujejo samodejno.
 
-Ob omrežni napaki se ohranijo shranjeni podatki in pokaže opozorilo. Uspešen zajem metapodatkov ne pomeni, da so že preverjeni vsi pogoji dokumentacije.
+Vir: **Javne informacije Slovenije – portal javnih naročil**. [Dokumentacija API in pogoji ponovne uporabe](https://podatki.gov.si/dataset/api-pjn).
 
-Vir: **Javne informacije Slovenije – portal javnih naročil**. [OPSI: dokumentacija API in pogoji ponovne uporabe](https://podatki.gov.si/dataset/api-pjn).
+### Dokumenti in AI
 
-### Predizpolnitev podjetja: AJPES prek OPSI
+Podprti so besedilni PDF-ji in ZIP arhivi: največ 10 MB na datoteko, 30 članov oziroma 20 MB razpakirane vsebine in 150 strani na PDF. Skeni, zaščiteni dokumenti in nepodprti formati ostanejo označeni za dodaten pregled. Izluščeno besedilo še ne pomeni analize pogojev.
 
-**Povezava deluje brez računa in brez API ključa.** Uporabljamo javni nabor Poslovnega registra Slovenije, ki ga AJPES objavlja na OPSI. To je dvakrat mesečno osvežena zbirka; ne gre za sproten dostop do celotnega ePRS oziroma naročniški `restPrsInfo`.
+Za živo analizo kopirajte `.env.example` v `.env` in nastavite `OPENROUTER_API_KEY` (privzeti model `openai/gpt-6-luna`, spremenljiv z `OPENROUTER_MODEL`) ali `OPENAI_API_KEY` in `OPENAI_MODEL`, nato znova zaženite backend. Če sta nastavljena oba, ima prednost OpenRouter; zahteve gredo samo k ponudnikom s strukturiranim izhodom, ki ne zbirajo podatkov za učenje. Citati v odgovorih se dobesedno preverijo proti strani dokumenta, sicer je prikazan demo odgovor. Ključ ostane na strežniku; `.env` ni v Gitu. Model prejme ustrezne podatke profila in dokumentacije. Brez ključa se uporabljajo pripravljene demo analize in označeni demo odgovori; pogojev resničnih dokumentov aplikacija ne izmišljuje.
 
-1. Odprite **Profil podjetja** in vnesite ime ali 7- oziroma 10-mestno matično številko.
-2. Izberite pravi poslovni subjekt. Poslovne enote so ločeni zadetki z lastno matično številko in oznako pravne oblike.
-3. Preverite predogled in izberite **Uporabi podatke**. V obrazec se prenesejo **naziv, matična številka in naslov**.
-4. Dopolnite dejavnost, spletno stran, reference, kadre in tehnologije ter izberite **Shrani in osveži priporočila**.
+### Podjetja, partnerji in demo podatki
 
-Odprti nabor ne vsebuje dejavnosti SKD, spletne strani (dejavnost lahko predlagate s [spletne strani](#predlogi-s-spletne-strani-podjetja)), prihodkov, referenc, certifikatov ali zmogljivosti. Teh podatkov ne sklepamo iz naziva. Ob izbiri drugega podjetja se obrazec začne brez prejšnjih referenc in kompetenc, kar je v predogledu izrecno navedeno. Osvežitev iste matične številke ohrani uporabniške dopolnitve. Iskanje in predogled ne spreminjata shranjenega profila; podatki se shranijo šele z uporabnikovo potrditvijo obrazca.
+AJPES/OPSI povezava uporablja javni nabor PRS brez API ključa. Predizpolni samo **naziv, matično številko in naslov**. Rezultati se hranijo 24 ur. [Vir in licenca CC BY 4.0](https://podatki.gov.si/dataset/poslovni-register-slovenije).
 
-Vsako uvoženo osnovno polje ima oznako vira. Ročna sprememba polja spremeni njegovo oznako v uporabniški vnos. Izvor, datum prevzema, datum posodobitve metapodatkov zbirke in licenca se ohranijo po osvežitvi aplikacije. Prisotnost v objavljenem naboru sama ne potrjuje trenutnega statusa, bonitete ali sposobnosti podjetja za prijavo.
+Začetni nabor vsebuje šest izmišljenih razpisov, en resničen arhivski zapis in pet demo PDF-jev, vključno s popravljeno različico satelitskega razpisa. Datumi demo objav se določijo ob pripravi oziroma ponastavitvi; arhivski datumi ostanejo izvorni. **Demo oznake so vidne tudi na karticah in v prihajajočih rokih.** Arhivski zapis ni aktualna priložnost.
 
-Iskanje uporablja OPSI `datastore_search`, vrne največ 20 zadetkov in pokaže skupno število. Pri imenu gre za besedilno iskanje po naboru; za natančen zadetek uporabite matično številko. Iskanje podjetij ne porablja dnevnih zagonov e-Naročanja. Odgovore hranimo lokalno 24 ur, zato ponovljeno iskanje ne povzroči nove zunanje zahteve. Ob izpadu se že shranjeni rezultati prikažejo z opozorilom in prvotnim datumom; če shranjenega rezultata ni, aplikacija jasno sporoči napako in omogoča ročni vnos. Nobeno neuspešno iskanje ne vrne izmišljenega podjetja. **Demo predloga** ostaja ločen, izrecen gumb.
+Partnerji prispevajo samo podatke s podprtimi dokazili. Uporabniška potrditev ni neodvisno preverjanje. Skupni potencial zahteva pregled dovoljenega načina skupne prijave. Razvojni načrti primerjajo predpostavke s trenutnimi pogoji in ne spreminjajo profila. Demo in resnični podatki se pri teh primerjavah ne mešajo.
 
-Vir: **Poslovni register Slovenije, AJPES, prek OPSI**, licenca **CC BY 4.0**. [Zbirka in pogoji ponovne uporabe](https://podatki.gov.si/dataset/poslovni-register-slovenije), [opis odprtega nabora pri AJPES](https://www.ajpes.si/registri/poslovni_register/splosno). Bizi je odstranjen iz uporabniškega toka in ni potreben.
+## Struktura projekta
 
-### Predlogi s spletne strani podjetja
+| Pot | Vsebina |
+| --- | --- |
+| `frontend/src/App.tsx` | Navigacija, iskanje, podrobnosti, profil in pomočnik |
+| `frontend/src/OpportunityOverview.tsx` | Pregled priložnosti, spremljani roki in naslednji koraki |
+| `frontend/src/NotificationsPage.tsx` | Obvestila in razvojni načrti |
+| `frontend/src/Partners.tsx` | Partnerji in primerjava pogojev |
+| `frontend/src/styles.css` | Skupni slogi in prilagoditve velikosti zaslona |
+| `backend/tenders/pjn_*.py` | Zajem, normalizacija, različice in prenosi |
+| `backend/tenders/matching.py` | Vsebinsko ujemanje in presoja pogojev |
+| `backend/tenders/documents.py`, `ai.py` | Besedilo PDF, dokazi in AI |
+| `backend/tenders/ajpes.py` | Iskanje podjetij in predpomnilnik |
+| `backend/tenders/improvements.py`, `partners.py` | Razvojni načrti in partnerski potencial |
+| `backend/tenders/espd.py`, `frontend/src/Espd.tsx` | ESPD osnutek |
+| `backend/tenders/website.py`, `frontend/src/WebsiteImport.tsx` | Predlogi profila s spletne strani podjetja |
+| `backend/demo_documents/`, `source_data/` | Demo dokumentacija in šifranti |
+| `scripts/` | Priprava, zagon in preverjanje za Bash |
 
-V **Profilu podjetja** vnesite spletno stran in izberite **Preberi stran**. Aplikacija prebere domačo stran in do sedem podstrani istega spletišča (storitve, o nas, reference; blog, kontakt in pravne strani preskoči) ter predlaga dejavnost, opis, strokovna področja, tehnologije in ključne besede. Vsak predlog ima citat in povezavo do strani, s katere izvira. Brez API ključa gre za pregledno iskanje po ključnih besedah; z ključem AI predlog obdržimo le, če se njegov citat dobesedno pojavi na strani. Stavki z zanikanjem in mnenja strank niso dokaz. Tehnologije, zaznane samo v kodi strani, so posebej označene. Izbrane predloge prenesete v obrazec, shranijo pa se šele s potrditvijo profila. Reference, kadrov, prihodkov in certifikatov s spletne strani ne sklepamo. Dovoljeni so le javni naslovi http(s); notranji in zasebni naslovi so zavrnjeni.
+Podatkovni objekti, API in pravila so opisani v [CONTRACT.md](CONTRACT.md). SQLite baze, preneseni dokumenti, ključi in razvojna okolja so izključeni iz Gita.
 
-### Dokumenti in razlaga
+## Preverjanje
 
-Zajem prenese javne priloge z uradne poti `/api/datoteka/get`. Podpira besedilne PDF-je in ZIP arhive. Omejitve: 10 MB na prenos, do 30 datotek in 20 MB razpakirane vsebine, do 150 strani na PDF. Zunanje povezave na druge strežnike in omejeno dostopna dokumentacija zahtevajo ročni pregled. Word, Excel, skenirani ali zaščiteni dokumenti ostanejo označeni kot neobdelani.
+Windows / PowerShell:
 
-`pypdf` izlušči besedilo po straneh. **Prenos besedila in AI analiza pogojev sta ločena koraka.** Za dejansko AI ekstrakcijo potrebujete ključ ter gumb za osvežitev analize na zavihku Pogoji. Brez ključa se pogoji resničnih dokumentov ne izmišljajo. Priložene demo datoteke JSON vsebujejo pripravljeno strukturirano analizo; povezave na dokaze se preverijo glede na dejansko besedilo PDF-ja. Stara dokumentacija ne potrjuje pogojev nove različice objave.
-
-Vsebinsko ujemanje je ločeno od preverjanja obveznih pogojev; manjkajoči podatki niso dokaz izpolnitve. Analiza zajema obdelane pogoje, ne zagotavlja popolnosti celotne dokumentacije ali uspeha prijave.
-
-Demo PDF-je lahko ponovno ustvarite z:
-
-```bash
-.venv/bin/python backend/generate_demo_documents.py
+```powershell
+.\.venv\Scripts\python.exe backend/manage.py check
+.\.venv\Scripts\python.exe backend/manage.py test tenders --verbosity 1
+npm.cmd --prefix frontend run build
 ```
 
-Za generiranje potrebujete DejaVu Sans na Linuxu ali Arial na macOS; že vključeni PDF-ji teh fontov na računalniku uporabnika ne zahtevajo.
+Linux / macOS: `./scripts/check.sh` izvede iste preglede in še `docker compose config --quiet`; za slednjega je potreben Docker CLI. Gradnja vmesnika vključuje TypeScript preverjanje in zaznavanje neuporabljene kode.
 
-## Priklop jezikovnega modela
+## Meje prototipa
 
-Brez API ključa aplikacija deluje v jasno označenem **demo načinu** z odgovori, sestavljenimi iz trenutnega profila, analiz in izvornih odlomkov.
-
-Za žive strežniške klice kopirajte `.env.example` v `.env` in nastavite enega od ponudnikov.
-
-**OpenRouter** (en ključ za modele različnih ponudnikov):
-
-```dotenv
-OPENROUTER_API_KEY=sk-or-...
-OPENROUTER_MODEL=openai/gpt-6-luna
-```
-
-**OpenAI** neposredno:
-
-```dotenv
-OPENAI_API_KEY=vas-kljuc
-OPENAI_MODEL=gpt-4.1-mini
-```
-
-Če sta nastavljena oba ključa, ima prednost OpenRouter. Znova zaženite Django oziroma Docker. Model je nastavljiv. Privzeti OpenRouter model je `openai/gpt-6-luna` (0,10 $ vhod / 0,50 $ izhod na milijon žetonov), poceni model z zanesljivim strukturiranim izhodom. Drug model mora podpirati strukturiran izhod (JSON Schema); podobno ceno imata npr. `anthropic/claude-haiku-5.5` in `google/gemini-2.5-flash-lite`. Zahteve se usmerijo samo k ponudnikom, ki podpirajo strukturiran izhod in ne zbirajo podatkov za učenje.
-
-Ključ se nikoli ne pošlje brskalniku in `.env` je izključen iz različic. Integracija uporablja JSON Schema (OpenAI prek Responses API, OpenRouter prek Chat Completions) in strežniško preverjanje sklicev; pri nedosegljivem modelu je prehod na demo odgovor označen. Živi model prejme ustrezne podatke profila in odlomke dokumentacije, zato za javni demo uporabljajte izmišljene podatke.
-
-## Razvoj in preverjanje
-
-```bash
-./scripts/check.sh
-```
-
-Skripta izvede Django sistemski pregled, teste domenske logike/API, TypeScript preverjanje, produkcijsko gradnjo React aplikacije in preverjanje Compose konfiguracije. Za zadnji korak je potreben Docker CLI; zagon Docker daemona za preverjanje konfiguracije ni potreben.
-
-Projekt je organiziran v `frontend/` in `backend/`. Vmesniki in podatkovni objekti so opisani v [CONTRACT.md](CONTRACT.md). SQLite podatki, naložene datoteke, ključi in razvojno okolje niso vključeni v izvorno kodo.
-
-Preverjeno pri izvedbi: 97 avtomatskih testov, produkcijska gradnja in lokalni zagon. **Živi zajem e-Naročanja je bil uspešno izveden 10. 11. 2026:** 20 novih resničnih zapisov, 6 shranjenih datotek, 94 strani izluščenega besedila in 2 neobdelani prilogi. Ti prenosi so v lokalni bazi in medijskih datotekah, ne v Gitu; nov klon projekta jih pridobi z zajemom. Testi uporabljajo tudi vzorčna odziva dejanskega API-ja.
-
-Konfiguracija Compose je veljavna; zagon vsebnikov ni bil preverjen, ker Docker Engine ni bil zagnan. Živi OpenAI klici niso bili preizkušeni brez ključa. Živo iskanje AJPES prek OPSI in predogled po matični številki sta bila uspešno preverjena 10. 11. 2026. Neposredni naročniški API AJPES in Bizi nista uporabljena.
-
-To je lokalni prototip z enim uporabnikom. Produkcijska prijava, izolacija podjetij, pošiljanje e-pošte, OCR in celovit zajem vseh objav ter prilog so nadaljnji koraki pred javno uporabo.
+Gre za lokalno aplikacijo za enega uporabnika. Vsebinsko ujemanje je razložljiva hevristika, ne verjetnost uspeha. Neznani pogoji ostanejo neznani; presoja zajema samo obdelano dokumentacijo. Produkcijska prijava in izolacija uporabnikov, OCR, pošiljanje e-pošte ter celovit zajem vseh objav niso vključeni.
