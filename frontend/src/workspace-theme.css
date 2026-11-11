@@ -79,6 +79,23 @@ input[type=range] { accent-color: var(--accent); }
 .tender-intro .opportunities-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; margin: 0; }
 .corporate-photo { display: block; width: 100%; height: 200px; object-fit: cover; object-position: center 77%; border-radius: 12px; }
 
+/* Different photographic compositions for each supporting page. */
+.page-photo { margin: 0; min-width: 0; overflow: hidden; border-radius: 12px; background: #f1f3f6; }
+.page-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-visual { display: grid; grid-template-columns: 260px minmax(0, 1fr); align-items: stretch; gap: 26px; margin-bottom: 28px; }
+.page-photo--profile { height: 160px; }
+.profile-visual .profile-identity { align-content: center; margin: 0; background: #fff; border: 0; padding: 24px 0; gap: 14px; }
+.profile-visual .profile-identity > strong { font-size: 22px; color: var(--ink); }
+.profile-visual .profile-identity > span:last-child { flex-basis: 100%; margin-left: 34px; font-size: 14px; }
+.page-photo--assistant { width: 74%; height: 135px; margin: 28px 0 0 auto; border-radius: 12px 12px 36px 12px; }
+.page-photo--assistant img { object-position: center 58%; }
+.notification-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; max-width: none; gap: 30px; align-items: start; }
+.notifications-list { min-width: 0; }
+.page-photo--notifications { position: sticky; top: 110px; height: 330px; margin-top: 45px; border-radius: 12px 40px 12px 12px; }
+.page-photo--notifications img { object-position: center; }
+.page-photo--tender { height: 125px; width: 100%; margin: 26px 0 32px; }
+.page-photo--tender img { object-position: center 70%; }
+
 .opportunities-columns { display: block; }
 .opportunities-main { min-width: 0; }
 
@@ -292,6 +309,8 @@ input[type=range] { accent-color: var(--accent); }
   .mobile-menu { display: inline-flex; }
   .workspace::before { top: 74px; }
   .detail-layout { grid-template-columns: minmax(0, 1fr); }
+  .notification-layout { grid-template-columns: minmax(0, 1fr) 190px; gap: 22px; }
+  .page-photo--notifications { height: 280px; }
 }
 @media (max-width: 700px) {
   .main-content { padding: 31px 20px 40px; }
@@ -312,6 +331,17 @@ input[type=range] { accent-color: var(--accent); }
   .tender-intro h1 { font-size: 29px; }
   .tender-intro .current-company { font-size: 13px; flex-wrap: wrap; gap: 5px; }
   .corporate-photo { height: 140px; object-position: center 72%; border-radius: 9px; }
+  .profile-visual { grid-template-columns: 110px minmax(0, 1fr); gap: 18px; margin-bottom: 24px; }
+  .page-photo--profile { height: 140px; }
+  .profile-visual .profile-identity { padding: 4px 0; gap: 9px; }
+  .profile-visual .profile-identity > svg { display: none; }
+  .profile-visual .profile-identity > strong { max-width: 100%; font-size: 19px; flex-basis: 100%; overflow-wrap: anywhere; }
+  .profile-visual .profile-identity > span:last-child { margin-left: 0; font-size: 13px; }
+  .page-photo--assistant { width: 88%; height: 110px; margin-top: 22px; }
+  .notification-layout { grid-template-columns: minmax(0, 1fr); gap: 25px; }
+  .page-photo--notifications { position: static; height: 155px; width: 80%; margin: 0; }
+  .page-photo--notifications img { object-position: center 65%; }
+  .page-photo--tender { height: 105px; margin: 22px 0 26px; }
 
   .tabs { gap: 22px; }
   .tabs > button { font-size: 16px; padding: 13px 0; }
