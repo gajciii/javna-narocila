@@ -12,7 +12,7 @@ from .ajpes import RESOURCE_ID, RegistryUnavailable, lookup, normalize_company, 
 from .models import CompanyLookupCache
 from .seed import ensure_seed, get_profile
 
-ROW = json.loads((Path(__file__).parent / 'fixtures/ajpes-company.json').read_text())
+ROW = json.loads((Path(__file__).parent / 'fixtures/ajpes-company.json').read_text(encoding='utf-8'))
 
 
 class AjpesTests(TestCase):

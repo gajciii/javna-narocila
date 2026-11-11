@@ -37,7 +37,7 @@ class ImporterTests(TestCase):
         return response
 
     def payload(self, **extra):
-        raw = json.loads((FIXTURES / 'pjn-notice.json').read_text())
+        raw = json.loads((FIXTURES / 'pjn-notice.json').read_text(encoding='utf-8'))
         raw.update(id=9999999, idDosje=999999, naslov='Preizkusna spletna platforma',
                    kratekOpis='Razvoj spletne platforme in integracija podatkov.',
                    idSifCpv=8093, datumDoPonudba='2099-12-12T12:00:00', razpisnaDokumentacijaURL=None)
@@ -45,7 +45,7 @@ class ImporterTests(TestCase):
         return raw
 
     def test_verified_wire_schema_and_codelists(self):
-        raw = json.loads((FIXTURES / 'pjn-notice.json').read_text())
+        raw = json.loads((FIXTURES / 'pjn-notice.json').read_text(encoding='utf-8'))
         data = normalize_notice(raw, '1229976')
         self.assertEqual(data['buyer'], 'ZDRAVSTVENI DOM MURSKA SOBOTA')
         self.assertEqual(data['region'], 'Pomurska')
@@ -57,7 +57,7 @@ class ImporterTests(TestCase):
         self.assertIsNone(data['criteria'][0]['weight'])
 
     def test_broad_cpv_does_not_make_cybersecurity_a_high_software_match(self):
-        raw = json.loads((FIXTURES / 'pjn-notice.json').read_text())
+        raw = json.loads((FIXTURES / 'pjn-notice.json').read_text(encoding='utf-8'))
         data = normalize_notice(raw, '1229976')
         level, score, reasons = content_match(data, get_profile())
         self.assertEqual(level, 'medium')
