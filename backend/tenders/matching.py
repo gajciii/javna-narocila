@@ -12,6 +12,17 @@ def text_normalize(value):
     return ''.join(c for c in unicodedata.normalize('NFKD', str(value).lower()) if not unicodedata.combining(c))
 
 
+def certification_key(value):
+    value = text_normalize(value).strip()
+    value = re.sub(r'iso\s*(?:/\s*)?iec\s*', 'iso ', value)
+    return re.sub(r'[\s-]+', '', value)
+
+
+def certification_needs_review(req):
+    text = text_normalize(req.get('quote', '') + ' ' + req.get('certification', ''))
+    return bool(req.get('requires_manual_review') or re.search(r'\b(?:19|20)\d{2}\b|enakovred|veljav|obseg|akredit|equivalent|scope|valid|\bali\b|\bor\b|za podroc', text))
+
+
 GROUPS = {
     'software': ['programsk', 'spletn', 'aplikacij', 'software', 'web', 'portal', 'informacijsk', 'react', 'django', 'vue', 'asp.net'],
     'iot': ['iot', 'senzor', 'integracij', 'digitalni dvoj', 'spremljanje', 'avtomatizacij', 'websocket'],
@@ -81,7 +92,7 @@ def evaluate_requirement(req, profile):
               'status': 'unknown', 'document_id': req.get('document_id'), 'page': req.get('page'), 'quote': req.get('quote', '')}
     kind = req.get('kind')
     minimum = req.get('minimum', 1)
-    if kind != 'technology' and (isinstance(minimum, bool) or not isinstance(minimum, (int, float)) or not math.isfinite(minimum)):
+    if kind not in ('technology', 'certification') and (isinstance(minimum, bool) or not isinstance(minimum, (int, float)) or not math.isfinite(minimum)):
         result['company_value'] = 'Prag pogoja ni dovolj jasno določen.'
         return result
     if kind in ('reference_count', 'reference_value'):
@@ -119,6 +130,14 @@ def evaluate_requirement(req, profile):
                 result['status'] = 'unknown'
             else:
                 result['status'] = 'unmet'
+    elif kind == 'certification':
+        certificate = req.get('certification')
+        if not certificate or certification_needs_review(req):
+            result['company_value'] = 'Preverite različico, veljavnost, obseg ali enakovrednost certifikata v dokazilih.'
+        elif certification_key(certificate) in {certification_key(c) for c in profile.get('certifications', [])}:
+            result.update(company_value=f'V profilu naveden certifikat: {certificate}.', status='met')
+        else:
+            result['company_value'] = f'Certifikat {certificate} ni naveden v profilu; preverite, ali ga podjetje že ima.'
     elif kind == 'staff':
         count = profile.get('staff_count')
         if count is not None:
@@ -150,10 +169,10 @@ def effective_status(data):
     return 'open'
 
 
-def serialize_tender(tender, profile):
+def serialize_tender(tender, profile, documents=None):
     data = dict(tender.data)
-    docs = active_documents(tender)
-    requirements = [req for doc in docs for req in doc.extraction.get('requirements', [])]
+    docs = active_documents(tender) if documents is None else documents
+    requirements = [req for doc in docs if doc.status == 'processed' and doc.extraction.get('mode') != 'unprocessed' for req in doc.extraction.get('requirements', [])]
     conditions = [evaluate_requirement(req, profile) for req in requirements]
     level, score, reasons = content_match(data, profile)
     status = effective_status(data)

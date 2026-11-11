@@ -126,13 +126,53 @@ export interface Tender {
 }
 export interface Notification {
     id: number;
-    tender_id: string;
-    type: 'new' | 'correction' | 'deadline';
+    tender_id: string | null;
+    type: 'new' | 'correction' | 'deadline' | 'improvement';
     title: string;
     body: string;
     read: boolean;
     created_at: string;
     is_demo: boolean;
+    improvement?: ImprovementEvaluation | null;
+}
+export type ImprovementAction =
+    | { kind: 'certification'; certification: string }
+    | { kind: 'staff'; minimum: number }
+    | { kind: 'technology'; technologies: string[] }
+    | { kind: 'reference'; domain: string; minimum_count: number; minimum_value: number | null; max_age_years: number | null }
+    | { kind: 'complete_profile'; field: string; domain: string };
+export interface ImprovementImpact {
+    id: string;
+    title: string;
+    deadline: string | null;
+    status: string;
+    source_type: 'real' | 'demo';
+    before_recommendation: Tender['match']['recommendation'];
+    after_recommendation: Tender['match']['recommendation'];
+    newly_recommended: boolean;
+    changes: { before: Condition; after: Condition; improved: boolean }[];
+    remaining_conditions: Condition[];
+    open_question: string;
+    documentation_incomplete: boolean;
+}
+export interface ImprovementEvaluation {
+    actions: ImprovementAction[];
+    labels: string[];
+    source_type: 'demo' | 'real';
+    summary: Record<'open' | 'historical', { affected_tenders: number; newly_recommended: number; improved_conditions: number; needs_data: number }>;
+    open: ImprovementImpact[];
+    historical: ImprovementImpact[];
+    evaluated_at: string;
+    assumptions: string[];
+}
+export interface ImprovementPlan {
+    id: number;
+    name: string;
+    actions: ImprovementAction[];
+    source_type: 'demo' | 'real';
+    evaluation: ImprovementEvaluation;
+    created_at: string;
+    updated_at: string;
 }
 export interface Filters {
     q?: string;

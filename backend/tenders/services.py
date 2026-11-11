@@ -8,11 +8,14 @@ from .ai import ai_enabled
 
 def serialize_notification(item):
     return {'id': item.id, 'tender_id': item.tender_id, 'type': item.type, 'title': item.title,
-            'body': item.body, 'read': item.read, 'created_at': item.created_at.isoformat(), 'is_demo': item.is_demo}
+            'body': item.body, 'read': item.read, 'created_at': item.created_at.isoformat(), 'is_demo': item.is_demo,
+            'improvement': item.payload if item.type == 'improvement' else None}
 
 
 def all_notifications():
-    return [serialize_notification(n) for n in Notification.objects.all()]
+    from .improvements import refresh_suggestions, visible_notifications
+    refresh_suggestions()
+    return [serialize_notification(n) for n in visible_notifications()]
 
 
 def all_tenders(profile=None):

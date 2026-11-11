@@ -55,6 +55,7 @@ def documents():
     sport_requirements = [
         req("sport-reference", "Zaključena primerljiva športna referenca", "reference_count", "sport", 1, max_age_years=3, quote="Ponudnik mora izkazati najmanj eno zaključeno referenco razvoja spletne platforme za športna tekmovanja v zadnjih treh letih."),
         req("sport-value", "Športna referenca v vrednosti vsaj 60.000 EUR", "reference_value", "sport", 60000, max_age_years=3, quote="Primerljiva referenca mora imeti vrednost najmanj 60.000 EUR brez DDV; dokazilo mora vsebovati vrednost in datum zaključka."),
+        req("sport-certification", "Certifikat ISO 27001", "certification", certification="ISO 27001", quote="Ponudnik mora imeti certifikat ISO 27001."),
     ]
     output = [
         dict(id="energy-v1", tender_id="energy-iot", version=1, title="IoT platforma za spremljanje porabe energije", summary="Razvoj spletne platforme za zbiranje podatkov senzorjev, prikaz porabe energije in avtomatska opozorila v javnih stavbah.", requirements=energy_requirements, criteria=[{"title":"Ponudbena cena", "weight":60},{"title":"Tehnična kakovost rešitve", "weight":30},{"title":"Načrt podpore", "weight":10}],
@@ -69,6 +70,13 @@ def documents():
         output.append(dict(id=f"satellite-v{version}", tender_id="satellite", version=version, title="Platforma za analizo satelitskih posnetkov", summary="Razvoj podatkovne platforme za spremljanje vegetacije s satelitskimi posnetki, analitiko in kartografskim prikazom.", requirements=[req("satellite-reference", f"Najmanj {'ena' if count == 1 else 'dve'} primerljivi referenci", "reference_count", "satellite", count, max_age_years=3, quote=text)], criteria=[{"title":"Ponudbena cena", "weight":50},{"title":"Kakovost analitične metodologije", "weight":40},{"title":"Načrt prenosa znanja", "weight":10}],
              scope="Predmet je razvoj platforme za analizo satelitskih posnetkov in spremljanje stanja vegetacije. Vključeni so obdelava časovnih vrst, zaznavanje sprememb, strojno učenje, pregled rezultatov na zemljevidu in izvoz podatkov prek API. Rešitev je namenjena strokovnim uporabnikom in javnim organizacijam.",
              delivery="Predvidena izvedba traja osem mesecev. Oddaja vključuje metodologijo, izvorno kodo, načrt validacije in dokumentacijo. " + ("Ta različica ohranja prvotni referenčni pogoj." if version == 1 else "POPRAVEK: zahteva glede števila primerljivih referenc se spremeni z ene na dve. Drugi pogoji in merila ostanejo enaki.")))
+    output.append(dict(id="municipal-v1", tender_id="municipal-app", version=1,
+        title="Mobilna aplikacija za občinske storitve - zaključeni demo razpis",
+        summary="Razvoj mobilne aplikacije za občinske storitve. Zaključeni demonstracijski primer za dolgoročno načrtovanje.",
+        requirements=[req("municipal-certification", "Certifikat ISO 27001", "certification", certification="ISO 27001", quote="Ponudnik mora imeti certifikat ISO 27001.")],
+        criteria=[{"title": "Ponudbena cena", "weight": 60}, {"title": "Kakovost rešitve", "weight": 40}],
+        scope="Predmet je razvoj mobilne aplikacije za občinske storitve, prijavo pobud in obveščanje prebivalcev. Ta izmišljeni primer je v aplikaciji označen kot zaključen.",
+        delivery="Dokument je namenjen primerjavi današnjih zmogljivosti podjetja s pogoji preteklega razpisa. Ne predstavlja odprte priložnosti ali napovedi prihodnjega naročila."))
     for doc in output:
         for r in doc["requirements"]:
             r["document_id"] = doc["id"]

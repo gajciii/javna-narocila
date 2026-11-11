@@ -36,7 +36,7 @@ Filters: {q?:string,exclude?:string,cpv?:string[],kinds?:string[],buyers?:string
 ## Seed tender IDs / documents
 
 energy-iot (positive), sport-portal (unknown ref value/year), satellite (one ref then correction requires two), office-licenses (low), lab-platform (two lots), municipal-app (closed), ijs-archive (real cancelled).
-Documents IDs and file names: energy-v1, sport-v1, satellite-v1, satellite-v2. Store PDFs in backend/demo_documents and matching .json sidecars with {id,title,tender_id,version,pages:[{page,text}],requirements:[{id,title,kind:"reference_count"|"reference_value"|"staff"|"technology",domain?,minimum?,max_age_years?,technologies?:string[],document_id,page,quote}],criteria:[{title,weight}],summary}. Backend reads PDFs with pypdf and uses sidecars for deterministic demo extraction with evidence validation.
+Documents IDs and file names: energy-v1, sport-v1, satellite-v1, satellite-v2, municipal-v1. Store PDFs in backend/demo_documents and matching .json sidecars with {id,title,tender_id,version,pages:[{page,text}],requirements:[{id,title,kind:"reference_count"|"reference_value"|"staff"|"technology"|"certification",certification?:string,requires_manual_review?:boolean,domain?,minimum?,max_age_years?,technologies?:string[],document_id,page,quote}],criteria:[{title,weight}],summary}. Backend reads PDFs with pypdf and uses sidecars for deterministic demo extraction with evidence validation.
 
 Domain references: energy has confirmed 120000 EUR year current-1; sport has unknown value/year; satellite has one confirmed 90000 EUR current-1. Staff 6, tech React/Django/ASP.NET/Vue.js/Nuxt.js/WebSocket/Docker. Requirements: energy >=1 energy ref value>=80000 within3years, staff>=3, relevant software; sport >=1 sport ref >=60000 within3years -> unknown; satellite >=1 satellite ref within3years v1 and >=2 v2 -> unmet. No fabricated real company capabilities.
 
@@ -62,3 +62,31 @@ Verified wire fields include `Matična številka`, `Popolno ime`, `Ulica`, `Hiš
 `CompanyLookupCache` persists normalized responses with a 24-hour TTL and fetch time. Transport uses fixed HTTPS OPSI endpoints, bounded 1 MB responses, explicit timeouts and no redirects. Cached data are labeled; expired cache can be used only with a stale warning after a failed refresh. Empty results remain empty. Dataset metadata timestamp is stored with the original lookup so a later metadata refresh cannot relabel old company data as newer.
 
 The UI previews before applying. Switching company clears previous capabilities and references from the draft; reimporting the same identity merges only the three basic fields. Saving is explicit. Imported provenance is reconstructed from server-side exact-lookup cache; arbitrary client provenance is ignored. Each field is labeled as imported only while matching the stored source value. Changing registration number drops old source attribution. Demo reset retains the lookup cache. Bizi is no longer in the product flow.
+
+
+## Improvement notifications and development plans
+
+- `POST /api/improvements/evaluate {actions,source_type:"demo"|"real"}` returns a fresh `ImprovementEvaluation`. No company, tender or notification writes and no external calls. Unknown or malformed actions return 400.
+- `GET/POST /api/improvement-plans`: list current company's plans with freshly calculated evaluations, or create `{name,actions,source_type}` (201).
+- `GET/PUT/DELETE /api/improvement-plans/<id>`: read, update name/actions/source, or delete (204); another company's plan returns 404. Names: 1–100 characters; at most 20 input actions. Identity normalizes a 7-digit registration number to 10 digits; missing identity falls back to normalized name and address. Server derives identity, never accepts it from the client.
+- Notification `type` now includes `improvement`; `tender_id` may be null. `improvement` is an evaluation for that type, otherwise null. Existing numeric notification IDs and read endpoint are retained. Inactive suggestions and suggestions belonging to another company are excluded from read/list/badge operations.
+
+Actions (combined actions are normalized and deduplicated):
+
+```text
+{kind:"certification",certification:string}
+{kind:"staff",minimum:positive_integer}
+{kind:"technology",technologies:string[]}
+{kind:"reference",domain:string,minimum_count:positive_integer,minimum_value:number|null,max_age_years:positive_integer|null}
+{kind:"complete_profile",field:"references"|"staff_count"|"technologies"|"certifications",domain:string}
+```
+
+Staff and reference values are target minimums, not repeated additions. Reference actions with the same domain merge using the highest counts/values and strictest age constraint. Already achieved capabilities produce no additional effect. Hypothetical references are confirmed, completed in the current year, and exist only in the temporary profile. Completion actions preserve unknowns and show the evidence requiring a missing fact; they never fabricate the fact.
+
+`ImprovementEvaluation` contains `{actions,labels,source_type,summary:{open,historical},open:Impact[],historical:Impact[],evaluated_at,assumptions}`. Each summary contains `affected_tenders`, `newly_recommended`, `improved_conditions`, `needs_data`. Each Impact contains tender id/title/deadline/status/source, before/after recommendation, `newly_recommended`, `changes:[{before:Condition,after:Condition,improved:boolean}]`, `remaining_conditions`, `open_question`, `documentation_incomplete`. Conditions preserve document id, page, and exact quote. Counts are distinct tenders within one source and status group; historical tenders always remain closed.
+
+Evaluation and automatic generation use only medium/high content-fit tenders, current active document versions, and processed conditions. Cancelled/unconfirmed tenders are excluded. Certificates with editions, validity, equivalence, alternatives or scope qualifiers require manual review. Standard spelling variants such as ISO/IEC 27001 and ISO 27001 match; editions are not stripped. Extraction validates the certificate name against the cited text in addition to page/quote validation. Numeric requirement guards do not apply to technology or certification requirements.
+
+Suggestion generation runs when bootstrap/notifications are read; it makes no external requests. The unique event key combines company identity, source and canonical action. Repeated unchanged evaluations do not rewrite payloads or reset read status. New affected open tender IDs or newly recommended IDs reset unread; lost opportunities do not. Irrelevant suggestions deactivate. Limit: five unsaved suggestions, ranked by real open opportunities, presence of open opportunities, newly recommended count, improved conditions and affected tenders. Saved actions are retained outside the limit. This is deterministic work on the small local dataset, not a background crawl or demand forecast.
+
+Migration 0004 adds nullable notification tender, payload/active/company_key fields and ImprovementPlan; no existing profile/tender data is reset. Demo seed retains seven tenders and now loads five PDFs (four tender documentations plus satellite correction). Sport and closed municipal documents require ISO 27001; energy stays the positive baseline. Demo reset preserves saved plans, which are recomputed against the restored profile. UI stays within Notifications: development suggestions, saved plans, evidence modal, same-source selection/combination, rename/removal of actions, and explicit plan deletion.

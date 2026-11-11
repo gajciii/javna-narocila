@@ -38,9 +38,11 @@ def evidence_valid(pages, page_number, quote):
 
 
 def validated_extraction(data, document):
-    allowed_kinds = {'reference_count', 'reference_value', 'staff', 'technology'}
+    allowed_kinds = {'reference_count', 'reference_value', 'staff', 'technology', 'certification'}
     requirements = []
     for item in data.get('requirements', []):
+        if not isinstance(item, dict):
+            continue
         if item.get('kind') not in allowed_kinds:
             continue
         if not evidence_valid(document.pages, item.get('page'), item.get('quote')):
@@ -48,7 +50,19 @@ def validated_extraction(data, document):
         if not isinstance(item.get('title'), str) or not isinstance(item.get('id'), str):
             continue
         result = {**item, 'document_id': document.id}
-        if item.get('kind') != 'technology':
+        if item.get('kind') == 'certification':
+            if not isinstance(item.get('certification'), str) or not item['certification'].strip() or len(item['certification']) > 150:
+                continue
+            if not isinstance(item.get('requires_manual_review', False), bool):
+                continue
+            from .matching import certification_key
+            if certification_key(item['certification']) not in certification_key(item['quote']):
+                continue
+        elif item.get('kind') == 'technology':
+            tech = item.get('technologies')
+            if not isinstance(tech, list) or not tech or not all(isinstance(t, str) and t.strip() for t in tech):
+                continue
+        else:
             if isinstance(result.get('minimum'), bool) or not isinstance(result.get('minimum'), (int, float)) or not math.isfinite(result['minimum']) or result['minimum'] < 0:
                 continue
         age = result.get('max_age_years')

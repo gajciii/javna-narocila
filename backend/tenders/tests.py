@@ -39,7 +39,7 @@ class RadarTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data['tenders']), 7)
         self.assertEqual(response.data['profile']['source'], 'demo')
-        self.assertEqual(Document.objects.count(), 4)
+        self.assertEqual(Document.objects.count(), 5)
 
     def test_demo_documents_are_actually_extracted_and_evidence_matches(self):
         for doc in Document.objects.all():
@@ -77,6 +77,11 @@ class RadarTests(TestCase):
     def test_completing_reference_resolves_unknown(self):
         profile = get_profile()
         profile['references'][1].update(value=80000, year=today().year - 1)
+        self.client.put('/api/profile', profile, format='json')
+        result = self.detail('sport-portal')
+        self.assertTrue(all(c['status'] == 'met' for c in result['match']['conditions'] if c['id'] != 'sport-certification'))
+        self.assertEqual(result['match']['recommendation'], 'review')
+        profile['certifications'] = ['ISO 27001']
         self.client.put('/api/profile', profile, format='json')
         self.assertEqual(self.detail('sport-portal')['match']['recommendation'], 'recommended')
 
@@ -155,7 +160,7 @@ class RadarTests(TestCase):
         self.assertFalse(trigger_event('new')['created'])
         self.assertTrue(trigger_event('deadline')['created'])
         self.assertFalse(trigger_event('deadline')['created'])
-        self.assertEqual(Notification.objects.count(), 2)
+        self.assertEqual(Notification.objects.exclude(type='improvement').count(), 2)
 
     def test_saved_search_persists_and_replays(self):
         filters = {'view': 'all', 'q': 'IoT', 'min_days': 14, 'include_unknown': True}
@@ -237,7 +242,7 @@ class RadarTests(TestCase):
         trigger_event('correction')
         response = self.client.post('/api/demo/reset', {}, format='json')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(Notification.objects.count(), 0)
+        self.assertEqual(Notification.objects.exclude(type='improvement').count(), 0)
         self.assertEqual(self.detail('satellite')['version'], 1)
 
     def test_invalid_filter_dates_return_400_not_500(self):

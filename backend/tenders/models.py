@@ -44,13 +44,16 @@ class TenderVersion(models.Model):
 
 
 class Notification(models.Model):
-    tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name='notifications')
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
     event_key = models.CharField(max_length=180, unique=True)
     type = models.CharField(max_length=30)
     title = models.CharField(max_length=250)
     body = models.TextField()
     read = models.BooleanField(default=False)
     is_demo = models.BooleanField(default=True)
+    payload = models.JSONField(default=dict)
+    active = models.BooleanField(default=True)
+    company_key = models.CharField(max_length=64, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -60,6 +63,15 @@ class Notification(models.Model):
 class SavedSearch(models.Model):
     name = models.CharField(max_length=100)
     filters = models.JSONField(default=dict)
+
+
+class ImprovementPlan(models.Model):
+    company_key = models.CharField(max_length=64, db_index=True)
+    name = models.CharField(max_length=100)
+    actions = models.JSONField(default=list)
+    source_type = models.CharField(max_length=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class DemoEvent(models.Model):

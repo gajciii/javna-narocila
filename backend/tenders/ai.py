@@ -32,11 +32,12 @@ def structured_call(schema, instruction, payload):
 
 REQUIREMENT_SCHEMA = {'type': 'object', 'additionalProperties': False, 'properties': {
     'id': {'type': 'string'}, 'title': {'type': 'string'},
-    'kind': {'type': 'string', 'enum': ['reference_count', 'reference_value', 'staff', 'technology']},
+    'kind': {'type': 'string', 'enum': ['reference_count', 'reference_value', 'staff', 'technology', 'certification']},
+    'certification': {'type': ['string', 'null']}, 'requires_manual_review': {'type': 'boolean'},
     'domain': {'type': ['string', 'null']}, 'minimum': {'type': ['number', 'null']},
     'max_age_years': {'type': ['integer', 'null']}, 'technologies': {'type': 'array', 'items': {'type': 'string'}},
     'page': {'type': 'integer'}, 'quote': {'type': 'string'},
-}, 'required': ['id', 'title', 'kind', 'domain', 'minimum', 'max_age_years', 'technologies', 'page', 'quote']}
+}, 'required': ['id', 'title', 'kind', 'domain', 'minimum', 'max_age_years', 'technologies', 'certification', 'requires_manual_review', 'page', 'quote']}
 EXTRACTION_SCHEMA = {'type': 'object', 'additionalProperties': False, 'properties': {
     'summary': {'type': 'string'}, 'requirements': {'type': 'array', 'items': REQUIREMENT_SCHEMA},
     'criteria': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
@@ -51,7 +52,7 @@ def analyze_document(document):
         return {'mode': 'demo', 'message': 'Besedilo je shranjeno, pogoji pa še niso analizirani. Za novo AI analizo potrebujete strežniški API ključ.'}
     try:
         data = structured_call(EXTRACTION_SCHEMA,
-            'Iz razpisne dokumentacije izlušči samo izrecne pogoje sodelovanja in ločeno merila ocenjevanja. Piši slovensko. Vsak pogoj mora imeti natančen prepis kratkega dokaza in številko strani. Ne izpeljuj pogojev iz meril. Za neznane vrednosti uporabi null. Domain je tema primerljive reference (energy, sport, satellite ali kratka splošna oznaka). Če pogoja ni mogoče izraziti v podprtih vrstah, ga ne izmišljaj. Povzetek naj omeni morebitne nepodprte ali nejasne pogoje.',
+            'Iz razpisne dokumentacije izlušči samo izrecne pogoje sodelovanja in ločeno merila ocenjevanja. Piši slovensko. Vsak pogoj mora imeti natančen prepis kratkega dokaza in številko strani. Ne izpeljuj pogojev iz meril. Za neznane vrednosti uporabi null. Domain je tema primerljive reference (energy, sport, satellite ali kratka splošna oznaka). Če pogoja ni mogoče izraziti v podprtih vrstah, ga ne izmišljaj. Povzetek naj omeni morebitne nepodprte ali nejasne pogoje. Certifikate izlušči samo kot izrecen pogoj za podjetje, ne za posameznika. certification vsebuje točen standard z različico, kadar je navedena; za druge vrste je null. requires_manual_review je true ob posebnem obsegu, veljavnosti, enakovrednosti, alternativah ali nejasnostih; sicer false.',
             {'title': document.title, 'pages': document.pages[:40]})
         result = validated_extraction({**data, 'mode': 'live'}, document)
         if result['rejected_requirements']:

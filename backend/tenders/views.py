@@ -152,12 +152,64 @@ def notifications_view(request):
 
 @api_view(['POST'])
 def notifications_read_view(request):
-    queryset = Notification.objects.all()
+    from .improvements import visible_notifications
+    queryset = visible_notifications()
     if request.data.get('id') is not None:
-        item = get_object_or_404(Notification, pk=request.data['id'])
+        item = get_object_or_404(queryset, pk=request.data['id'])
         queryset = queryset.filter(pk=item.pk)
     queryset.update(read=True)
     return Response(all_notifications())
+
+
+@api_view(['POST'])
+def improvement_evaluate_view(request):
+    from .improvements import evaluate
+    ensure_seed()
+    if not isinstance(request.data, dict):
+        raise ValidationError('Pričakovan je objekt.')
+    return Response(evaluate(request.data.get('actions'), request.data.get('source_type')))
+
+
+def plan_values(data, current=None):
+    from .improvements import clean_actions
+    if not isinstance(data, dict):
+        raise ValidationError('Pričakovan je objekt.')
+    name = data.get('name', current.name if current else '')
+    source = data.get('source_type', current.source_type if current else '')
+    if not isinstance(name, str) or not name.strip() or len(name) > 100:
+        raise ValidationError('Načrt poimenujte z največ 100 znaki.')
+    if source not in ('real', 'demo'):
+        raise ValidationError('Demo in resnične razpise shranite v ločena načrta.')
+    return {'name': name.strip(), 'source_type': source,
+            'actions': clean_actions(data.get('actions', current.actions if current else None))}
+
+
+@api_view(['GET', 'POST'])
+def improvement_plans_view(request):
+    from .models import ImprovementPlan
+    from .improvements import company_key, serialize_plan, snapshot
+    ensure_seed()
+    if request.method == 'POST':
+        plan = ImprovementPlan.objects.create(company_key=company_key(), **plan_values(request.data))
+        return Response(serialize_plan(plan), status=201)
+    context = snapshot()
+    return Response([serialize_plan(p, context) for p in ImprovementPlan.objects.filter(company_key=company_key(context[0])).order_by('-updated_at')])
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def improvement_plan_view(request, plan_id):
+    from .models import ImprovementPlan
+    from .improvements import company_key, serialize_plan
+    ensure_seed()
+    plan = get_object_or_404(ImprovementPlan, pk=plan_id, company_key=company_key())
+    if request.method == 'DELETE':
+        plan.delete()
+        return Response(status=204)
+    if request.method == 'PUT':
+        for key, value in plan_values(request.data, plan).items():
+            setattr(plan, key, value)
+        plan.save()
+    return Response(serialize_plan(plan))
 
 
 @api_view(['POST'])

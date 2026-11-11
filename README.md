@@ -46,14 +46,28 @@ Privzeti zagon zunanjega portala ne osvežuje samodejno. Docker uporablja svoj p
 1. Odprite profil. Demo podjetje ima energetsko referenco v vrednosti 120.000 EUR, športno referenco brez vrednosti in datuma ter eno satelitsko referenco. Gre izključno za izmišljene podatke.
 2. Na razpisih uporabite filtre za spletne platforme, IoT in podatke. Shranite iskanje in preverite, da je po osvežitvi še vedno na voljo.
 3. Odprite energetski razpis. Pri pogoju izberite dokaz in odprite drugo stran PDF-ja.
-4. Odprite športni portal. Manjkajoča vrednost oziroma datum reference morata ostati označena kot neznana. Dopolnite referenco z vrednostjo 80.000 EUR in letom znotraj zadnjih treh let ter znova preverite pogoje.
+4. Odprite športni portal. Manjkajoča vrednost oziroma datum reference morata ostati označena kot neznana. Dopolnite referenco z vrednostjo 80.000 EUR in letom znotraj zadnjih treh let ter znova preverite pogoje. Za novo priporočilo športnega portala je potreben tudi ISO 27001.
 5. V svetovalcu vprašajte po najboljših priložnostih ali primerjajte dva izbrana razpisa.
 6. Sprožite demo popravek satelitskega razpisa. Zahteva se spremeni z ene na dve referenci. Odprite obvestilo ter primerjavo stare in nove različice.
 7. Ponovite isti dogodek in preverite, da novega obvestila ni. Za naslednjo predstavitev uporabite ponastavitev demo stanja.
 
+## Predlogi za razvoj podjetja
+
+V **Obvestila → Predlogi za razvoj** aplikacija sama predlaga izboljšave iz obdelanih pogojev razpisov. Podprti so certifikati, primerljive reference, velikost ekipe in tehnologije. Neznani podatki o ekipi oziroma referencah sprožijo predlog za dopolnitev profila, ne samodejne zahteve po novih zmogljivostih. Pri certifikatu, ki ni naveden, najprej preverite, ali ga podjetje že ima.
+
+Izberite **Poglej učinek** za primerjavo zdaj → po izboljšavi, preostale ovire in povezave na dokumentacijo. **Odprti razpisi** in **Pretekli razpisi** imajo ločeni štetji; demo predlogi so ločeni od resničnih. Število dodatno izpolnjenih pogojev ni verjetnost uspeha ali jamstvo upravičenosti. Prikaz uporablja shranjene analize in ne kliče AI ali zunanjih virov. Resnična dokumentacija brez analize ne ustvarja izmišljenih predlogov.
+
+Predlog poimenujte in shranite v **Shranjeni načrti**. S poljem **Izberi za skupni načrt** združite več predlogov istega vira; dodate jih lahko tudi obstoječemu načrtu. Ob odprtju se načrt preračuna na aktualnem profilu in dokumentaciji. Predpostavljene reference so zaključene in potrjene letos; čas pridobivanja kompetenc ni ocenjen. Dejanski profil ostane nespremenjen. Načrti so vezani na identiteto podjetja in se ob menjavi podjetja skrijejo; to ni produkcijska večuporabniška avtorizacija. Demo ponastavitev ohrani shranjene načrte, njihov učinek pa znova izračuna.
+
+Predlogi se osvežijo ob naslednjem preverjanju obvestil (v odprti aplikaciji vsakih 30 sekund). Enak predlog se ne podvaja. Ponovno postane neprebran, ko pomaga pri dodatnem odprtem razpisu ali nastane dodatno priporočilo. Prikazanih je največ pet najkoristnejših neshranjenih predlogov; shranjeni predlogi ostanejo dosegljivi. Zgodovinski pogled primerja današnji profil s shranjenimi pogoji zaključenih razpisov in ne napoveduje prihodnjih objav.
+
+**Kratek demo:** v začetnem profilu odprite obvestilo za ISO 27001. Pokaže dodaten pogoj pri športnem portalu ter ločeno pri zaključeni občinski aplikaciji. Športne reference ostanejo neznane. Združite predlog z dopolnitvijo referenc, shranite načrt in osvežite stran. Po dejanskem dopolnjevanju profila se učinek načrta zmanjša oziroma izgine. Za demonstracijo nove reference sprožite popravek satelitskega razpisa.
+
+Pri nadgradnji ponovno zaženite `./scripts/dev.sh`: izvede migracijo in osveži vključene demo PDF-je brez ponastavitve profila. PDF povezave vsebujejo `#page=...`; nekatere razširitve brskalnika (npr. Adobe Acrobat) fragment prezrejo, zato sta številka strani in citat navedena tudi ob povezavi.
+
 ## Podatki in meje prototipa
 
-Začetni nabor vsebuje šest **izmišljenih demo razpisov** in en **resničen arhivski zapis**. Zajem doda dejanske objave. S filtrom **Izvor podatkov → e-Naročanje / Demo primeri** jih lahko ločite. Za tri demo razpise so priloženi kratki besedilni PDF-ji, satelitski razpis pa ima še popravljeno različico. Demo datumi se ob prvi pripravi oziroma ponastavitvi izračunajo glede na datum v časovnem pasu Europe/Ljubljana. Datumi resničnega arhiva se ne premikajo. Ponastavitev demo stanja ohrani resnične uvožene objave in njihova obvestila.
+Začetni nabor vsebuje šest **izmišljenih demo razpisov** in en **resničen arhivski zapis**. Zajem doda dejanske objave. S filtrom **Izvor podatkov → e-Naročanje / Demo primeri** jih lahko ločite. Za štiri demo razpise so priloženi kratki besedilni PDF-ji, satelitski razpis pa ima še popravljeno različico. Demo datumi se ob prvi pripravi oziroma ponastavitvi izračunajo glede na datum v časovnem pasu Europe/Ljubljana. Datumi resničnega arhiva se ne premikajo. Ponastavitev demo stanja ohrani resnične uvožene objave in njihova obvestila.
 
 Arhivski zapis je »Razvoj in vzdrževanje spletne platforme IJS z informacijskim in uredniškim sistemom«, `JN006195/2026-EUe16/01`, z rokom 7. 9. 2026 ob 10.00 ter stanjem **Ustavljeno**, preverjenim 10. 11. 2026. Ne predstavlja aktualne priložnosti. [Izvorni e-JN zapis](https://ejn.gov.si/ponudba/pages/aktualno/aktualno_jnc_podrobno.xhtml?zadevaId=77669).
 
@@ -140,7 +154,7 @@ Skripta izvede Django sistemski pregled, teste domenske logike/API, TypeScript p
 
 Projekt je organiziran v `frontend/` in `backend/`. Vmesniki in podatkovni objekti so opisani v [CONTRACT.md](CONTRACT.md). SQLite podatki, naložene datoteke, ključi in razvojno okolje niso vključeni v izvorno kodo.
 
-Preverjeno pri izvedbi: 76 avtomatskih testov, produkcijska gradnja in lokalni zagon. **Živi zajem e-Naročanja je bil uspešno izveden 10. 11. 2026:** 20 novih resničnih zapisov, 6 shranjenih datotek, 94 strani izluščenega besedila in 2 neobdelani prilogi. Ti prenosi so v lokalni bazi in medijskih datotekah, ne v Gitu; nov klon projekta jih pridobi z zajemom. Testi uporabljajo tudi vzorčna odziva dejanskega API-ja.
+Preverjeno pri izvedbi: 97 avtomatskih testov, produkcijska gradnja in lokalni zagon. **Živi zajem e-Naročanja je bil uspešno izveden 10. 11. 2026:** 20 novih resničnih zapisov, 6 shranjenih datotek, 94 strani izluščenega besedila in 2 neobdelani prilogi. Ti prenosi so v lokalni bazi in medijskih datotekah, ne v Gitu; nov klon projekta jih pridobi z zajemom. Testi uporabljajo tudi vzorčna odziva dejanskega API-ja.
 
 Konfiguracija Compose je veljavna; zagon vsebnikov ni bil preverjen, ker Docker Engine ni bil zagnan. Živi OpenAI klici niso bili preizkušeni brez ključa. Živo iskanje AJPES prek OPSI in predogled po matični številki sta bila uspešno preverjena 10. 11. 2026. Neposredni naročniški API AJPES in Bizi nista uporabljena.
 

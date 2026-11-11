@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { Radar, LayoutGrid, Sparkles, Building2, Bell, Search, SlidersHorizontal, ArrowUpRight, ArrowRight, ChevronDown, ChevronRight, ChevronLeft, Check, Plus, X, Bookmark, Clock3, CalendarDays, MapPin, CircleHelp, CheckCircle2, AlertCircle, FileText, ExternalLink, RefreshCw, LoaderCircle, Send, CheckCheck, Menu, ArrowLeft, FlaskConical, Settings2, Save, Trash2, Upload, Link2, ShieldCheck, Bot, TriangleAlert, Eye, Satellite, Zap, Code2, Lightbulb, Coins, ArrowDownUp } from 'lucide-react';
 import { api, post, filterQuery } from './api';
 import CompanySearch from './CompanySearch';
+import NotificationsPage from './NotificationsPage';
 import type { Bootstrap, ChatMessage, ChatResponse, Filters, Profile, Tender, Notification, SavedSearch, MatchLevel, ConditionState, CompanyReference } from './types';
 const money = (value: number | null | undefined) => value == null ? 'Ni podatka' : new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
 const date = (value?: string | null, options?: Intl.DateTimeFormatOptions) => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleDateString('sl-SI', { timeZone: 'Europe/Ljubljana', ...(options || { day: 'numeric', month: 'short', year: 'numeric' }) }) : 'Ni podatka';
@@ -446,25 +447,6 @@ function AnswerText({ text }: {
     text: string;
 }) { return <>{text.split('\n').map((line, index) => { if (!line.trim())
     return <div className="message-spacer" key={index}/>; const parts = line.replace(/^#{1,4}\s*/, '').split(/(\*\*.*?\*\*)/g); return <p className={/^[-•]\s/.test(line) ? 'answer-list-line' : ''} key={index}>{parts.map((part, i) => part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part)}</p>; })}</>; }
-function NotificationsPage({ data, refresh, notify }: Shared) {
-    const [tab, setTab] = useState('all');
-    const [busy, setBusy] = useState(false);
-    const notifications = data.notifications.filter(n => tab === 'all' || !n.read);
-    const unread = data.notifications.filter(n => !n.read).length;
-    const read = async (id?: number, tenderId?: string, openChanges = false) => { setBusy(true); try {
-        await post('/notifications/read', id === undefined ? {} : { id });
-        await refresh();
-        if (tenderId)
-            navigate(`/razpisi/${tenderId}${openChanges ? '?tab=changes' : ''}`);
-    }
-    catch (e) {
-        notify((e as Error).message, true);
-    }
-    finally {
-        setBusy(false);
-    } };
-    return <><div className="page-heading"><div><div className="eyebrow">NIČ POMEMBNEGA NE UIDE</div><h1>Vedno korak pred spremembami<span className="accent-dot">.</span></h1><p>Nove priložnosti in popravki, ki vplivajo na vaše odločitve.</p></div><button className="button" disabled={busy || !unread} onClick={() => read()}>{busy ? <Spinner small/> : <CheckCheck size={17}/>}Označi vse kot prebrano</button></div><div className="notification-overview"><div className="notification-overview-icon"><Bell size={25}/></div><div><strong>{unread ? `${unread} ${unread === 1 ? 'obvestilo čaka' : 'obvestila čakajo'} na vaš pregled` : 'Vse ste pregledali.'}</strong><p>Spremljamo nove objave, referenčne pogoje in pomembne roke.</p></div><Badge tone="purple">Obvestila v aplikaciji</Badge></div><div className="tabs notification-tabs"><button className={tab === 'all' ? 'active' : ''} onClick={() => setTab('all')}>Vsa obvestila<span>{data.notifications.length}</span></button><button className={tab === 'unread' ? 'active' : ''} onClick={() => setTab('unread')}>Neprebrana<span>{unread}</span></button></div><div className="notification-layout"><section className="notifications-list">{notifications.length ? notifications.map(notification => <article className={`notification-card ${notification.read ? 'read' : 'unread'}`} key={notification.id}><div className={`notification-type-icon ${notification.type}`}>{notification.type === 'new' ? <Sparkles size={21}/> : notification.type === 'deadline' ? <CalendarDays size={21}/> : <FileText size={21}/>}</div><div className="notification-content"><div className="notification-meta"><Badge tone={notification.type === 'new' ? 'green' : notification.type === 'deadline' ? 'blue' : 'amber'}>{labels[notification.type]}</Badge>{notification.is_demo && <span className="demo-tag">DEMO DOGODEK</span>}<time>{date(notification.created_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</time></div><h3>{notification.title}</h3><p>{notification.body}</p><div className="notification-actions"><button className="text-link" disabled={busy} onClick={() => read(notification.id, notification.tender_id, notification.type !== 'new')}>Poglej razpis in spremembe<ArrowRight size={14}/></button>{!notification.read && <button className="subtle-link" disabled={busy} onClick={() => read(notification.id)}><Check size={14}/>Označi kot prebrano</button>}</div></div>{!notification.read && <span className="unread-dot"/>}</article>) : <EmptyState icon={<CheckCheck size={28}/>} title={tab === 'unread' ? 'Vse pomembno ste že pregledali.' : 'Vaš radar je pripravljen.'}>Ko prispe nova relevantna objava ali se spremeni spremljan razpis, boste obvestilo našli tukaj. Demo dogodek lahko sprožite v zgornjem meniju.</EmptyState>}</section><aside className="notifications-aside"><div className="surface"><h3><Radar size={20}/>Kaj spremljamo za vas?</h3><div><Sparkles size={17}/><p><strong>Nove priložnosti</strong>Razpisi, ki se ujemajo z vašim profilom.</p></div><div><FileText size={17}/><p><strong>Spremembe pogojev</strong>Popravki in njihov vpliv na primernost.</p></div><div><CalendarDays size={17}/><p><strong>Pomembne roke</strong>Podaljšanja ali spremembe roka prijave.</p></div><a href="#/razpisi" className="button full-width">Poišči razpise<ArrowRight size={15}/></a></div><p className="notification-hint"><CircleHelp size={15}/>Spremljani razpisi ostanejo na radarju tudi, če po popravku niso več primerni.</p></aside></div></>;
-}
 function OtherCpvCodes({ values, onChange }: {
     values: string[];
     onChange: (values: string[]) => void;

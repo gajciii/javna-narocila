@@ -6091,3 +6091,66 @@ input::-webkit-calendar-picker-indicator {
   .company-lookup-input { flex-direction: column; }
   .profile-demo-action { align-items: flex-start; flex-wrap: wrap; }
 }
+
+/* Evidence-backed improvement notifications and development plans. */
+.notification-type-icon.improvement { color: #7962bc; background: #f0eafa; }
+.notification-tabs { overflow-x: auto; }
+.notification-tabs > button { white-space: nowrap; }
+.improvement-toolbar, .plan-merge-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin:18px 0; }
+.improvement-toolbar label { display:flex; align-items:center; gap:12px; font-size:12px; color:#718098; }
+.improvement-toolbar select { width:auto; min-width:170px; }
+.plan-merge-row { justify-content:flex-start; font-size:12px; color:#718098; }
+.notification-content .historical-note { font-size:12px; color:#8b7ea4; }
+.combine-improvement { margin-top:16px; font-size:12px; color:#718098; }
+.plan-delete { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:16px; font-size:12px; }
+.improvement-modal { width:min(900px, calc(100vw - 40px)); max-width:900px; }
+.scenario-actions { display:grid; gap:8px; margin:20px 0; }
+.scenario-actions > div { display:flex; align-items:center; gap:10px; padding:12px 14px; background:#f7f4fc; border:1px solid #e8e0f5; border-radius:10px; font-size:13px; color:#695585; }
+.scenario-actions > div > span { flex:1; }
+.scenario-actions svg { flex-shrink:0; }
+.improvement-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:20px 0 26px; }
+.improvement-stats > div { padding:18px; border:1px solid #e5e5ef; border-radius:12px; display:grid; gap:8px; }
+.improvement-stats strong { font-size:28px; color:#69539d; line-height:1; }
+.improvement-stats span { font-size:12px; color:#718098; line-height:1.5; }
+.impact-list { display:grid; gap:16px; margin-top:20px; }
+.impact-card { border:1px solid #e2e5ee; border-radius:12px; padding:20px; }
+.impact-title { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; font-size:15px; font-weight:600; color:#56627a; line-height:1.6; }
+.impact-title svg { flex-shrink:0; margin-top:4px; }
+.recommendation-comparison { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:12px 0; font-size:12px; color:#718098; }
+.recommendation-comparison strong { font-weight:500; color:#6b5896; }
+.condition-comparison { margin-top:20px; border-top:1px solid #eeeef4; padding-top:16px; }
+.condition-comparison > strong { font-size:13px; color:#53617b; }
+.condition-columns { display:grid; grid-template-columns:1fr 20px 1fr; gap:14px; margin-top:12px; align-items:center; }
+.condition-columns > div { display:grid; align-content:start; gap:8px; height:100%; padding:12px; background:#fafafd; border-radius:8px; }
+.condition-columns small { font-size:9px; letter-spacing:.06em; color:#9494aa; }
+.condition-columns p { font-size:12px; color:#718098; line-height:1.6; margin:0; }
+.condition-columns .condition-state { font-size:11px; }
+.improvement-evidence { margin-top:10px; font-size:11px; line-height:1.7; }
+.improvement-evidence a { display:inline-flex; align-items:center; gap:5px; color:#7763a1; }
+.improvement-evidence blockquote { padding:8px 12px; border-left:2px solid #d9cfee; color:#81859b; margin:6px 0 0; font-style:italic; }
+.remaining-conditions { margin-top:18px; background:#fffbf2; padding:14px; border-radius:8px; color:#827355; font-size:12px; }
+.remaining-conditions > strong { display:flex; align-items:center; gap:7px; }
+.remaining-conditions ul { padding-left:18px; margin-bottom:0; }
+.remaining-conditions li { margin-top:10px; line-height:1.6; }
+.remaining-conditions li > span { color:#9a8c73; }
+.improvement-caution { color:#92816a; background:#fffbf5; padding:12px; border-radius:8px; font-size:12px; line-height:1.7; }
+.improvement-assumptions { margin-top:20px; color:#7c8498; font-size:12px; line-height:1.7; }
+.improvement-assumptions summary { cursor:pointer; font-weight:500; }
+.improvement-assumptions ul { padding-left:18px; }
+.plan-save { margin-top:24px; border-top:1px solid #e9e6ef; padding-top:20px; display:flex; gap:12px; align-items:flex-end; }
+.plan-save .field { flex:1; margin:0; }
+.plan-save .button { flex-shrink:0; }
+.plan-save-note { display:flex; align-items:center; gap:6px; font-size:11px; color:#8a91a5; margin-bottom:0; }
+.empty-state.compact { padding:25px; }
+@media (max-width:650px) {
+  .improvement-modal { width:calc(100vw - 20px); padding:20px; }
+  .improvement-stats { gap:7px; }
+  .improvement-stats > div { padding:12px 9px; }
+  .improvement-stats strong { font-size:24px; }
+  .improvement-stats span { font-size:10px; }
+  .condition-columns { grid-template-columns:1fr; gap:8px; }
+  .condition-columns > svg { transform:rotate(90deg); margin:auto; }
+  .plan-save { flex-direction:column; align-items:stretch; }
+  .impact-card { padding:14px; }
+  .notification-tabs > button { font-size:11px; padding:12px; }
+}
