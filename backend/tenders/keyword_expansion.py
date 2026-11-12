@@ -36,16 +36,67 @@ def indexed_documents(tender_ids=None):
 
 
 def matching_tenders(terms, tender_ids):
-    from django.db.models import Q
+    return set(document_keyword_hits(terms, tender_ids))
+
+
+def quote_around(text, term, radius=110):
+    """Short excerpt of `text` around the first folded occurrence of `term`, with match offsets."""
+    positions, folded = [], []
+    for index, char in enumerate(text):
+        for part in fold(char):
+            positions.append(index)
+            folded.append(part)
+    found = ''.join(folded).find(term)
+    if found < 0:
+        excerpt = same_text(text[:2 * radius])
+        return {'quote': excerpt, 'match_start': None, 'match_end': None}
+    start, end = positions[found], positions[found + len(term) - 1] + 1
+    left, right = max(0, start - radius), min(len(text), end + radius)
+    # Do not cut words in half at the excerpt edges.
+    while left > 0 and not text[left - 1].isspace() and start - left < radius + 25:
+        left -= 1
+    while right < len(text) and not text[right].isspace() and right - end < radius + 25:
+        right += 1
+    before, match, after = same_text(text[left:start]), text[start:end], same_text(text[end:right])
+    prefix = ('… ' if left > 0 else '') + before + (' ' if before and text[start - 1].isspace() else '')
+    suffix = (' ' if after and text[end].isspace() else '') + after + (' …' if right < len(text) else '')
+    return {'quote': prefix + match + suffix, 'match_start': len(prefix), 'match_end': len(prefix) + len(match)}
+
+
+def document_keyword_hits(terms, tender_ids):
+    """First document passage per tender and search term: {tender_id: {term: evidence}}."""
+    from django.db.models import BooleanField, ExpressionWrapper, Q
+    terms = list(dict.fromkeys(fold(term) for term in terms if term))
     documents = indexed_documents(tender_ids)
-    if not documents:
-        return set()
+    if not terms or not documents:
+        return {}
+    by_content = defaultdict(list)
+    for doc in documents:
+        by_content[doc.indexed_content_id].append(doc)
+    flags = {f'k{index}': ExpressionWrapper(Q(normalized_text__contains=term), output_field=BooleanField())
+             for index, term in enumerate(terms)}
     condition = Q()
     for term in terms:
-        condition |= Q(normalized_text__contains=fold(term))
-    contents = set(DocumentChunk.objects.filter(condition,
-        content_id__in={doc.indexed_content_id for doc in documents}).values_list('content_id', flat=True))
-    return {doc.tender_id for doc in documents if doc.indexed_content_id in contents}
+        condition |= Q(normalized_text__contains=term)
+    # One scan returns only ids and per-term flags; text is loaded just for the first hit.
+    rows = (DocumentChunk.objects.filter(condition, content_id__in=by_content).annotate(**flags)
+            .order_by('content_id', 'ordinal').values('id', 'content_id', *flags))
+    first = {}
+    for row in rows.iterator():
+        for index, term in enumerate(terms):
+            if row[f'k{index}']:
+                first.setdefault((row['content_id'], term), row['id'])
+    chunks = DocumentChunk.objects.in_bulk(set(first.values()))
+    hits = defaultdict(dict)
+    for (content_id, term), chunk_id in sorted(first.items(), key=lambda item: chunks[item[1]].ordinal):
+        chunk = chunks[chunk_id]
+        for doc in by_content[content_id]:
+            if term in hits[doc.tender_id]:
+                continue
+            hits[doc.tender_id][term] = {'document_id': doc.pk, 'document_title': doc.title,
+                'page': chunk.page if doc.extraction.get('format') == 'pdf' else None,
+                'locator': chunk.locator, **quote_around(chunk.text, term)}
+    return dict(hits)
 
 
 def query_stems(query):

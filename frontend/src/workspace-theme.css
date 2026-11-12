@@ -548,3 +548,65 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* Active filters: labels stay readable on the accent chips. */
+.active-filter-list > span > b { color: rgba(255, 255, 255, .78); font-weight: 500; }
+
+/* Search keywords as individual, removable chips. */
+.active-filter-list .keyword-filter {
+  flex: 1 1 100%; display: flex; align-items: flex-start; gap: 8px 14px;
+  padding: 10px 12px; background: #fff; border: 1px solid var(--line); border-radius: 10px;
+}
+.active-filter-list .keyword-filter > b {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; padding-top: 5px;
+  color: var(--muted); font-size: 13px; font-weight: 600;
+}
+.keyword-filter > b > span {
+  min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--platinum);
+  color: var(--muted); font-size: 11px; line-height: 18px; text-align: center;
+}
+.keyword-chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.keyword-chips > span {
+  display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 3px 3px 3px 11px;
+  border: 1px solid #c9dbe3; border-radius: 999px; background: #eaf1f4; color: #24495a;
+  font-size: 13px; line-height: 1.45; overflow-wrap: anywhere;
+}
+.keyword-chips > span.added { background: #fff; border-style: dashed; border-color: var(--accent); }
+.keyword-chips > span.added > svg { flex: none; color: var(--accent); }
+.active-filter-list .keyword-chips button {
+  flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; color: #24495a; cursor: pointer;
+}
+.active-filter-list .keyword-chips button:hover { background: rgba(65, 113, 134, .16); }
+.active-filter-list .keyword-clear {
+  flex: none; padding: 5px 2px 0; color: var(--accent); font-size: 13px; cursor: pointer;
+}
+.active-filter-list .keyword-clear:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  .active-filter-list .keyword-filter { flex-wrap: wrap; }
+  .keyword-chips { flex-basis: 100%; order: 3; }
+  .active-filter-list .keyword-clear { margin-left: auto; padding-top: 5px; }
+}
+
+/* Search terms found in a tender, each linked to its citation. */
+.card-keywords { margin: 14px 0 0; }
+.card-keyword-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.card-keywords-label { color: var(--muted); font-size: 12px; margin-right: 2px; }
+.card-keyword-links > a {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 3px 9px;
+  border: 1px solid #c9dbe3; border-radius: 999px; background: #eaf1f4; color: #24495a;
+  font-size: 12.5px; line-height: 1.4; text-decoration: none; overflow-wrap: anywhere;
+}
+.card-keyword-links > a:hover { border-color: var(--accent); background: #fff; }
+.card-keyword-links > a.added { border-style: dashed; border-color: var(--accent); background: #fff; }
+.card-keyword-links > a > small { color: #5b7a88; font-size: 11px; white-space: nowrap; }
+.card-keyword-links > a > svg { flex: none; color: var(--accent); }
+.card-keyword-quotes { margin-top: 8px; font-size: 13px; }
+.card-keyword-quotes > summary {
+  display: inline-flex; align-items: center; gap: 4px; color: var(--accent); cursor: pointer; list-style: none;
+}
+.card-keyword-quotes > summary::-webkit-details-marker { display: none; }
+.card-keyword-quotes[open] > summary > svg { transform: rotate(180deg); }
+.card-keyword-quotes > div { margin-top: 10px; padding-left: 11px; border-left: 2px solid var(--line); }
+.card-keyword-quotes blockquote { margin: 0 0 4px; color: var(--muted); line-height: 1.55; overflow-wrap: anywhere; }
+.card-keyword-quotes mark { padding: 0 2px; border-radius: 3px; background: #f6dfb4; color: var(--ink); }
+.card-keyword-quotes a { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-size: 12px; }

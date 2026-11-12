@@ -60,16 +60,48 @@ def validate_filters(raw):
     return filters
 
 
-def apply_filters(tenders, filters):
+def search_terms(query):
+    """Comma separated search terms as typed, deduplicated by their normalized form."""
+    terms = {}
+    for term in (query or '').split(','):
+        term = ' '.join(term.split())
+        if term:
+            terms.setdefault(text_normalize(term), term)
+    return terms
+
+
+METADATA_FIELDS = [('title', 'naslovu'), ('summary', 'opisu'), ('buyer', 'naročniku'),
+                   ('topics', 'področjih'), ('technologies', 'tehnologijah')]
+
+
+def keyword_matches(tender, query, document_hits):
+    """Every search term present in a tender, with a document citation where one exists."""
+    found = []
+    for normalized, term in search_terms(query).items():
+        evidence = document_hits.get(normalized)
+        fields = []
+        for field, label in METADATA_FIELDS:
+            value = tender.get(field) or ''
+            if normalized in text_normalize(' '.join(value) if isinstance(value, list) else value):
+                fields.append(label)
+        if evidence or fields:
+            found.append({'term': term, 'fields': fields, 'evidence': evidence})
+    return found
+
+
+def apply_filters(tenders, filters, keyword_hits=None):
+    """Filter and sort tenders. Pass a dict as keyword_hits to receive document matches per tender."""
     filters = validate_filters(filters)
     include_unknown = filters.get('include_unknown', True)
     view = filters.get('view', 'recommended')
     output = []
     words = [text_normalize(w.strip()) for w in filters.get('q', '').split(',') if w.strip()]
-    document_matches = set()
+    document_matches = {}
     if words:
-        from .keyword_expansion import matching_tenders
-        document_matches = matching_tenders(words, [t['id'] for t in tenders])
+        from .keyword_expansion import document_keyword_hits
+        document_matches = document_keyword_hits(words, [t['id'] for t in tenders])
+        if keyword_hits is not None:
+            keyword_hits.update(document_matches)
     for tender in tenders:
         if view == 'recommended':
             partner_opportunity = filters.get('include_partner_opportunities') and any(c['status'] == 'unmet' for c in tender['match']['conditions'])

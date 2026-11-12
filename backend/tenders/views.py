@@ -12,7 +12,7 @@ from rest_framework.exceptions import ValidationError
 from .models import CompanyProfile, Tender, SavedSearch, Notification, Document
 from .seed import ensure_seed, get_profile, demo_profile
 from .matching import serialize_tender
-from .filtering import apply_filters, validate_filters
+from .filtering import apply_filters, keyword_matches, validate_filters
 from .validation import validate_profile
 from .services import bootstrap, all_tenders, all_notifications, serialize_search, trigger_event
 from .documents import extract_pages, serialize_document, active_documents
@@ -91,7 +91,11 @@ def company_search_view(request):
 def tenders_view(request):
     ensure_seed()
     filters = {key: ','.join(request.query_params.getlist(key)) for key in request.query_params}
-    results = apply_filters(all_tenders(), filters)
+    hits = {}
+    results = apply_filters(all_tenders(), filters, keyword_hits=hits)
+    if filters.get('q', '').strip():
+        results = [{**tender, 'keyword_matches': keyword_matches(tender, filters['q'], hits.get(tender['id'], {}))}
+                   for tender in results]
     return Response({'results': results, 'count': len(results)})
 
 

@@ -96,3 +96,30 @@ class KeywordExpansionTests(TestCase):
         with patch('tenders.keyword_expansion.structured_call') as call:
             self.assertEqual(expand('klimatske naprave')['suggestions'], [])
             call.assert_not_called()
+
+    def test_search_reports_each_found_term_with_citation(self):
+        from .filtering import keyword_matches
+        from .keyword_expansion import document_keyword_hits, quote_around
+        hits = document_keyword_hits(['prezračevanje', 'hlajenje', 'tiskanje'], [self.tender.pk])
+        evidence = hits[self.tender.pk]['prezracevanje']
+        self.assertEqual((evidence['document_id'], evidence['page']), (self.doc.pk, 3))
+        self.assertEqual(evidence['quote'][evidence['match_start']:evidence['match_end']], 'prezračevanje')
+        self.assertNotIn('tiskanje', hits[self.tender.pk])
+        tender = {'id': self.tender.pk, 'title': 'Hlajenje šole', 'buyer': 'Občina', 'topics': ['klima']}
+        found = keyword_matches(tender, 'Prezračevanje, hlajenje, tiskanje, klima', hits[self.tender.pk])
+        self.assertEqual([item['term'] for item in found], ['Prezračevanje', 'hlajenje', 'klima'])
+        self.assertEqual(found[1]['fields'], ['naslovu'])
+        self.assertIsNone(found[2]['evidence'])
+        long = 'uvod ' * 60 + 'robotski sistem' + ' zaključek' * 60
+        excerpt = quote_around(long, 'robotski')
+        self.assertTrue(excerpt['quote'].startswith('… ') and excerpt['quote'].endswith(' …'))
+        self.assertEqual(excerpt['quote'][excerpt['match_start']:excerpt['match_end']], 'robotski')
+
+    def test_tender_list_returns_keyword_matches_only_when_searching(self):
+        from .seed import ensure_seed
+        self.tender.delete()  # The bare fixture tender has no listing fields.
+        ensure_seed()
+        response = APIClient().get('/api/tenders', {'view': 'all', 'q': 'IoT'})
+        self.assertTrue(response.data['results'])
+        self.assertTrue(all(item['keyword_matches'] for item in response.data['results']))
+        self.assertNotIn('keyword_matches', APIClient().get('/api/tenders', {'view': 'all'}).data['results'][0])

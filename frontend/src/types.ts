@@ -91,6 +91,12 @@ export interface TenderCondition {
     status: ConditionState | 'manual';
     company_value: string;
 }
+export interface KeywordMatch {
+    term: string;
+    /** Tender fields containing the term, e.g. "naslovu", "opisu". */
+    fields: string[];
+    evidence: { document_id: string; document_title: string; page: number | null; locator: string; quote: string; match_start: number | null; match_end: number | null } | null;
+}
 export interface Tender {
     id: string;
     tender_conditions?: { mode: 'live' | 'empty' | 'unavailable' | 'pending'; message: string; current?: boolean; items: TenderCondition[] };
@@ -114,6 +120,8 @@ export interface Tender {
     is_new: boolean;
     has_update: boolean;
     version: number;
+    /** Present only in search results: every search term found in the tender. */
+    keyword_matches?: KeywordMatch[];
     match: {
         level: MatchLevel;
         score: number;
