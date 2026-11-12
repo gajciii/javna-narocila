@@ -28,10 +28,10 @@ def ai_enabled():
     return provider() is not None
 
 
-def structured_call(schema, instruction, payload):
+def structured_call(schema, instruction, payload, timeout=None):
     from openai import OpenAI
     if provider() == 'openrouter':
-        client = OpenAI(api_key=os.environ['OPENROUTER_API_KEY'], base_url=OPENROUTER_BASE_URL, timeout=45, max_retries=0,
+        client = OpenAI(api_key=os.environ['OPENROUTER_API_KEY'], base_url=OPENROUTER_BASE_URL, timeout=timeout or 45, max_retries=0,
                         default_headers={'X-Title': 'RazpIzi'})
         # Chat Completions is OpenRouter's stable API. require_parameters routes only to
         # providers that honour structured output; data_collection=deny skips providers that train on prompts.
@@ -48,7 +48,7 @@ def structured_call(schema, instruction, payload):
         # Some models wrap JSON in a Markdown fence despite response_format.
         text = re.sub(r'^\s*```(?:json)?\s*|\s*```\s*$', '', text)
     else:
-        client = OpenAI(api_key=os.environ['OPENAI_API_KEY'], timeout=25, max_retries=0)
+        client = OpenAI(api_key=os.environ['OPENAI_API_KEY'], timeout=timeout or 25, max_retries=0)
         response = client.responses.create(
             model=settings.OPENAI_MODEL, store=False,
             instructions=instruction + GUARD,

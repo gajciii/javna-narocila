@@ -139,7 +139,9 @@ def extract_conditions(tender, force=False):
         else:
             try:
                 answer = structured_call(SCHEMA, INSTRUCTION, {'title': tender.data.get('title', ''), 'passages': [
-                    {'document': p['document_title'], 'locator': p['locator'], 'text': p['quote']} for p in passages]})
+                    {'document': p['document_title'], 'locator': p['locator'], 'text': p['quote']} for p in passages]},
+                    # Long condition sections (20+ conditions) take the model close to a minute.
+                    timeout=150)
                 record.conditions = validated(answer, passages)
                 record.mode = 'live' if record.conditions else 'empty'
                 record.message = '' if record.conditions else 'V dokumentaciji ni najdenih pogojev s potrjenim citatom.'
