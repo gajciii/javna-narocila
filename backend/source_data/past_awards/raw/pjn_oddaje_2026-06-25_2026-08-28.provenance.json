@@ -1,0 +1,59 @@
+{
+  "actor": "publicmoney/enarocanje-slovenia-scraper",
+  "scraped_on": "2026-11-12",
+  "unique_notices": 2085,
+  "downloaded_records": 2399,
+  "duplicates_removed": 314,
+  "first_publication": "2026-06-25",
+  "last_publication": "2026-08-28",
+  "oldest_day_may_be_partial": true,
+  "cost_usd": "4.79625",
+  "budget_usd": 5,
+  "notes": "First run aborted after host migration restarted the scraper and repeated records. Second run resumes on the oldest publication day. Exports merged by notice ID.",
+  "runs": [
+    {
+      "id": "eJm4gv3r3GW5jSutw",
+      "status": "ABORTED",
+      "startedAt": "2026-11-12T10:43:06.617Z",
+      "finishedAt": "2026-11-12T10:45:28.150Z",
+      "chargedEventCounts": {
+        "apify-actor-start": 4,
+        "tender-scraper": 698,
+        "schema-org": 0
+      },
+      "usageTotalUsd": 1.3962,
+      "defaultDatasetId": "7xnkGCbTqLXvGABoa",
+      "input": {
+        "dateFrom": "2026-01-01",
+        "dateTo": "2026-08-30",
+        "phase": "RESULT",
+        "fetchDetails": true,
+        "maxItems": 2400,
+        "schemaOrg": false
+      },
+      "maxTotalChargeUsd": 4.9
+    },
+    {
+      "id": "mvXosPl0xPj8Rc5tG",
+      "status": "SUCCEEDED",
+      "startedAt": "2026-11-12T10:45:58.949Z",
+      "finishedAt": "2026-11-12T10:50:23.526Z",
+      "chargedEventCounts": {
+        "apify-actor-start": 1,
+        "tender-scraper": 1700,
+        "schema-org": 0
+      },
+      "usageTotalUsd": 3.40005,
+      "defaultDatasetId": "PSXCNErsVvgVlZfAv",
+      "input": {
+        "dateFrom": "2026-01-01",
+        "dateTo": "2026-08-17",
+        "phase": "RESULT",
+        "fetchDetails": true,
+        "maxItems": 1700,
+        "schemaOrg": false
+      },
+      "maxTotalChargeUsd": 3.5
+    }
+  ]
+}
