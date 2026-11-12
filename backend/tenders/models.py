@@ -105,3 +105,14 @@ class SyncRun(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['day', 'slot'], name='unique_pjn_daily_slot')]
+
+
+class EspdDraft(models.Model):
+    company_key = models.CharField(max_length=64, db_index=True)
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name='espd_drafts')
+    answers = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['company_key', 'tender'], name='unique_company_tender_espd')]

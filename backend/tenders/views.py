@@ -65,6 +65,17 @@ def prefill_view(request):
     return Response({'profile': profile, 'source': 'demo', 'message': 'Prikazan je izmišljeni demo profil Lumina digital. To niso podatki iz AJPES. Podatke preverite in shranite izrecno.'})
 
 
+@api_view(['POST'])
+def website_profile_view(request):
+    from .website import analyze, WebsiteUnavailable
+    try:
+        return Response(analyze(request.data.get('url', '')))
+    except ValueError as exc:
+        raise ValidationError(str(exc))
+    except WebsiteUnavailable as exc:
+        return Response({'code': 'website_unavailable', 'message': str(exc)}, status=502)
+
+
 @api_view(['GET'])
 def company_search_view(request):
     from .ajpes import lookup, RegistryUnavailable

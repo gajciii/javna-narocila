@@ -9,9 +9,10 @@ Prototip za **hackathon, izziv št. 2: podatkovno inženirstvo in AI za javna na
 - **Pregled priložnosti:** priporočeni in spremljani razpisi, neprebrana obvestila ter prihajajoči roki.
 - **Iskanje:** ključne besede, CPV, naročnik, lokacija, vrednost, roki, izvor, stanje in prag ujemanja. Napredni filtri se odprejo po potrebi; iskanja lahko shranite.
 - **Razložljiva presoja:** vsebinsko ujemanje 0–100, ločen pregled obveznih pogojev in dokazi z navedbo dokumenta ter strani.
-- **Profil podjetja:** osnovni podatki iz AJPES prek OPSI; reference, znanja, certifikati in ekipa so uporabniški vnosi.
+- **Profil podjetja:** osnovni podatki iz AJPES prek OPSI; reference, znanja, certifikati in ekipa so uporabniški vnosi. Dejavnost, opis, znanja in tehnologije lahko predlaga branje spletne strani podjetja, vsak predlog z dobesednim virom.
 - **AI pomočnik:** priporočila, preverjanje pogojev, primerjava razpisov in predlogi filtrov oziroma dopolnitve profila, ki jih uporabnik potrdi.
 - **Spremljanje:** spremembe pogojev, podaljšanja rokov in nove priložnosti brez podvajanja istega dogodka.
+- **ESPD osnutek:** zavihek ESPD na razpisu predizpolni podatke o naročilu, podjetju (AJPES, profil) in pogojih iz dokumentacije s predlogi odgovorov. Razlogov za izključitev ne izpolni samodejno. Izvoz v PDF (tisk) in JSON.
 - **Partnerji in razvoj:** potencialna dopolnitev pogojev s partnerjem ter shranjeni načrti za razvoj kompetenc.
 
 Vmesnik uporablja stalno navigacijo, berljive kartice in vidno utemeljitev ocene ter se prilagaja manjšim zaslonom. Oblikovalski referenci sta preglednost poslovnih platform [PRIOT](https://www.priot.io/) in poenostavitev vsakodnevnih opravil v [Telesporju](https://www.priot.io/projects/telespor-user-portal). Projekt ni povezan s podjetjem PRIOT.
@@ -101,7 +102,7 @@ Vir: **Javne informacije Slovenije – portal javnih naročil**. [Dokumentacija 
 
 Podprti so besedilni PDF-ji in ZIP arhivi: največ 10 MB na datoteko, 30 članov oziroma 20 MB razpakirane vsebine in 150 strani na PDF. Skeni, zaščiteni dokumenti in nepodprti formati ostanejo označeni za dodaten pregled. Izluščeno besedilo še ne pomeni analize pogojev.
 
-Za živo analizo kopirajte `.env.example` v `.env`, nastavite `OPENAI_API_KEY` in po potrebi `OPENAI_MODEL`, nato znova zaženite backend. Ključ ostane na strežniku; `.env` ni v Gitu. Model prejme ustrezne podatke profila in dokumentacije. Brez ključa se uporabljajo pripravljene demo analize in označeni demo odgovori; pogojev resničnih dokumentov aplikacija ne izmišljuje.
+Za živo analizo kopirajte `.env.example` v `.env` in nastavite `OPENROUTER_API_KEY` (privzeti model `openai/gpt-6-luna`, spremenljiv z `OPENROUTER_MODEL`) ali `OPENAI_API_KEY` in `OPENAI_MODEL`, nato znova zaženite backend. Če sta nastavljena oba, ima prednost OpenRouter; zahteve gredo samo k ponudnikom s strukturiranim izhodom, ki ne zbirajo podatkov za učenje. Citati v odgovorih se dobesedno preverijo proti strani dokumenta, sicer je prikazan demo odgovor. Ključ ostane na strežniku; `.env` ni v Gitu. Model prejme ustrezne podatke profila in dokumentacije. Brez ključa se uporabljajo pripravljene demo analize in označeni demo odgovori; pogojev resničnih dokumentov aplikacija ne izmišljuje.
 
 ### Podjetja, partnerji in demo podatki
 
@@ -125,6 +126,8 @@ Partnerji prispevajo samo podatke s podprtimi dokazili. Uporabniška potrditev n
 | `backend/tenders/documents.py`, `ai.py` | Besedilo PDF, dokazi in AI |
 | `backend/tenders/ajpes.py` | Iskanje podjetij in predpomnilnik |
 | `backend/tenders/improvements.py`, `partners.py` | Razvojni načrti in partnerski potencial |
+| `backend/tenders/espd.py`, `frontend/src/Espd.tsx` | ESPD osnutek |
+| `backend/tenders/website.py`, `frontend/src/WebsiteImport.tsx` | Predlogi profila s spletne strani podjetja |
 | `backend/demo_documents/`, `source_data/` | Demo dokumentacija in šifranti |
 | `scripts/` | Priprava, zagon in preverjanje za Bash |
 
@@ -141,6 +144,16 @@ npm.cmd --prefix frontend run build
 ```
 
 Linux / macOS: `./scripts/check.sh` izvede iste preglede in še `docker compose config --quiet`; za slednjega je potreben Docker CLI. Gradnja vmesnika vključuje TypeScript preverjanje in zaznavanje neuporabljene kode.
+
+## Delo z AI agenti
+
+Na projektu sodeluje več ljudi in AI agentov. Pravila so v [AGENTS.md](AGENTS.md). Codex, Cursor in večina drugih agentov jo preberejo samodejno, Claude Code pa prek `CLAUDE.md`.
+
+- **Git log je dnevnik sprememb.** Vsak commit ima poleg naslova telo: zakaj je bila sprememba narejena, katere odločitve so bile sprejete, migracije in konfiguracija, kaj je preverjeno in kaj ne ter kaj ostaja odprto. Predloga je v `.gitmessage`; vključite jo z `git config commit.template .gitmessage`.
+- **Odprte točke** so na dnu `AGENTS.md`. Agent jih ob delu posodablja: rešene briše, nove dodaja.
+- Spremembe API-ja se zapišejo tudi v CONTRACT.md.
+
+Zgodovino z razlagami pregledate z `git log` (brez `--oneline`).
 
 ## Meje prototipa
 

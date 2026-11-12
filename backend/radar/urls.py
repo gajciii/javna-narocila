@@ -1,14 +1,16 @@
 from django.urls import path
-from tenders import views, partner_views
+from tenders import views, partner_views, espd_views
 
 urlpatterns = [
     path('api/partners', partner_views.partners_view),
     path('api/partners/<int:partner_id>', partner_views.partner_view),
     path('api/tenders/<slug:tender_id>/partners', partner_views.tender_partners_view),
+    path('api/tenders/<slug:tender_id>/espd', espd_views.tender_espd_view),
     path('api/certifications', partner_views.certifications_view),
     path('api/bootstrap', views.bootstrap_view),
     path('api/profile', views.profile_view),
     path('api/profile/prefill', views.prefill_view),
+    path('api/profile/website', views.website_profile_view),
     path('api/companies/search', views.company_search_view),
     path('api/tenders', views.tenders_view),
     path('api/tenders/<slug:tender_id>', views.tender_view),

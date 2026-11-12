@@ -279,3 +279,53 @@ export interface PartnerResults {
     message: string;
 }
 export interface CertificationOption { key: string; label: string; required: boolean }
+export interface WebsiteEvidence {
+    url: string;
+    quote: string;
+    kind: 'text' | 'code' | 'meta';
+}
+export interface WebsiteSuggestion {
+    value: string;
+    evidence: WebsiteEvidence[];
+}
+export interface WebsiteAnalysis {
+    url: string;
+    final_url: string;
+    mode: 'live' | 'heuristic';
+    pages: { url: string; title: string }[];
+    suggestions: {
+        activity: WebsiteSuggestion | null;
+        description: WebsiteSuggestion | null;
+        expertise: WebsiteSuggestion[];
+        technologies: WebsiteSuggestion[];
+        keywords: WebsiteSuggestion[];
+    };
+    warning: string | null;
+    message: string;
+}
+export type EspdSource = 'ajpes' | 'profile' | 'demo' | 'missing';
+export interface EspdAnswers {
+    operator: { vat_id: string; contact_name: string; email: string; phone: string; size: string; representatives: { name: string; role: string }[] };
+    participation: { lots: string[]; joint_bid: boolean | null; joint_partners: string; relies_on_others: boolean | null; other_entities: string; subcontracting: boolean | null; subcontractors: string };
+    exclusion: Record<string, { answer: 'no' | 'yes' | null; details: string }>;
+    selection: { global_yes: boolean | null; responses: Record<string, string> };
+    final: { place: string; date: string; signatory: string; role: string };
+}
+export interface EspdRow {
+    id: string; section: string; section_label: string; kind: string; requirement: string;
+    document_id: string; page: number | null; quote: string; status: ConditionState; company_value: string;
+    suggestion: string; response: string; edited: boolean; evidence: { type: string; id: string; title: string }[];
+}
+export interface Espd {
+    tender_id: string; tender_status: string;
+    part1: { buyer: string; title: string; notice_number: string; source_url: string; cpv: string[]; kind: string; deadline: string | null; lots: { id: string; title: string }[]; source_type: string };
+    part2: { key: string; label: string; value: string; source: EspdSource }[];
+    registry: { attribution: string; retrieved_at: string } | null;
+    part3: { code: string; title: string; items: { code: string; label: string }[] }[];
+    part4: EspdRow[];
+    answers: EspdAnswers;
+    sizes: Record<string, string>;
+    progress: { done: number; total: number; missing: string[] };
+    warnings: string[];
+    updated_at: string | null;
+}

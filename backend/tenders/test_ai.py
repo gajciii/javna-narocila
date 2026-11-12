@@ -10,7 +10,7 @@ from .seed import ensure_seed, get_profile
 from .services import all_tenders
 
 
-@patch.dict("os.environ", {"OPENAI_API_KEY": "test-never-sent"})
+@patch.dict("os.environ", {"OPENAI_API_KEY": "test-never-sent", "OPENROUTER_API_KEY": ""})
 class GroundingTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -36,6 +36,17 @@ class GroundingTests(TestCase):
         self.assertEqual(result["mode"], "demo")
         self.assertIn("warning", result)
         self.assertNotEqual(result["citations"][0]["quote"], evidence["quote"])
+
+    @patch("tenders.ai.structured_call")
+    def test_quote_joined_with_ellipsis_is_accepted_only_if_every_part_is_verbatim(self, call):
+        doc = Document.objects.get(pk="energy-v1")
+        reqs = [r for r in doc.extraction["requirements"] if r["page"] == doc.extraction["requirements"][0]["page"]]
+        joined = {**self.citation(), "quote": f"{reqs[0]['quote']} [...] {reqs[-1]['quote']}"}
+        call.return_value = {"answer": "Pogoja.", "citations": [joined]}
+        self.assertEqual(chat("Pogoji?", all_tenders(), get_profile(), ["energy-iot"])["mode"], "live")
+        forged = {**self.citation(), "quote": f"{reqs[0]['quote']} [...] Vsi ponudniki samodejno izpolnjujejo pogoje."}
+        call.return_value = {"answer": "Pogoja.", "citations": [forged]}
+        self.assertEqual(chat("Pogoji?", all_tenders(), get_profile(), ["energy-iot"])["mode"], "demo")
 
     @patch("tenders.ai.structured_call")
     def test_document_from_different_tender_is_rejected(self, call):
@@ -80,3 +91,39 @@ class GroundingTests(TestCase):
         self.assertEqual(result["mode"], "demo")
         doc.refresh_from_db()
         self.assertEqual(doc.extraction, original)
+
+
+class OpenRouterProviderTests(TestCase):
+    schema = {"type": "object", "additionalProperties": False, "properties": {"answer": {"type": "string"}}, "required": ["answer"]}
+
+    def fake_client(self, content):
+        from types import SimpleNamespace
+        message = SimpleNamespace(content=content)
+        client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=None)))
+        calls = []
+        def create(**kwargs):
+            calls.append(kwargs)
+            return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+        client.chat.completions.create = create
+        return client, calls
+
+    @patch.dict("os.environ", {"OPENROUTER_API_KEY": "or-test-never-sent", "OPENAI_API_KEY": "also-set"})
+    def test_openrouter_uses_chat_completions_with_strict_schema(self):
+        from .ai import provider, structured_call
+        client, calls = self.fake_client('```json\n{"answer": "ok"}\n```')
+        with patch("openai.OpenAI", return_value=client) as ctor:
+            self.assertEqual(provider(), "openrouter")
+            self.assertEqual(structured_call(self.schema, "Navodilo", {"q": 1}), {"answer": "ok"})
+        self.assertEqual(ctor.call_args.kwargs["base_url"], "https://openrouter.ai/api/v1")
+        sent = calls[0]
+        self.assertEqual(sent["response_format"]["json_schema"]["schema"], self.schema)
+        self.assertTrue(sent["extra_body"]["provider"]["require_parameters"])
+        self.assertIn("nezaupanja", sent["messages"][0]["content"])
+
+    @patch.dict("os.environ", {"OPENROUTER_API_KEY": "or-test-never-sent", "OPENAI_API_KEY": ""})
+    def test_openrouter_invalid_json_shape_is_rejected(self):
+        from jsonschema import ValidationError
+        from .ai import structured_call
+        client, _ = self.fake_client('{"wrong": 1}')
+        with patch("openai.OpenAI", return_value=client), self.assertRaises(ValidationError):
+            structured_call(self.schema, "Navodilo", {})

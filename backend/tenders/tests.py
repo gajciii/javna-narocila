@@ -204,7 +204,7 @@ class RadarTests(TestCase):
             extraction={'mode': 'unprocessed', 'requirements': [], 'criteria': []})
         self.assertEqual(self.detail('energy-iot')['match']['recommendation'], 'review')
 
-    @patch.dict(os.environ, {'OPENAI_API_KEY': ''})
+    @patch.dict(os.environ, {'OPENAI_API_KEY': '', 'OPENROUTER_API_KEY': ''})
     def test_chat_demo_uses_current_profile_and_has_evidence(self):
         response = self.client.post('/api/chat', {'message': 'Katere reference moramo dopolniti?', 'tender_ids': ['sport-portal']}, format='json')
         self.assertEqual(response.status_code, 200)
