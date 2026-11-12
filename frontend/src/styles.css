@@ -50,7 +50,7 @@ button:focus-visible,a:focus-visible {
 }
 
 input:focus,select:focus,textarea:focus {
-  border-color:#F3E6D5!important;
+  border-color:#dedede!important;
   box-shadow:0 0 0 3px #7ab49c10;
 }
 
@@ -89,7 +89,7 @@ svg {
 }
 
 input,textarea,select {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:7px;
   background:#fff;
   min-width:0;
@@ -118,7 +118,7 @@ input[type=checkbox] {
   width:15px;
   height:15px;
   flex-shrink:0;
-  border:1.4px solid #F3E6D5;
+  border:1.4px solid #dedede;
   border-radius:4px;
   background:#fff;
   display:inline-grid;
@@ -198,7 +198,7 @@ input::-webkit-calendar-picker-indicator {
   justify-content:center;
   gap:8px;
   padding:0 14px;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   font-weight:600;
   background:#fff;
   white-space:nowrap;
@@ -207,7 +207,7 @@ input::-webkit-calendar-picker-indicator {
 
 .button:hover:not(:disabled) {
   background:#fff;
-  border-color:#F3E6D5;
+  border-color:#dedede;
 }
 
 .button.primary {
@@ -236,7 +236,7 @@ input::-webkit-calendar-picker-indicator {
 .button.following {
   color:var(--accent);
   background:var(--soft);
-  border-color:#F3E6D5;
+  border-color:#dedede;
 }
 
 .icon-button {
@@ -402,7 +402,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .sidebar-note {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   background:linear-gradient(135deg,#fff,#fff);
   border-radius:10px;
   margin:35px 5px 26px;
@@ -434,7 +434,7 @@ input::-webkit-calendar-picker-indicator {
   display:flex;
   align-items:center;
   gap:7px;
-  border-bottom:1px solid #F3E6D5;
+  border-bottom:1px solid #dedede;
   margin-bottom:18px;
 }
 
@@ -453,7 +453,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .avatar {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   display:grid;
   place-items:center;
   font-size:12px;
@@ -541,7 +541,7 @@ input::-webkit-calendar-picker-indicator {
   right:0;
   top:44px;
   width:285px;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:10px;
   background:#fff;
   box-shadow:0 10px 36px #233f3318;
@@ -618,7 +618,7 @@ input::-webkit-calendar-picker-indicator {
   display:flex;
   align-items:center;
   justify-content:space-between;
-  border-bottom:1px solid #F3E6D5;
+  border-bottom:1px solid #dedede;
 }
 
 .tabs {
@@ -696,7 +696,7 @@ input::-webkit-calendar-picker-indicator {
 .saved-search {
   display:flex;
   align-items:center;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   background:white;
   border-radius:5px;
   overflow:hidden;
@@ -742,7 +742,7 @@ input::-webkit-calendar-picker-indicator {
 
 .search-input {
   background:white;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   display:flex;
   align-items:center;
   gap:11px;
@@ -773,7 +773,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .ai-filter-box {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:10px;
   padding:20px;
   margin:-7px 0 25px;
@@ -815,7 +815,7 @@ input::-webkit-calendar-picker-indicator {
 
 .filter-proposal {
   background:white;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:7px;
   padding:15px;
   margin-top:15px;
@@ -837,7 +837,7 @@ input::-webkit-calendar-picker-indicator {
 .proposal-tags>span {
   background:#fff;
   color: #625b58;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   font-size:12px;
   border-radius:5px;
   padding:5px 7px;
@@ -960,7 +960,7 @@ input::-webkit-calendar-picker-indicator {
   width:100%;
   height:45px;
   padding:13px 8px 0;
-  border-color:#F3E6D5;
+  border-color:#dedede;
   border-radius:5px;
 }
 
@@ -1215,7 +1215,7 @@ input::-webkit-calendar-picker-indicator {
   align-items:flex-start;
   gap:6px;
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:5px;
   padding:7px 9px;
   margin-top:11px;
@@ -1232,7 +1232,7 @@ input::-webkit-calendar-picker-indicator {
 .open-question.unmet {
   color: #625b58;
   background:#fff;
-  border-color:#F3E6D5;
+  border-color:#dedede;
 }
 
 .card-footer {
@@ -1297,7 +1297,7 @@ input::-webkit-calendar-picker-indicator {
 .empty-state {
   padding:60px 25px;
   text-align:center;
-  border:1px dashed #F3E6D5;
+  border:1px dashed #dedede;
   border-radius:10px;
   background:#fff;
 }
@@ -1403,7 +1403,7 @@ input::-webkit-calendar-picker-indicator {
   align-items:flex-start;
   gap:9px;
   padding:13px 14px;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   background:#fff;
   border-radius:7px;
   color: #625b58;
@@ -1420,7 +1420,7 @@ input::-webkit-calendar-picker-indicator {
 
 .info-box.amber {
   background:#fff;
-  border-color:#F3E6D5;
+  border-color:#dedede;
   color: #625b58;
 }
 
@@ -1562,7 +1562,7 @@ input::-webkit-calendar-picker-indicator {
   align-items:center;
   gap:12px;
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:9px;
   padding:18px;
   color: #625b58;
@@ -1584,7 +1584,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .import-result {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   background:#fff;
   border-radius:8px;
   padding:15px;
@@ -1702,7 +1702,7 @@ input::-webkit-calendar-picker-indicator {
 
 .detail-tabs {
   gap:28px;
-  border-bottom:1px solid #F3E6D5;
+  border-bottom:1px solid #dedede;
 }
 
 .detail-tabs>button {
@@ -1761,7 +1761,7 @@ input::-webkit-calendar-picker-indicator {
   font-size:12px;
   color: #625b58;
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:4px;
   padding:4px 7px;
 }
@@ -1911,13 +1911,13 @@ input::-webkit-calendar-picker-indicator {
 .evidence-quote blockquote {
   line-height:1.8;
   margin:10px 0 0;
-  border-left:2px solid #F3E6D5;
+  border-left:2px solid #dedede;
   padding:0 0 0 9px;
 }
 
 .profile-callout {
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:7px;
   display:flex;
   align-items:center;
@@ -1980,7 +1980,7 @@ input::-webkit-calendar-picker-indicator {
 
 .lot-card {
   margin-top:17px;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:7px;
   padding:15px;
 }
@@ -2002,7 +2002,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .decision-card {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:11px;
 }
 
@@ -2092,7 +2092,7 @@ input::-webkit-calendar-picker-indicator {
   justify-content:center;
   align-items:center;
   gap:3px;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:6px;
   color: #625b58;
   background:#fff;
@@ -2129,7 +2129,7 @@ input::-webkit-calendar-picker-indicator {
 
 .change-card {
   margin-top:20px;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:8px;
   padding:18px;
 }
@@ -2147,14 +2147,14 @@ input::-webkit-calendar-picker-indicator {
 .change-comparison>div {
   flex:1;
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:6px;
   padding:12px;
 }
 
 .change-comparison>div:last-child {
   background:#fff;
-  border-color:#F3E6D5;
+  border-color:#dedede;
 }
 
 .change-comparison>div>span {
@@ -2195,7 +2195,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .checklist {
-  border-top:1px solid #F3E6D5;
+  border-top:1px solid #dedede;
   padding-top:15px;
   margin-top:18px;
 }
@@ -2255,7 +2255,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .chip-input {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:7px;
   display:flex;
   flex-wrap:wrap;
@@ -2267,7 +2267,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .chip-input:focus-within {
-  border-color:#F3E6D5;
+  border-color:#dedede;
   box-shadow:0 0 0 3px #7ab49c0b;
 }
 
@@ -2280,7 +2280,7 @@ input::-webkit-calendar-picker-indicator {
   align-items:center;
   gap:5px;
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:4px;
   line-height:1.3;
   padding:4px 5px 4px 7px;
@@ -2306,7 +2306,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .reference-editor {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:8px;
   padding:18px;
   background:#fff;
@@ -2401,7 +2401,7 @@ input::-webkit-calendar-picker-indicator {
   width:32px;
   height:32px;
   border-radius:9px;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
 }
 
 .chat-panel-header>div:nth-child(2) {
@@ -2431,7 +2431,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .chat-context {
-  border-bottom:1px solid #F3E6D5;
+  border-bottom:1px solid #dedede;
   background:#fff;
 }
 
@@ -2468,7 +2468,7 @@ input::-webkit-calendar-picker-indicator {
   gap:5px;
   padding:10px 22px;
   background:#fff;
-  border-bottom:1px solid #F3E6D5;
+  border-bottom:1px solid #dedede;
   color: #625b58;
   font-size:12px;
 }
@@ -2514,7 +2514,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .chat-compose {
-  border-top:1px solid #F3E6D5;
+  border-top:1px solid #dedede;
   background:#fff;
 }
 
@@ -2523,7 +2523,7 @@ input::-webkit-calendar-picker-indicator {
   align-items:center;
   gap:10px;
   background:white;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:9px;
   padding:5px 9px 5px 12px;
 }
@@ -2541,7 +2541,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .send-button {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:7px;
   width:33px;
   height:33px;
@@ -2579,7 +2579,7 @@ input::-webkit-calendar-picker-indicator {
 
 .user-chat-avatar {
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:8px;
   width:30px;
   height:30px;
@@ -2608,7 +2608,7 @@ input::-webkit-calendar-picker-indicator {
   font-size:12px;
   font-weight:400;
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   color: #625b58;
   border-radius:3px;
   padding:2px 4px;
@@ -2616,7 +2616,7 @@ input::-webkit-calendar-picker-indicator {
 
 .message-mode.live {
   background:#fff;
-  border-color:#F3E6D5;
+  border-color:#dedede;
   color: #625b58;
 }
 
@@ -2627,7 +2627,7 @@ input::-webkit-calendar-picker-indicator {
 .chat-message.user .message-text {
   padding:10px 14px;
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:0 9px 9px 9px;
 }
 
@@ -2649,7 +2649,7 @@ input::-webkit-calendar-picker-indicator {
 
 .message-citations {
   margin-top:17px;
-  border-top:1px solid #F3E6D5;
+  border-top:1px solid #dedede;
   padding-top:12px;
 }
 
@@ -2685,7 +2685,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .citation-item blockquote {
-  border-left:2px solid #F3E6D5;
+  border-left:2px solid #dedede;
   padding-left:8px;
   line-height:1.8;
   margin:7px 0 0 21px;
@@ -2697,7 +2697,7 @@ input::-webkit-calendar-picker-indicator {
   gap:6px;
   background:#fff;
   color: #625b58;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:5px;
   font-size:12px;
   padding:8px 10px;
@@ -2707,7 +2707,7 @@ input::-webkit-calendar-picker-indicator {
 
 .chat-proposal {
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:8px;
   padding:15px;
   margin-top:17px;
@@ -2726,7 +2726,7 @@ input::-webkit-calendar-picker-indicator {
 .chat-proposal .button {
   margin-top:5px;
   background:#fff;
-  border-color:#F3E6D5;
+  border-color:#dedede;
 }
 
 .thinking {
@@ -2766,7 +2766,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .notification-tabs {
-  border-bottom:1px solid #F3E6D5;
+  border-bottom:1px solid #dedede;
 }
 
 .notification-layout {
@@ -2783,14 +2783,14 @@ input::-webkit-calendar-picker-indicator {
 .notification-card {
   display:flex;
   align-items:flex-start;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:10px;
   background:white;
   position:relative;
 }
 
 .notification-card.unread {
-  border-color:#F3E6D5;
+  border-color:#dedede;
   box-shadow:inset 3px 0 #a7cebe;
 }
 
@@ -4331,7 +4331,7 @@ input::-webkit-calendar-picker-indicator {
   max-width:100%;
   font-size:12px;
   color: #625b58;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   background:#fff;
   border-radius:5px;
   padding:5px 7px;
@@ -4396,7 +4396,7 @@ input::-webkit-calendar-picker-indicator {
 
 .company-lookup {
   padding: 22px;
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   border-radius: 14px;
   background: #fff;
   margin-bottom: 12px;
@@ -4459,7 +4459,7 @@ input::-webkit-calendar-picker-indicator {
   text-align: left;
   padding: 14px;
   margin-top: 8px;
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   background: white;
   border-radius: 9px;
   color: #282224;
@@ -4467,7 +4467,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .company-result:hover {
-  border-color: #F3E6D5;
+  border-color: #dedede;
   background: #fff;
 }
 
@@ -4625,7 +4625,7 @@ input::-webkit-calendar-picker-indicator {
   gap:10px;
   padding:12px 14px;
   background:#fff;
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:10px;
   font-size:13px;
   color: #625b58;
@@ -4666,7 +4666,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .impact-card {
-  border:1px solid #F3E6D5;
+  border:1px solid #dedede;
   border-radius:12px;
   padding:20px;
 }
@@ -4704,7 +4704,7 @@ input::-webkit-calendar-picker-indicator {
 
 .condition-comparison {
   margin-top:20px;
-  border-top:1px solid #F3E6D5;
+  border-top:1px solid #dedede;
   padding-top:16px;
 }
 
@@ -4763,7 +4763,7 @@ input::-webkit-calendar-picker-indicator {
 
 .improvement-evidence blockquote {
   padding:8px 12px;
-  border-left:2px solid #F3E6D5;
+  border-left:2px solid #dedede;
   color: #625b58;
   margin:6px 0 0;
   font-style:italic;
@@ -4825,7 +4825,7 @@ input::-webkit-calendar-picker-indicator {
 
 .plan-save {
   margin-top:24px;
-  border-top:1px solid #F3E6D5;
+  border-top:1px solid #dedede;
   padding-top:20px;
   display:flex;
   gap:12px;
@@ -4918,7 +4918,7 @@ input::-webkit-calendar-picker-indicator {
 
 .button.selected {
   background: #fff;
-  border-color: #F3E6D5;
+  border-color: #dedede;
   color: #625b58;
 }
 
@@ -5028,7 +5028,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .filter-section {
-  border-bottom: 1px solid #F3E6D5;
+  border-bottom: 1px solid #dedede;
 }
 
 .filter-section > summary {
@@ -5402,7 +5402,7 @@ input::-webkit-calendar-picker-indicator {
 .chat-task-grid > button {
   text-align: left;
   background: #fff;
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -5463,7 +5463,7 @@ input::-webkit-calendar-picker-indicator {
   flex-wrap: wrap;
   gap: 8px;
   padding: 12px 20px 0;
-  border-top: 1px solid #F3E6D5;
+  border-top: 1px solid #dedede;
 }
 
 .chat-next-actions .button {
@@ -5574,7 +5574,7 @@ input::-webkit-calendar-picker-indicator {
 .improvement-stats {
   margin: 18px 0;
   gap: 0;
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   border-radius: 10px;
 }
 
@@ -5585,7 +5585,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .improvement-stats > div + div {
-  border-left: 1px solid #F3E6D5;
+  border-left: 1px solid #dedede;
 }
 
 .improvement-stats strong {
@@ -5879,7 +5879,7 @@ input::-webkit-calendar-picker-indicator {
 
 .match-threshold {
   padding: 17px 16px;
-  border-bottom: 1px solid #F3E6D5;
+  border-bottom: 1px solid #dedede;
 }
 
 .match-threshold > label {
@@ -6010,7 +6010,7 @@ input::-webkit-calendar-picker-indicator {
 .cert-options {
   margin-top: 8px;
   padding: 13px;
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   background: #fff;
   border-radius: 10px;
 }
@@ -6056,7 +6056,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .profile-partners {
-  border-top: 1px solid #F3E6D5;
+  border-top: 1px solid #dedede;
   padding-top: 20px;
   margin-top: 22px;
   display: flex;
@@ -6083,7 +6083,7 @@ input::-webkit-calendar-picker-indicator {
 
 .partner-gaps {
   background: #fff;
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   padding: 16px;
   border-radius: 10px;
   margin: 18px 0;
@@ -6130,7 +6130,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .partner-candidates > article {
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   border-radius: 12px;
   padding: 18px;
 }
@@ -6185,7 +6185,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .partner-comparison > article {
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   border-radius: 12px;
   padding: 18px;
 }
@@ -6265,7 +6265,7 @@ input::-webkit-calendar-picker-indicator {
   gap: 5px;
   font-size: 12px;
   color: #625b58;
-  border-left: 2px solid #F3E6D5;
+  border-left: 2px solid #dedede;
   padding: 8px 12px;
   margin-top: 10px;
   line-height: 1.7;
@@ -6297,7 +6297,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .partner-manager-row {
-  border-bottom: 1px solid #F3E6D5;
+  border-bottom: 1px solid #dedede;
   padding: 16px 0;
   display: flex;
   align-items: center;
@@ -6363,7 +6363,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .partner-evidence-fields, .partner-reference {
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   border-radius: 10px;
   padding: 16px;
   margin: 25px 0;
@@ -6511,12 +6511,12 @@ button, a {
 .button.selected, .button.following {
   color: var(--accent);
   background: var(--soft);
-  border-color: #F3E6D5;
+  border-color: #dedede;
 }
 
 .button:hover:not(:disabled), .icon-button:hover {
   background: #fff;
-  border-color: #F3E6D5;
+  border-color: #dedede;
   color: var(--accent);
 }
 
@@ -6600,7 +6600,7 @@ button, a {
 .brand-icon {
   background: #fff;
   color: #625b58;
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   box-shadow: none;
   border-radius: 12px;
   width: 43px;
@@ -6713,7 +6713,7 @@ button, a {
 
 .company-switch {
   padding: 17px 10px 0;
-  border-top: 1px solid #F3E6D5;
+  border-top: 1px solid #dedede;
   margin-top: 20px;
 }
 
@@ -6857,12 +6857,12 @@ button, a {
 }
 
 .overview-item:hover {
-  border-color: #F3E6D5;
+  border-color: #dedede;
 }
 
 .overview-featured {
   background: #fff;
-  border-color: #F3E6D5;
+  border-color: #dedede;
 }
 
 .overview-icon {
@@ -6938,7 +6938,7 @@ button, a {
 
 .assistant-invite {
   background: #fff;
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   padding: 24px;
   border-radius: 12px;
 }
@@ -6972,7 +6972,7 @@ button, a {
   justify-content: space-between;
   width: 100%;
   background: #fff;
-  border-color: #F3E6D5;
+  border-color: #dedede;
   color: #282224;
 }
 
@@ -7229,7 +7229,7 @@ button, a {
 }
 
 .tender-card:hover {
-  border-color: #F3E6D5;
+  border-color: #dedede;
   box-shadow: 0 4px 18px #214e3510;
   transform: none;
 }
@@ -7360,7 +7360,7 @@ button, a {
 }
 
 .card-footer {
-  border-top: 1px solid #F3E6D5;
+  border-top: 1px solid #dedede;
   padding: 17px 0;
   gap: 18px;
 }
@@ -7448,7 +7448,7 @@ button, a {
 .active-filter-list > span {
   color: #625b58;
   background: #fff;
-  border-color: #F3E6D5;
+  border-color: #dedede;
 }
 
 /* Detail, profile, assistant and secondary workflows */
@@ -7479,7 +7479,7 @@ button, a {
 
 .decision-card {
   background: #fff;
-  border-color: #F3E6D5;
+  border-color: #dedede;
   box-shadow: none;
 }
 
@@ -7515,7 +7515,7 @@ button, a {
 
 .profile-identity {
   background: #fff;
-  border: 1px solid #F3E6D5;
+  border: 1px solid #dedede;
   padding: 20px;
   border-radius: 10px;
   margin-bottom: 22px;
@@ -7566,7 +7566,7 @@ button, a {
 }
 
 .chat-task-grid > button:hover {
-  border-color: #F3E6D5;
+  border-color: #dedede;
   background: #fff;
 }
 
