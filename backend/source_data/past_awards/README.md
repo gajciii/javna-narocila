@@ -1,5 +1,8 @@
 # Obvestila o oddaji (pretekle oddaje)
 
+Začetna zbirka. Novejše oddaje aplikacija prenaša neposredno s PJN (dnevni zagon, `manage.py sync_past_awards`);
+ta mapa se zato ne posodablja sproti.
+
 - `raw/pjn_oddaje_2026-08-31_2026-11-11.json.gz`: izvorni izvoz Apify strgalnika `publicmoney/enarocanje-slovenia-scraper`
   (`phase: RESULT`, `fetchDetails: true`, zajem 11. 11. 2026). 2.300 obvestil o oddaji, objavljenih 31. 8.–11. 11. 2026.
   Zajem je bil omejen na 2.300 zapisov; starejše obdobje dopolnjuje spodnji izvoz.

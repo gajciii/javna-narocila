@@ -1,14 +1,20 @@
 """One bounded collection run, at most two starts per Slovenian calendar day."""
+import logging
 from datetime import timedelta
-from time import monotonic
+from time import monotonic, sleep
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from .models import SyncRun, SyncAttempt, Tender, TenderVersion, Notification
+from django.db.models import Max
+
+from .models import PastAward, SyncRun, SyncAttempt, Tender, TenderVersion, Notification
+from .past_awards import from_pjn, import_notices
 from .pjn_normalize import normalize_notice, timestamp
 from .pjn_transport import fetch_json, safe_error
 from .pjn_documents import download_documents
+
+log = logging.getLogger(__name__)
 
 
 def reserve_run(kind):
@@ -108,6 +114,7 @@ def collect_notice(notice_id, download=True):
         attempt.raw = raw if isinstance(raw, dict) else {'response': raw}
         attempt.success = True
         attempt.save(update_fields=['raw', 'success'])
+        record_awards(raw)
         normalized = normalize_notice(raw, notice_id)
         record, created, changed = persist_notice(normalized)
         result = {'mode': 'live', 'tender': record, 'created': created, 'changed': changed,
@@ -121,6 +128,88 @@ def collect_notice(notice_id, download=True):
         attempt.error = safe_error(exc)
         attempt.save(update_fields=['error'])
         return fallback(notice_id, attempt.error)
+
+
+def record_awards(raw):
+    """An award notice fetched for any reason also updates the past-awards table; never fails collection."""
+    try:
+        record = from_pjn(raw)
+        return import_notices([record])['lots'] if record else 0
+    except Exception as exc:  # noqa: BLE001 - the tender itself must still be collected
+        log.warning('Award notice %s not recorded: %s', raw.get('id') if isinstance(raw, dict) else '?', type(exc).__name__)
+        return 0
+
+
+AWARD_PAGE = 100
+AWARD_OVERLAP = timedelta(days=2)
+
+
+def award_rows(since, until):
+    """IDs of award notices (phase "Rezultat") published on days since..until inclusive."""
+    offset = 0
+    while True:
+        grid = fetch_json('obrazec/objava/obrazecGetGrid', {
+            'startRow': offset, 'endRow': offset + AWARD_PAGE, 'page': offset // AWARD_PAGE + 1, 'search': '',
+            'idSifCpv': [], 'idSifPostopekFaza': [1], 'podrejeniCpv': True,
+            'objavaDejanskaDatumOd': since.isoformat() + 'T00:00:00',
+            'objavaDejanskaDatumDo': (until + timedelta(days=1)).isoformat() + 'T00:00:00',
+            'sortModel': [{'colId': 'objavaDejanskaDatum', 'sort': 'asc'}]})
+        rows = grid.get('data') if isinstance(grid, dict) else None
+        total = grid.get('lastRow') if isinstance(grid, dict) else None
+        if not isinstance(rows, list) or not isinstance(total, int):
+            raise ValueError('Seznam objav nima pričakovane oblike.')
+        for row in rows:
+            if isinstance(row, dict) and isinstance(row.get('idObrazec'), int):
+                yield str(row['idObrazec'])
+        offset += len(rows)
+        if not rows or offset >= total:
+            break
+
+
+def sync_awards(since=None, until=None, max_notices=None, delay=0.3, progress=None):
+    """Imports award notices missing from PastAward directly from PJN.
+
+    Without ``since`` it continues from the newest stored award (with a short overlap for late
+    publications), so a daily call keeps the table current and a longer window backfills it."""
+    until = until or timezone.localdate()
+    if since is None:
+        newest = PastAward.objects.aggregate(newest=Max('published_on'))['newest']
+        since = newest - AWARD_OVERLAP if newest else until - timedelta(days=30)
+    if since > until:
+        raise ValueError('Začetek obdobja je po koncu.')
+    known = set(PastAward.objects.filter(published_on__gte=since).values_list('notice_id', flat=True))
+    result = {'since': since.isoformat(), 'until': until.isoformat(), 'listed': 0, 'fetched': 0,
+              'notices': 0, 'lots': 0, 'errors': []}
+    batch = []
+
+    def flush():
+        if batch:
+            imported = import_notices(batch)
+            result['notices'] += imported['notices']
+            result['lots'] += imported['lots']
+            batch.clear()
+
+    for notice_id in award_rows(since, until):
+        result['listed'] += 1
+        if notice_id in known:
+            continue
+        if max_notices is not None and result['fetched'] >= max_notices:
+            break
+        result['fetched'] += 1
+        try:
+            record = from_pjn(fetch_json(f'obrazec/objava/obrazecGet?id={notice_id}'))
+            if record and str(record['id']) == notice_id:
+                batch.append(record)
+        except Exception as exc:  # noqa: BLE001 - one unavailable notice must not stop the window
+            result['errors'].append({'notice_id': notice_id, 'message': safe_error(exc)})
+        if len(batch) >= 50:
+            flush()
+        if progress:
+            progress()
+        if delay:
+            sleep(delay)
+    flush()
+    return result
 
 
 def import_single(value):

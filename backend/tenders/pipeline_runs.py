@@ -11,7 +11,7 @@ from django.utils import timezone
 from .models import PipelineAgent, PipelineControl, PipelineRun, PipelineRunItem, Tender
 from .monthly_pipeline import grid_rows, month_dates
 from .pipeline_jobs import close_processed_runs, enqueue_index, index_identity
-from .pjn_sync import collect_notice
+from .pjn_sync import collect_notice, sync_awards
 
 
 def register_agent(role):
@@ -109,6 +109,15 @@ def collect_run(run, agent=None):
             progress()
             if run.mode == 'monthly':
                 time.sleep(0.5)
+        if run.mode == 'monthly':
+            # Award notices of this month are recorded while collecting; this fills the days since the
+            # newest stored award (month boundaries, notices collected before awards were recorded).
+            try:
+                awards = sync_awards(progress=progress)
+                if awards['errors']:
+                    log.append({'notice_id': 'oddaje', 'message': f"Obvestil o oddaji, ki jih ni bilo mogoče prenesti: {len(awards['errors'])}."})
+            except ValueError as exc:
+                log.append({'notice_id': 'oddaje', 'message': f'Zajem obvestil o oddaji ni uspel: {str(exc)[:200]}'})
         owned().update(state='partial' if errors else 'collected', finished_at=timezone.now(),
                        lease=None, lease_until=None, listed_count=listed, error_count=errors, error_log=log[-20:], error='')
     except Exception as exc:

@@ -1,10 +1,19 @@
 """Similar past awards; no network or real API key is used."""
+import json
+from copy import deepcopy
+from datetime import date
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 
 from .models import PastAward, SimilarAwardsCache, Tender
-from .past_awards import import_notices, normalize_notice, similar_awards, summarize
+from .past_awards import from_pjn, import_notices, normalize_notice, similar_awards, summarize
+from .pjn_sync import collect_notice, sync_awards
+from .seed import ensure_seed
+
+# Real PJN obrazecGet response (notice 1230270, three of five lots), trimmed to the fields that are read.
+PJN_AWARD = json.loads((Path(__file__).parent / 'fixtures' / 'pjn-award.json').read_text(encoding='utf-8'))
 
 
 def notice(notice_id=1, title='Tiskarske storitve', cpv='79800000 - Tiskarske storitve', dossier=10, number='JN000001/2026-SL4/01',
@@ -51,6 +60,81 @@ class NormalizeTests(TestCase):
         result = import_notices([notice(title='Tiskarske storitve 2')])
         self.assertEqual((result['created'], result['updated']), (0, 1))
         self.assertEqual(PastAward.objects.get().data['title'], 'Tiskarske storitve 2')
+
+
+class PjnAwardTests(TestCase):
+    def test_official_award_notice_matches_the_scraper_normalization(self):
+        rows = normalize_notice(from_pjn(PJN_AWARD))
+        self.assertEqual([r['id'] for r in rows], ['pjn-1230270-613851', 'pjn-1230270-613852', 'pjn-1230270-613853'])
+        row = rows[2]
+        self.assertEqual((row['notice_id'], row['dossier_id'], row['published_on']), ('1230270', '646581', date(2026, 11, 11)))
+        data = row['data']
+        self.assertEqual(data['notice_number'], 'JN006625/2026-SL2/01')
+        self.assertEqual(data['lot_title'], 'MATERIAL ZA OSKRBO RANE')
+        self.assertEqual((data['buyer'], data['buyer_registration_number']), ('KOROŠKI DOM STAROSTNIKOV', '5049679000'))
+        self.assertEqual((data['kind'], data['procedure'], data['framework'], data['currency']), ('goods', 'Naročilo male vrednosti', False, 'EUR'))
+        self.assertEqual(len(data['cpv']), 1)
+        self.assertEqual((data['estimated_value'], data['awarded_value'], data['lowest_offer'], data['highest_offer'], data['tenders_received']),
+                         (27000.0, 23374.88, 23374.88, 25260.54, 2))
+        self.assertTrue(data['awarded'])
+        self.assertEqual(data['winners'], [{'name': 'SANOLABOR, podjetje za prodajo medicinskih, laboratorijskih in farmacevtskih proizvodov, d.d.',
+                                            'registration_number': '5000823000'}])
+
+    def test_unawarded_lots_framework_and_other_phases(self):
+        raw = deepcopy(PJN_AWARD)
+        raw['obrazecOddaja'][0].update(idSifOddajaStatus=1, obrazecOddajaSubjekt=[], vrednostIzbrana=None)
+        raw['obrazecSklop'][1]['idSifSporazum'] = 3
+        rows = {r['id']: r['data'] for r in normalize_notice(from_pjn(raw))}
+        self.assertFalse(rows['pjn-1230270-613851']['awarded'])
+        self.assertEqual(rows['pjn-1230270-613851']['winners'], [])
+        self.assertTrue(rows['pjn-1230270-613852']['framework'])
+        self.assertIsNone(from_pjn({**PJN_AWARD, 'idSifPostopekFaza': 3}))  # call for competition
+        self.assertIsNone(from_pjn({'id': 'x'}))
+
+    @patch('tenders.pjn_sync.fetch_json')
+    def test_collected_award_notice_is_also_recorded_as_past_award(self, fetch_json):
+        ensure_seed()
+        fetch_json.return_value = deepcopy(PJN_AWARD)
+        self.assertEqual(collect_notice('1230270', download=False)['mode'], 'live')
+        self.assertEqual(Tender.objects.get(pk='pjn-dosje-646581').data['status'], 'closed')
+        self.assertEqual(PastAward.objects.filter(notice_id='1230270').count(), 3)
+
+    @patch('tenders.pjn_sync.import_notices', side_effect=RuntimeError)
+    @patch('tenders.pjn_sync.fetch_json')
+    def test_award_recording_failure_never_breaks_tender_collection(self, fetch_json, _):
+        ensure_seed()
+        fetch_json.return_value = deepcopy(PJN_AWARD)
+        result = collect_notice('1230270', download=False)
+        self.assertEqual(result['mode'], 'live', result.get('warning'))
+
+    @patch('tenders.pjn_sync.sleep')
+    @patch('tenders.pjn_sync.fetch_json')
+    def test_window_sync_skips_known_notices_pages_and_keeps_going_after_errors(self, fetch_json, _):
+        import_notices([notice(notice_id=500)])  # published 2026-10-01
+        second = {**deepcopy(PJN_AWARD), 'id': 1230271}
+        calls = []
+
+        def respond(path, body=None):
+            calls.append(path)
+            if body is not None:
+                self.assertEqual(body['idSifPostopekFaza'], [1])
+                self.assertEqual(body['objavaDejanskaDatumOd'], '2026-09-29T00:00:00')  # newest award minus overlap
+                self.assertEqual(body['objavaDejanskaDatumDo'], '2026-11-12T00:00:00')
+                rows = [{'idObrazec': 500}, {'idObrazec': 1230270}] if body['startRow'] == 0 else [{'idObrazec': 1230271}, {'idObrazec': 77}]
+                return {'data': rows, 'lastRow': 4}
+            if path.endswith('=77'):
+                raise ValueError('Portal e-Naročanje je vrnil HTTP 500.')
+            return deepcopy(PJN_AWARD) if path.endswith('=1230270') else second
+
+        fetch_json.side_effect = respond
+        with patch('tenders.pjn_sync.AWARD_PAGE', 2):
+            result = sync_awards(until=date(2026, 11, 11))
+        self.assertEqual((result['listed'], result['fetched'], result['notices'], result['lots']), (4, 3, 2, 6))
+        self.assertEqual(result['errors'], [{'notice_id': '77', 'message': 'Portal e-Naročanje je vrnil HTTP 500.'}])
+        self.assertNotIn('obrazec/objava/obrazecGet?id=500', calls)
+        self.assertEqual(PastAward.objects.filter(notice_id__in=['1230270', '1230271']).count(), 6)
+        with self.assertRaises(ValueError):
+            sync_awards(since=date(2026, 11, 12), until=date(2026, 11, 11))
 
 
 class SummaryTests(TestCase):

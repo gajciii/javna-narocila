@@ -1,0 +1,111 @@
+{
+ "id": 1230270,
+ "idDosje": 646581,
+ "idObrazecPrej": 1149247,
+ "naslov": "SUKCESIVNA DOBAVA MATERIALA ZA ZDRAVSTVENO NEGO IN OSKRBO",
+ "kratekOpis": "Predmet javnega naročila je sukcesivna dobava materiala za zdravstveno nego in oskrbo za obdobje enega leta, in sicer:\n-\t1. sklop: ENTERALNA, DIETNA PREHRANA \n-\t2. sklop: MEDICINSKI PRIPOMOČKI \n-\t3. sklop: MATERIAL ZA OSKRBO RANE \n-\t4. sklop: MATERIAL ZA OSEBNO NEGO\n-\t5. sklop: ZAŠČITNA SREDSTVA   \n  Ponudniki lahko oddajo ponudbo za posamezen sklop, za več sklopov ali za vse sklope. Pogoj pa je, da ponudijo vse artikle, ki se zahtevajo znotraj enega sklopa. Seznam artiklov je razviden iz obrazcev ponudbenega predračuna- Predračun – Obrazec št. 3 (Excelove tabele ponudbenega predračuna).",
+ "idSifPostopekVrsta": 7,
+ "idSifNarociloVrsta": 2,
+ "idSifCpv": 2676,
+ "obrazecCpv": [],
+ "vrednostOcenjenaBrezDDV": 137000.0,
+ "idSifValutaOcenjenaBrezDDV": 1,
+ "vrednostSkupna": 208976.1,
+ "idSifValutaSkupna": 1,
+ "sifObrazecKoda": "SL2",
+ "objavaDejanskaDatum": "2026-11-11T12:51:18.077",
+ "objavaIdent": "JN006625/2026-SL2/01",
+ "idSifPostopekFaza": 1,
+ "narocnik": [
+  {
+   "naziv": "KOROŠKI DOM STAROSTNIKOV",
+   "maticna": "5049679000",
+   "mesto": "Dravograd"
+  }
+ ],
+ "obrazecSklop": [
+  {
+   "id": 613851,
+   "naslov": "ENTERALNA, DIETNA PREHRANA",
+   "opis": "Sukcesivna dobava enteralne, dietne prehrane za obdobje 12 mesecev.",
+   "idSifNarociloVrsta": 2,
+   "idSifCpv": 2676,
+   "obrazecSklopCpv": [],
+   "vrednostOcenjenaBrezDDV": 15000.0,
+   "idSifValutaOcenjenaBrezDDV": 1,
+   "idSifSporazum": 1
+  },
+  {
+   "id": 613852,
+   "naslov": "MEDICINSKI PROPOMOČKI",
+   "opis": "Sukcesivna dobava medicinskih pripomočkov za obdobje 12 mesecev.",
+   "idSifNarociloVrsta": 2,
+   "idSifCpv": 2676,
+   "obrazecSklopCpv": [],
+   "vrednostOcenjenaBrezDDV": 35000.0,
+   "idSifValutaOcenjenaBrezDDV": 1,
+   "idSifSporazum": 1
+  },
+  {
+   "id": 613853,
+   "naslov": "MATERIAL ZA OSKRBO RANE",
+   "opis": "Sukcesivna dobava materiala za oskrbo rane za obdobje 12 mesecev.",
+   "idSifNarociloVrsta": 2,
+   "idSifCpv": 2676,
+   "obrazecSklopCpv": [],
+   "vrednostOcenjenaBrezDDV": 27000.0,
+   "idSifValutaOcenjenaBrezDDV": 1,
+   "idSifSporazum": 1
+  }
+ ],
+ "obrazecOddaja": [
+  {
+   "idObrazecSklop": 613851,
+   "idSifOddajaStatus": 2,
+   "steviloPonudbe": 1,
+   "vrednostMinDopustna": 13304.0,
+   "vrednostMaxDopustna": 13304.0,
+   "vrednostIzbrana": 13304.0,
+   "idSifValutaIzbrana": 1,
+   "obrazecOddajaSubjekt": [
+    {
+     "naziv": "KEFO, kemija in farmacija, d.o.o.",
+     "maticna": "6516327000",
+     "mesto": "Ljubljana - Črnuče"
+    }
+   ]
+  },
+  {
+   "idObrazecSklop": 613852,
+   "idSifOddajaStatus": 2,
+   "steviloPonudbe": 1,
+   "vrednostMinDopustna": 79110.82,
+   "vrednostMaxDopustna": 79110.82,
+   "vrednostIzbrana": 79110.82,
+   "idSifValutaIzbrana": 1,
+   "obrazecOddajaSubjekt": [
+    {
+     "naziv": "SANOLABOR, podjetje za prodajo medicinskih, laboratorijskih in farmacevtskih proizvodov, d.d.",
+     "maticna": "5000823000",
+     "mesto": "Ljubljana"
+    }
+   ]
+  },
+  {
+   "idObrazecSklop": 613853,
+   "idSifOddajaStatus": 2,
+   "steviloPonudbe": 2,
+   "vrednostMinDopustna": 23374.88,
+   "vrednostMaxDopustna": 25260.54,
+   "vrednostIzbrana": 23374.88,
+   "idSifValutaIzbrana": 1,
+   "obrazecOddajaSubjekt": [
+    {
+     "naziv": "SANOLABOR, podjetje za prodajo medicinskih, laboratorijskih in farmacevtskih proizvodov, d.d.",
+     "maticna": "5000823000",
+     "mesto": "Ljubljana"
+    }
+   ]
+  }
+ ]
+}

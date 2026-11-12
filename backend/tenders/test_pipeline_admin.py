@@ -57,8 +57,9 @@ class AdminTests(TestCase):
         self.assertEqual(self.post('/logout').status_code, 200)
         self.assertEqual(self.client.get(BASE + '/overview').status_code, 403)
 
+    @patch('tenders.pipeline_runs.sync_awards', return_value={'errors': []})
     @patch('tenders.pipeline_runs.collect_notice')
-    def test_manual_request_is_async_and_idempotent(self, collect):
+    def test_manual_request_is_async_and_idempotent(self, collect, awards):
         self.login()
         key = str(uuid.uuid4())
         first, second = self.manual(request_key=key), self.manual(request_key=key)
@@ -178,10 +179,11 @@ class CollectionTests(TestCase):
         self.assertEqual(replacement.jobs.count(), 1)
         self.assertEqual(replacement.items.get().reused, True)
 
+    @patch('tenders.pipeline_runs.sync_awards', return_value={'errors': [{'notice_id': '9', 'message': 'x'}]})
     @patch('tenders.pipeline_runs.time.sleep')
     @patch('tenders.pipeline_runs.collect_notice', return_value={'mode': 'unavailable'})
     @patch('tenders.pipeline_runs.grid_rows', return_value=iter(['1001', '1002']))
-    def test_collection_records_metadata_errors_and_continues(self, grid, collect, sleep):
+    def test_collection_records_metadata_errors_and_continues(self, grid, collect, sleep, awards):
         create_run(source='cli', period=timezone.localdate().strftime('%Y-%m'))
         run = claim_run()
         collect_run(run)
@@ -190,6 +192,8 @@ class CollectionTests(TestCase):
         self.assertEqual(run.error_count, 1)
         self.assertEqual(run.error_log[0]['notice_id'], '1002')
         self.assertEqual(run.jobs.count(), 1)
+        awards.assert_called_once()
+        self.assertEqual(run.error_log[-1]['notice_id'], 'oddaje')
 
     def test_job_attempt_history_is_fenced_by_lease(self):
         enqueue_index(self.tender)

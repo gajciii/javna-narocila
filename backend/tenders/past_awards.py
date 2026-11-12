@@ -1,9 +1,10 @@
 """Similar past awards for a tender: who won, how many bids, at what price.
 
-Source data are published PJN award notices (``phase=RESULT``) as JSON records, e.g. from the
-``publicmoney/enarocanje-slovenia-scraper`` Apify actor. Import is explicit (management command);
-nothing here downloads data. The normalized table ships in ``source_data/past_awards/`` and loads
-automatically into an empty table; the raw scraper output is kept next to it for re-import. Retrieval is deterministic text + CPV similarity; when a Gemini key
+Source data are published PJN award notices (phase "Rezultat"). ``from_pjn`` maps the public PJN
+``obrazecGet`` JSON to the record shape of the ``publicmoney/enarocanje-slovenia-scraper`` Apify actor,
+which ``normalize_notice`` reads; downloading lives in ``pjn_sync`` (``record_awards``, ``sync_awards``).
+The initial table ships in ``source_data/past_awards/`` and loads automatically into an empty table;
+the raw scraper exports are kept next to it for re-import. Retrieval is deterministic text + CPV similarity; when a Gemini key
 is configured, the Gemini Decisions API re-ranks the candidates. Every result links to its official
 notice. Records are untrusted data: only bounded, typed fields are kept.
 """
@@ -116,6 +117,73 @@ def normalize_notice(raw):
             },
         })
     return out
+
+
+# PJN ``idSifPostopekVrsta`` and ``idSifOddajaStatus``; verified 2026-11-12 against the same notices in the
+# Apify export (procedureTypeName, awards[].status), which reads these codelists by name.
+PROCEDURES = {
+    1: 'Odprti postopek',
+    2: 'Omejeni postopek / Postopek s predhodnim ugotavljanjem sposobnosti (ZJNPOV)',
+    3: 'Konkurenčni postopek s pogajanji / Postopek s pogajanji z objavo / Postopek s pogajanji po predhodni objavi (ZJNPOV)',
+    4: 'Konkurenčni dialog',
+    6: 'Oddaja javnega naročila brez predhodne objave',
+    7: 'Naročilo male vrednosti',
+    8: 'Drugo',
+    9: 'Postopek zbiranja ponudb po predhodni objavi',
+}
+AWARD_STATUS = {1: 'clos-nw', 2: 'selec-w'}
+PJN_KINDS = {'services': 'SERVICES', 'supplies': 'SUPPLIES', 'works': 'WORKS'}
+
+
+def from_pjn(raw):
+    """Public PJN ``obrazecGet`` JSON of an award notice -> the record shape ``normalize_notice`` reads.
+
+    Returns None for notices that are not in the result phase."""
+    from .pjn_normalize import codelists, cpvs, text
+    if not isinstance(raw, dict) or not isinstance(raw.get('id'), int):
+        return None
+    codes = codelists()
+    if codes['phases'].get(str(raw.get('idSifPostopekFaza')), {}).get('koda') != 'result':
+        return None
+
+    def kind(obj):
+        return PJN_KINDS.get(codes['kinds'].get(str(obj.get('idSifNarociloVrsta')), {}).get('koda'))
+
+    def currency(code):
+        return codes['currencies'].get(str(code), {}).get('koda')
+
+    def framework(lot):
+        agreement = lot.get('idSifSporazum')
+        return None if agreement is None else 'none' if agreement == 1 else 'framework'
+
+    def code(obj, extra_key):
+        return [item['code'] for item in cpvs({'idSifCpv': obj.get('idSifCpv'), 'extra': obj.get(extra_key) or []}, 'extra')]
+
+    buyer = next((b for b in raw.get('narocnik') or [] if isinstance(b, dict)), {})
+    lots = [{'lotId': lot.get('id'), 'title': text(lot.get('naslov'), 500), 'description': text(lot.get('opis')),
+             'contractType': kind(lot) or kind(raw), 'cpv': code(lot, 'obrazecSklopCpv'),
+             'estimatedValue': lot.get('vrednostOcenjenaBrezDDV'), 'currency': currency(lot.get('idSifValutaOcenjenaBrezDDV')),
+             'frameworkAgreement': framework(lot)}
+            for lot in raw.get('obrazecSklop') or [] if isinstance(lot, dict)]
+    awards = [{'lotId': award.get('idObrazecSklop'), 'status': AWARD_STATUS.get(award.get('idSifOddajaStatus')),
+               'tendersReceived': award.get('steviloPonudbe'), 'awardedValue': award.get('vrednostIzbrana'),
+               'lowestAdmissibleOffer': award.get('vrednostMinDopustna'), 'highestAdmissibleOffer': award.get('vrednostMaxDopustna'),
+               'currency': currency(award.get('idSifValutaIzbrana')),
+               'winners': [{'name': w.get('naziv'), 'registrationNumber': w.get('maticna')}
+                           for w in award.get('obrazecOddajaSubjekt') or [] if isinstance(w, dict)]}
+              for award in raw.get('obrazecOddaja') or [] if isinstance(award, dict)]
+    main = code({'idSifCpv': raw.get('idSifCpv')}, 'none')
+    published = raw.get('objavaDejanskaDatum')
+    return {
+        'id': raw['id'], 'dossierId': raw.get('idDosje'), 'noticeNumber': raw.get('objavaIdent'),
+        'title': text(raw.get('naslov'), 500), 'shortDescription': text(raw.get('kratekOpis')),
+        'buyer': text(buyer.get('naziv'), 300), 'buyerRegistrationNumber': buyer.get('maticna'),
+        'publicationDate': published[:10] if isinstance(published, str) else None,
+        'contractType': kind(raw), 'mainCpv': main[0] if main else None,
+        'procedureTypeName': PROCEDURES.get(raw.get('idSifPostopekVrsta')),
+        'frameworkAgreement': any(lot['frameworkAgreement'] not in (None, 'none') for lot in lots),
+        'currency': currency(raw.get('idSifValutaOcenjenaBrezDDV')), 'lots': lots, 'awards': awards,
+    }
 
 
 def import_notices(records):

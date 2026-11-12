@@ -151,13 +151,25 @@ LLM se uporabi, če je nastavljen `OPENROUTER_API_KEY` ali `OPENAI_API_KEY`. Gem
 
 Zavihek **Pretekle oddaje** (samo pri resničnih razpisih) poišče podobne sklope v uvoženih obvestilih o oddaji. Pokaže, kdo je bil izbran, koliko ponudb je naročnik prejel, pogodbeno in ocenjeno vrednost ter najnižjo in najvišjo dopustno ponudbo. Doda še mediane in najpogostejše izbrane ponudnike. Imen neuspešnih ponudnikov obvestila o oddaji ne objavljajo.
 
-Zbirka je v repozitoriju (`backend/source_data/past_awards/`, licenca CC BY 4.0): izvorni izvoz strgalnika in normalizirana tabela. Ob prvem zagonu (`seed_demo`, v Dockerju samodejno) ali ob prvem odprtju zavihka se naloži v prazno tabelo. Že uvoženih podatkov ne prepiše. Aplikacija sama oddaj ne prenaša, ker PJN API nima množičnega prenosa. Nov izvoz uvozite in osvežite zbirko za Git z:
+Oddaje se prenašajo neposredno s Portala javnih naročil (`obrazecGet` obvestil v fazi »Rezultat«: sklopi, izbrani ponudniki z matično številko, število ponudb, izbrana ter najnižja in najvišja dopustna vrednost):
+
+- vsako obvestilo o oddaji, ki ga zajem prenese (dnevni zagon, `sync_pjn`, uvoz po URL-ju), se zapiše tudi med pretekle oddaje;
+- dnevni zagon (`enqueue_pipeline --watch`) nato prenese še manjkajoča obvestila o oddaji od najnovejše shranjene oddaje (2 dni prekrivanja) do danes;
+- starejše obdobje zapolnite ročno:
+
+```bash
+.venv/bin/python backend/manage.py sync_past_awards --from 2026-01-01 --to 2026-06-24
+```
+
+Ukaz brez `--from` nadaljuje od najnovejše oddaje. Že shranjena obvestila preskoči, `--max-notices` omeji zagon, `--delay` (privzeto 0,3 s) določa premor med zahtevki.
+
+Začetna zbirka je v repozitoriju (`backend/source_data/past_awards/`, licenca CC BY 4.0) in se ob prvem zagonu (`seed_demo`, v Dockerju samodejno) ali prvem odprtju zavihka naloži v prazno tabelo. Sestavljena je iz izvozov Apify strgalnika [`publicmoney/enarocanje-slovenia-scraper`](https://apify.com/publicmoney/enarocanje-slovenia-scraper) (`phase: RESULT`, `fetchDetails: true`). Takšen izvoz še vedno lahko uvozite in z njim osvežite zbirko za Git:
 
 ```bash
 .venv/bin/python backend/manage.py import_past_awards pot/do/izvoza.json --write-bundle
 ```
 
-Vhod je JSON (ali JSON.gz) seznam obvestil v obliki Apify strgalnika [`publicmoney/enarocanje-slovenia-scraper`](https://apify.com/publicmoney/enarocanje-slovenia-scraper) (`phase: RESULT`, `fetchDetails: true`; na brezplačnem paketu okoli 2 $ za 1.000 obvestil). Ponovni uvoz posodobi obstoječe zapise. Kandidate izbere besedilna podobnost naslova in opisa skupaj s kodo CPV. Če je nastavljen `GEMINI_API_KEY`, kandidate (največ 40) razvrsti Gemini Decisions API: ostanejo tisti z verjetnostjo podobnosti vsaj 0,5. Rezultat se shrani in ponovno uporabi, dokler se razpis ali zbirka ne spremenita. Brez ključa ali ob napaki se prikaže besedilno ujemanje z oznako. Gemini prejme samo javne podatke razpisa in preteklih oddaj, profila podjetja ne. Vir: Portal javnih naročil, CC BY 4.0.
+Preslikava PJN je bila 12. 11. 2026 preverjena na 108 obvestilih iz izvoza strgalnika in se z njim ujema v vseh poljih. Edina razlika je CPV sklopa: strgalnik vzame samo dodatne kode, PJN preslikava pa glavno in dodatne. Ponovni uvoz posodobi obstoječe zapise. Kandidate izbere besedilna podobnost naslova in opisa skupaj s kodo CPV. Če je nastavljen `GEMINI_API_KEY`, kandidate (največ 40) razvrsti Gemini Decisions API: ostanejo tisti z verjetnostjo podobnosti vsaj 0,5. Rezultat se shrani in ponovno uporabi, dokler se razpis ali zbirka ne spremenita. Brez ključa ali ob napaki se prikaže besedilno ujemanje z oznako. Gemini prejme samo javne podatke razpisa in preteklih oddaj, profila podjetja ne. Vir: Portal javnih naročil, CC BY 4.0.
 
 ### Podjetja, partnerji in demo podatki
 
