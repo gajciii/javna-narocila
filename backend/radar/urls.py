@@ -6,6 +6,7 @@ urlpatterns = [
     path('api/partners/<int:partner_id>', partner_views.partner_view),
     path('api/tenders/<slug:tender_id>/partners', partner_views.tender_partners_view),
     path('api/tenders/<slug:tender_id>/espd', espd_views.tender_espd_view),
+    path('api/tenders/<slug:tender_id>/similar-awards', views.similar_awards_view),
     path('api/certifications', partner_views.certifications_view),
     path('api/bootstrap', views.bootstrap_view),
     path('api/profile', views.profile_view),

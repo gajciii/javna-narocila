@@ -116,3 +116,21 @@ class EspdDraft(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['company_key', 'tender'], name='unique_company_tender_espd')]
+
+
+class PastAward(models.Model):
+    """One awarded (or unawarded) lot from a published PJN award notice; public data, never demo."""
+    id = models.CharField(primary_key=True, max_length=80)
+    notice_id = models.CharField(max_length=30, db_index=True)
+    dossier_id = models.CharField(max_length=30, blank=True, db_index=True)
+    published_on = models.DateField(null=True)
+    data = models.JSONField(default=dict)
+    imported_at = models.DateTimeField(auto_now=True)
+
+
+class SimilarAwardsCache(models.Model):
+    """AI-ranked similar awards per tender; reused while tender text and dataset stay the same."""
+    tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='similar_awards_cache')
+    key = models.CharField(max_length=64)
+    payload = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now=True)

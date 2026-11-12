@@ -326,3 +326,10 @@ def document_view(request, document_id):
     # allowing the browser's built-in isolated viewer to display PDF evidence.
     response['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'self'"
     return response
+
+
+@api_view(['GET'])
+def similar_awards_view(request, tender_id):
+    from .past_awards import similar_awards
+    ensure_seed()
+    return Response(similar_awards(get_object_or_404(Tender, pk=tender_id)))

@@ -4,4 +4,5 @@ import App from './App';
 import './styles.css';
 import './workspace-theme.css';
 import './espd.css';
+import './past-awards.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

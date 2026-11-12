@@ -1,0 +1,23 @@
+/* Similar past awards */
+.past-awards { display:grid; gap:16px; }
+.past-awards .section-heading { gap:16px; flex-wrap:wrap; }
+.past-awards-loading { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:13px; }
+.past-awards-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; }
+.past-awards-stats > div { display:grid; gap:4px; padding:14px; background:#fff; border:1px solid var(--line); border-radius:10px; }
+.past-awards-stats strong { font-size:22px; color:var(--ink); font-weight:600; }
+.past-awards-stats span { font-size:12px; color:var(--muted); line-height:1.45; }
+.past-awards-winners h3 { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--ink); margin:0 0 8px; }
+.past-awards-winners ol { margin:0; padding-left:20px; display:grid; gap:4px; font-size:13px; color:var(--ink); }
+.past-awards-winners li span { margin-right:8px; }
+.past-awards-winners small { color:var(--muted); }
+.past-awards-list { display:grid; gap:12px; }
+.past-award { display:grid; gap:10px; padding:16px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+.past-award-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.past-award-head h3 { font-size:15px; color:var(--ink); margin:0; line-height:1.4; }
+.past-award-head .badge { flex-shrink:0; }
+.past-award-lot, .past-award-meta { margin:4px 0 0; font-size:12px; color:var(--muted); line-height:1.5; }
+.past-award-facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px 16px; margin:0; }
+.past-award-facts dt { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
+.past-award-facts dd { margin:2px 0 0; font-size:13px; color:var(--ink); line-height:1.45; }
+.past-award .text-link { display:inline-flex; align-items:center; gap:4px; font-size:12px; justify-self:start; }
+.past-awards-note, .past-awards-source { margin:0; font-size:12px; color:var(--muted); line-height:1.6; }

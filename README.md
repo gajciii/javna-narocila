@@ -13,6 +13,7 @@ Prototip za **hackathon, izziv št. 2: podatkovno inženirstvo in AI za javna na
 - **AI pomočnik:** priporočila, preverjanje pogojev, primerjava razpisov in predlogi filtrov oziroma dopolnitve profila, ki jih uporabnik potrdi.
 - **Spremljanje:** spremembe pogojev, podaljšanja rokov in nove priložnosti brez podvajanja istega dogodka.
 - **ESPD osnutek:** zavihek ESPD na razpisu predizpolni podatke o naročilu, podjetju (AJPES, profil) in pogojih iz dokumentacije s predlogi odgovorov. Razlogov za izključitev ne izpolni samodejno. Izvoz v PDF (tisk) in JSON.
+- **Pretekle oddaje:** zavihek na resničnem razpisu pokaže podobna že oddana naročila z izbranimi ponudniki, številom ponudb, pogodbeno in ocenjeno vrednostjo ter razponom ponudb.
 - **Partnerji in razvoj:** potencialna dopolnitev pogojev s partnerjem ter shranjeni načrti za razvoj kompetenc.
 
 Vmesnik uporablja stalno navigacijo, berljive kartice in vidno utemeljitev ocene ter se prilagaja manjšim zaslonom. Oblikovalski referenci sta preglednost poslovnih platform [PRIOT](https://www.priot.io/) in poenostavitev vsakodnevnih opravil v [Telesporju](https://www.priot.io/projects/telespor-user-portal). Projekt ni povezan s podjetjem PRIOT.
@@ -114,6 +115,18 @@ Orodje za razvijalce izmeri, kako dobro trije pristopi presodijo vsebinsko prime
 
 LLM se uporabi, če je nastavljen `OPENROUTER_API_KEY` ali `OPENAI_API_KEY`. Gemini zahteva `GEMINI_API_KEY` (model `GEMINI_DECISION_MODEL`, privzeto `gemini-decision-1`). Brez ključa se pristop preskoči. Ponudnikom se pošiljajo samo izmišljeni profili in javni metapodatki razpisov, nikoli shranjeni profil podjetja. Pri brezplačni ravni Gemini API lahko Google vsebino uporabi za izboljšave.
 
+### Podobna pretekla naročila
+
+Zavihek **Pretekle oddaje** (samo pri resničnih razpisih) poišče podobne sklope v uvoženih obvestilih o oddaji. Pokaže, kdo je bil izbran, koliko ponudb je naročnik prejel, pogodbeno in ocenjeno vrednost ter najnižjo in najvišjo dopustno ponudbo. Doda še mediane in najpogostejše izbrane ponudnike. Imen neuspešnih ponudnikov obvestila o oddaji ne objavljajo.
+
+Zbirko je treba uvoziti posebej. Aplikacija je sama ne prenaša, ker PJN API nima množičnega prenosa:
+
+```bash
+.venv/bin/python backend/manage.py import_past_awards tmp/apify/pjn_oddaje_*.json
+```
+
+Vhod je JSON seznam obvestil v obliki Apify strgalnika [`publicmoney/enarocanje-slovenia-scraper`](https://apify.com/publicmoney/enarocanje-slovenia-scraper) (`phase: RESULT`, `fetchDetails: true`; na brezplačnem paketu okoli 2 $ za 1.000 obvestil). Ponovni uvoz posodobi obstoječe zapise. Kandidate izbere besedilna podobnost naslova in opisa skupaj s kodo CPV. Če je nastavljen `GEMINI_API_KEY`, kandidate (največ 40) razvrsti Gemini Decisions API: ostanejo tisti z verjetnostjo podobnosti vsaj 0,5. Rezultat se shrani in ponovno uporabi, dokler se razpis ali zbirka ne spremenita. Brez ključa ali ob napaki se prikaže besedilno ujemanje z oznako. Gemini prejme samo javne podatke razpisa in preteklih oddaj, profila podjetja ne. Vir: Portal javnih naročil, CC BY 4.0.
+
 ### Podjetja, partnerji in demo podatki
 
 AJPES/OPSI povezava uporablja javni nabor PRS brez API ključa. Predizpolni samo **naziv, matično številko in naslov**. Rezultati se hranijo 24 ur. [Vir in licenca CC BY 4.0](https://podatki.gov.si/dataset/poslovni-register-slovenije).
@@ -138,6 +151,7 @@ Partnerji prispevajo samo podatke s podprtimi dokazili. Uporabniška potrditev n
 | `backend/tenders/improvements.py`, `partners.py` | Razvojni načrti in partnerski potencial |
 | `backend/tenders/espd.py`, `frontend/src/Espd.tsx` | ESPD osnutek |
 | `backend/tenders/website.py`, `frontend/src/WebsiteImport.tsx` | Predlogi profila s spletne strani podjetja |
+| `backend/tenders/past_awards.py`, `frontend/src/PastAwards.tsx` | Uvoz obvestil o oddaji in podobna pretekla naročila |
 | `backend/tenders/relevance_eval.py`, `backend/eval/` | Primerjava pristopov za vsebinsko ujemanje na označenem naboru |
 | `backend/demo_documents/`, `source_data/` | Demo dokumentacija in šifranti |
 | `scripts/` | Priprava, zagon in preverjanje za Bash |

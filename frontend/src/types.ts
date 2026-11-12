@@ -329,3 +329,20 @@ export interface Espd {
     warnings: string[];
     updated_at: string | null;
 }
+export interface PastAwardWinner { name: string; registration_number: string }
+export interface PastAward {
+    id: string; notice_id: string; notice_url: string; notice_number: string; published_on: string | null; similarity: number;
+    title: string; lot_title: string; buyer: string; kind: 'services' | 'goods' | 'works' | null; cpv: string[]; procedure: string;
+    framework: boolean; currency: string | null; estimated_value: number | null; awarded_value: number | null;
+    lowest_offer: number | null; highest_offer: number | null; tenders_received: number | null; awarded: boolean; winners: PastAwardWinner[];
+}
+export interface SimilarAwards {
+    tender_id: string; mode: 'ai' | 'text' | 'empty'; message: string; warning: string | null;
+    dataset: { label: string; license: string; attribution: string; lots: number; coverage_from: string | null; coverage_to: string | null; imported_at: string | null };
+    results: PastAward[];
+    summary: {
+        count: number; awarded: number; not_awarded: number; median_tenders: number | null; single_bid_share: number | null;
+        median_price_to_estimate: number | null; price_to_estimate_count: number; median_offer_spread: number | null; offer_spread_count: number;
+        top_winners: (PastAwardWinner & { wins: number })[];
+    };
+}
