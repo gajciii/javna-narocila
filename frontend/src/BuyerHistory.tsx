@@ -1,6 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { BarChart3, ExternalLink, LoaderCircle } from 'lucide-react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api } from './api';
+import { queryKeys } from './queryClient';
 import type { BuyerHistory } from './types';
 
 const day = (value: string | null) => value ? new Date(value).toLocaleDateString('sl-SI') : 'Ni podatka';
@@ -8,23 +10,14 @@ const money = (value: number | null, currency = 'EUR') => value == null ? 'Ni po
 const percent = (value: number | null) => value == null ? 'Ni podatka' : `${(value * 100).toLocaleString('sl-SI', { maximumFractionDigits: 1 })} %`;
 
 export default function BuyerHistoryPanel({ tenderId }: { tenderId: string }) {
-    const [data, setData] = useState<BuyerHistory | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [revision, setRevision] = useState(0);
     const [draft, setDraft] = useState({ from: '', to: '', cpv: '' });
     const [filters, setFilters] = useState({ from: '', to: '', cpv: '', buyer: '0', supplier: '', page: 1 });
     const [sort, setSort] = useState<'wins' | 'value'>('wins');
     const query = new URLSearchParams({ ...filters, page: String(filters.page) }).toString();
-    useEffect(() => {
-        let active = true;
-        setLoading(true); setError('');
-        api<BuyerHistory>(`/tenders/${tenderId}/buyer-history?${query}`)
-            .then(value => { if (active) setData(value); })
-            .catch(e => { if (active) setError((e as Error).message); })
-            .finally(() => { if (active) setLoading(false); });
-        return () => { active = false; };
-    }, [tenderId, query, revision]);
+    const history = useQuery({ queryKey: queryKeys.buyerHistory(tenderId, query), queryFn: ({ signal }) => api<BuyerHistory>(`/tenders/${tenderId}/buyer-history?${query}`, { signal }), staleTime: 30 * 60_000, placeholderData: keepPreviousData });
+    const data = history.data ?? null;
+    const loading = history.isFetching;
+    const error = history.isFetching ? '' : history.error?.message ?? '';
     const apply = (e: FormEvent) => { e.preventDefault(); setFilters(old => ({ ...old, ...draft, supplier: '', page: 1 })); };
     const selectSupplier = (supplier: string) => setFilters(old => ({ ...old, supplier, page: 1 }));
     const ranked = [...(data?.suppliers || [])].sort((a, b) => sort === 'value' ? b.value_eur - a.value_eur || b.wins - a.wins : b.wins - a.wins || b.value_eur - a.value_eur);
@@ -42,7 +35,7 @@ export default function BuyerHistoryPanel({ tenderId }: { tenderId: string }) {
             <button className="text-link" type="button" disabled={loading} onClick={() => { setDraft({ from: '', to: '', cpv: '' }); setFilters(old => ({ ...old, from: '', to: '', cpv: '', supplier: '', page: 1 })); }}>Celotna zbirka</button>
         </form>
         {loading && <p role="status" className="past-awards-loading"><LoaderCircle className="spin"/>Pripravljamo zgodovino naročnika …</p>}
-        {error && <div role="alert" className="error-banner">{error}<button className="button small" onClick={() => setRevision(r => r + 1)}>Poskusi znova</button></div>}
+        {error && <div role="alert" className="error-banner">{error}<button className="button small" onClick={() => history.refetch()}>Poskusi znova</button></div>}
         {data && !loading && !error && <>
             {data.message && <p role="status" className="info-box">{data.message}</p>}
             {s && s.lots > 0 && <>

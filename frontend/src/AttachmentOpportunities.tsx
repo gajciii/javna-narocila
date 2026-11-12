@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, FileText, Search } from 'lucide-react';
 import { api, post } from './api';
+import { queryClient, queryKeys } from './queryClient';
 import type { PastAwardParticipant } from './types';
 
 type Finding = {
@@ -60,36 +62,22 @@ function Evidence({ finding }: { finding: Finding }) {
     </article>;
 }
 
-export default function AttachmentOpportunities({ tenderId }: { tenderId: string }) {
-    const [result, setResult] = useState<OpportunityResult | null>(null);
+/** `revision` changes whenever the tender, its documents or the company profile change, so stale results are not reused. */
+export default function AttachmentOpportunities({ tenderId, revision }: { tenderId: string; revision: string }) {
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState('');
+    const [checkError, setError] = useState('');
     const path = `/tenders/${encodeURIComponent(tenderId)}/attachment-opportunities`;
-
-    useEffect(() => {
-        const controller = new AbortController();
-        api<OpportunityResult>(path, { signal: controller.signal }).then(setResult).catch(err => {
-            if (!controller.signal.aborted) setError((err as Error).message);
-        });
-        return () => controller.abort();
-    }, [path]);
-
-    useEffect(() => {
-        if (!result?.pending) return;
-        const controller = new AbortController();
-        const timer = setTimeout(() => {
-            api<OpportunityResult>(path, { signal: controller.signal }).then(setResult).catch(err => {
-                if (!controller.signal.aborted) setError((err as Error).message);
-            });
-        }, 4000);
-        return () => { clearTimeout(timer); controller.abort(); };
-    }, [path, result]);
+    const queryKey = queryKeys.attachmentOpportunities(tenderId, revision);
+    // While the server is still processing, poll every 4 s until results arrive.
+    const opportunities = useQuery({ queryKey, queryFn: ({ signal }) => api<OpportunityResult>(path, { signal }), refetchInterval: query => query.state.data?.pending ? 4000 : false });
+    const result = opportunities.data ?? null;
+    const error = checkError || (opportunities.isFetching ? '' : opportunities.error?.message ?? '');
 
     async function checkAttachments() {
         setBusy(true);
         setError('');
         try {
-            setResult(await post<OpportunityResult>(path));
+            queryClient.setQueryData(queryKey, await post<OpportunityResult>(path));
         } catch (err) {
             setError((err as Error).message);
         } finally {

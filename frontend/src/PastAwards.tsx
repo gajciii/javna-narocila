@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
 import { ExternalLink, History, LoaderCircle, Trophy } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
+import { queryKeys } from './queryClient';
 import type { PastAward, SimilarAwards } from './types';
 
 const day = (value: string | null) => value ? new Date(value).toLocaleDateString('sl-SI', { day: 'numeric', month: 'numeric', year: 'numeric' }) : 'Ni podatka';
@@ -27,14 +28,14 @@ function Award({ award }: { award: PastAward }) {
 }
 
 export default function PastAwardsPanel({ tenderId }: { tenderId: string }) {
-    const [data, setData] = useState<SimilarAwards | null>(null);
-    const [error, setError] = useState('');
-    const [revision, setRevision] = useState(0);
-    useEffect(() => { let active = true; setData(null); setError(''); api<SimilarAwards>(`/tenders/${tenderId}/similar-awards`).then(value => { if (active) setData(value); }).catch(e => { if (active) setError((e as Error).message); }); return () => { active = false; }; }, [tenderId, revision]);
+    // Historical award data rarely changes, so keep it cached for the session.
+    const query = useQuery({ queryKey: queryKeys.similarAwards(tenderId), queryFn: ({ signal }) => api<SimilarAwards>(`/tenders/${tenderId}/similar-awards`, { signal }), staleTime: 30 * 60_000 });
+    const data = query.data ?? null;
+    const error = query.isFetching ? '' : query.error?.message ?? '';
     const s = data?.summary;
     return <section className="surface detail-section past-awards">
         <div className="section-heading"><div><h2><History size={19}/>Podobna pretekla naročila</h2><p className="section-help">Kdo je zmagal pri podobnih naročilih, koliko ponudb je prejel naročnik in po kakšni ceni.</p></div>{data && data.mode !== 'empty' && <span className="badge purple">{data.mode === 'ai' ? 'Podobnost presodil Gemini' : 'Besedilno ujemanje'}</span>}</div>
-        {error && <div role="alert" className="error-banner">{error}<button className="button small" onClick={() => setRevision(r => r + 1)}>Poskusi znova</button></div>}
+        {error && <div role="alert" className="error-banner">{error}<button className="button small" onClick={() => query.refetch()}>Poskusi znova</button></div>}
         {!data && !error && <div className="past-awards-loading"><LoaderCircle className="spin"/>Iščemo podobne oddaje …</div>}
         {data && <>
             {data.warning && <div className="info-box amber"><p>{data.warning}</p></div>}
