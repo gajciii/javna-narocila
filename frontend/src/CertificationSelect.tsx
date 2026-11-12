@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Plus, Search, X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
+import { queryKeys } from './queryClient';
 import type { CertificationOption } from './types';
 
 export const certificateKey = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/iso\s*(?:\/\s*)?iec\s*/g, 'iso ').replace(/[\s-]+/g, '');
 const defaults = ['ISO 9001', 'ISO 14001', 'ISO/IEC 27001', 'ISO 45001'].map(label => ({ key: certificateKey(label), label, required: false }));
 
 export default function CertificationSelect({ value, onChange }: { value: string[]; onChange: (value: string[]) => void }) {
-    const [options, setOptions] = useState<CertificationOption[]>(defaults);
+    const certifications = useQuery({ queryKey: queryKeys.certifications, queryFn: ({ signal }) => api<CertificationOption[]>('/certifications', { signal }) });
+    const options = certifications.data ?? defaults;
+    const warning = certifications.isError;
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
-    const [warning, setWarning] = useState(false);
     const root = useRef<HTMLDivElement>(null);
-    useEffect(() => { let active = true; api<CertificationOption[]>('/certifications').then(data => { if (active) setOptions(data); }).catch(() => { if (active) setWarning(true); }); return () => { active = false; }; }, []);
     useEffect(() => { const outside = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); }; document.addEventListener('pointerdown', outside); return () => document.removeEventListener('pointerdown', outside); }, []);
     const known = new Map(options.map(option => [option.key, option]));
     value.forEach(label => { const key = certificateKey(label); if (!known.has(key)) known.set(key, { key, label, required: false }); });

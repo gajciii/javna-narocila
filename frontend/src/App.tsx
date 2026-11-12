@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Radar, Users, LayoutGrid, Sparkles, Building2, Search, SlidersHorizontal, ArrowUpRight, ArrowRight, ChevronDown, Check, Plus, X, Bookmark, CalendarDays, MapPin, CircleHelp, CheckCircle2, AlertCircle, FileText, ExternalLink, RefreshCw, LoaderCircle, CheckCheck, Menu, ArrowLeft, FlaskConical, Save, Trash2, Upload, Link2, ShieldCheck, Eye, Coins, ArrowDownUp } from 'lucide-react';
+import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query';
 import { api, post, filterQuery } from './api';
+import { queryClient, queryKeys } from './queryClient';
 import CompanySearch from './CompanySearch';
 import CertificationSelect from './CertificationSelect';
 import { PartnersPanel, PartnerManager } from './Partners';
@@ -105,11 +107,19 @@ type Shared = {
     refresh: () => Promise<void>;
     notify: (message: string, error?: boolean) => void;
 };
+const bootstrapQuery = queryOptions({ queryKey: queryKeys.bootstrap, queryFn: ({ signal }) => api<Bootstrap>('/bootstrap', { signal }) });
+const tendersQuery = (query: string) => queryOptions({ queryKey: queryKeys.tenders(query), queryFn: ({ signal }) => api<{ results: Tender[]; count: number }>(`/tenders?${query}`, { signal }) });
+/** Reload workspace data after a change. Tender lists, details and partner matches depend on it, so they are refetched too. */
+async function refreshWorkspace() {
+    for (const key of ['tenders', 'tender', 'tender-partners']) void queryClient.invalidateQueries({ queryKey: [key] });
+    await queryClient.fetchQuery({ ...bootstrapQuery, staleTime: 0 });
+}
 export default function App() {
     const route = useRoute();
     const isAdministration = route.startsWith('/administracija');
-    const [data, setData] = useState<Bootstrap | null>(null);
-    const [error, setError] = useState('');
+    const bootstrap = useQuery({ ...bootstrapQuery, enabled: !isAdministration });
+    const data = bootstrap.data ?? null;
+    const error = bootstrap.isFetching ? '' : bootstrap.error?.message ?? '';
     const [toast, setToast] = useState<{
         message: string;
         error: boolean;
@@ -122,12 +132,11 @@ export default function App() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chatSelection, setChatSelection] = useState<string[]>([]);
     const [importOpen, setImportOpen] = useState(false);
-    const refresh = async () => { const next = await api<Bootstrap>('/bootstrap'); setData(next); setError(''); };
+    const refresh = refreshWorkspace;
     const notify = (message: string, isError = false) => { setToast({ message, error: isError }); };
-    useEffect(() => { if (!isAdministration) refresh().catch(e => setError(e.message)); }, [isAdministration]);
     useEffect(() => { if (!toast)
         return; const timer = setTimeout(() => setToast(null), 5500); return () => clearTimeout(timer); }, [toast]);
-    useEffect(() => { if (isAdministration) return; const timer = setInterval(() => { api<Notification[]>('/notifications').then(notifications => setData(old => old ? { ...old, notifications } : old)).catch(() => { }); }, 30000); return () => clearInterval(timer); }, [isAdministration]);
+    useEffect(() => { if (isAdministration) return; const timer = setInterval(() => { api<Notification[]>('/notifications').then(notifications => queryClient.setQueryData<Bootstrap>(queryKeys.bootstrap, old => old ? { ...old, notifications } : old)).catch(() => { }); }, 30000); return () => clearInterval(timer); }, [isAdministration]);
     useEffect(() => { setMobileNav(false); setDemoOpen(false); }, [route]);
     useEffect(() => {
         const closeMenus = (event: KeyboardEvent) => {
@@ -162,7 +171,7 @@ export default function App() {
     } };
     if (isAdministration) return <div className="app-shell"><header className="topbar"><a className="brand topbar-brand" href="#/razpisi" aria-label="RazpIzi, razpisi"><Radar size={28} strokeWidth={1.8}/><span>Razp<span>Izi</span></span></a><div className="topbar-actions"><a className="button" href="#/razpisi"><ArrowLeft size={16}/>Razpisi</a></div></header><div className="workspace"><main className="main-content"><PipelineAdmin/></main></div></div>;
     if (!data)
-        return <div className="boot-screen"><div className="boot-brand"><Radar size={36}/><strong>Razp<span>Izi</span></strong></div>{error ? <><h2>Povezava še ni pripravljena</h2><p>{error}</p><p className="muted">Preverite, ali Django strežnik deluje na vratih 8001.</p><button className="button primary" onClick={() => refresh().catch(e => setError(e.message))}><RefreshCw size={16}/>Poskusi ponovno</button></> : <><Spinner /><p>Pripravljamo vaše priložnosti …</p></>}</div>;
+        return <div className="boot-screen"><div className="boot-brand"><Radar size={36}/><strong>Razp<span>Izi</span></strong></div>{error ? <><h2>Povezava še ni pripravljena</h2><p>{error}</p><p className="muted">Preverite, ali Django strežnik deluje na vratih 8001.</p><button className="button primary" onClick={() => void bootstrap.refetch()}><RefreshCw size={16}/>Poskusi ponovno</button></> : <><Spinner /><p>Pripravljamo vaše priložnosti …</p></>}</div>;
     const unread = data.notifications.filter(n => !n.read).length;
     const shared: Shared = { data, refresh, notify };
     const section = route.startsWith('/profil') ? 'Profil podjetja' : route.startsWith('/svetovalec') ? 'AI pomočnik' : route.startsWith('/obvestila') ? 'Obvestila' : 'Razpisi';
@@ -223,9 +232,6 @@ function TendersPage({ data, refresh, notify, filters, setFilters }: Shared & {
     filters: Filters;
     setFilters: (filters: Filters | ((old: Filters) => Filters)) => void;
 }) {
-    const [results, setResults] = useState<Tender[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [saveOpen, setSaveOpen] = useState(false);
     const [saveName, setSaveName] = useState('');
@@ -249,7 +255,7 @@ function TendersPage({ data, refresh, notify, filters, setFilters }: Shared & {
             const expanded = [query.trim(), ...response.suggestions.map(item => item.term)].join(', ');
             if (expanded.length > 2000) { notify('Iskanje je predolgo za dodajanje izrazov. Skrajšajte ključne besede.', true); return; }
             // Compare the same filters with and without the added terms to show what the expansion found.
-            const ids = (q: string) => api<{ results: Tender[] }>(`/tenders?${filterQuery({ ...filters, q })}`).then(r => r.results.map(t => t.id));
+            const ids = (q: string) => queryClient.fetchQuery(tendersQuery(filterQuery({ ...filters, q }))).then(r => r.results.map(t => t.id));
             const [beforeIds, afterIds] = response.suggestions.length ? await Promise.all([ids(query), ids(expanded)]) : [[], []];
             if (request !== keywordRequest.current) return;
             const known = new Set(beforeIds);
@@ -270,15 +276,13 @@ function TendersPage({ data, refresh, notify, filters, setFilters }: Shared & {
         mode: string;
     } | null>(null);
     const filterKey = JSON.stringify(filters);
-    useEffect(() => { let active = true; setLoading(true); const timer = setTimeout(() => { api<{
-        results: Tender[];
-        count: number;
-    }>(`/tenders?${filterQuery(filters)}`).then(r => { if (active) {
-        setResults(r.results);
-        setError('');
-    } }).catch(e => { if (active)
-        setError(e.message); }).finally(() => { if (active)
-        setLoading(false); }); }, 180); return () => { active = false; clearTimeout(timer); }; }, [filterKey, data.tenders]);
+    // Debounce typing, then serve each filter combination from the shared cache.
+    const [listFilters, setListFilters] = useState(filters);
+    useEffect(() => { const timer = setTimeout(() => setListFilters(filters), 180); return () => clearTimeout(timer); }, [filterKey]);
+    const tenderList = useQuery({ ...tendersQuery(filterQuery(listFilters)), placeholderData: keepPreviousData });
+    const results = tenderList.data?.results ?? [];
+    const loading = tenderList.isFetching || filterKey !== JSON.stringify(listFilters);
+    const error = tenderList.error?.message ?? '';
     const set = (patch: Partial<Filters>) => setFilters(old => ({ ...old, ...patch }));
     const activeCount = Object.entries(filters).filter(([k, v]) => !['view', 'sort', 'include_unknown'].includes(k) && v !== undefined && v !== '' && v !== false && (!Array.isArray(v) || v.length)).length;
     const save = async (e: FormEvent) => { e.preventDefault(); setSaving(true); try {
@@ -412,17 +416,13 @@ function TenderDetail({ id, data, refresh, notify, goChat }: Shared & {
     id: string;
     goChat: (ids: string[]) => void;
 }) {
-    const [tender, setTender] = useState<Tender | null>(data.tenders.find(t => t.id === id) || null);
-    const [error, setError] = useState('');
+    const detail = useQuery<Tender>({ queryKey: queryKeys.tender(id), queryFn: ({ signal }) => api<Tender>(`/tenders/${encodeURIComponent(id)}`, { signal }), placeholderData: () => data.tenders.find(t => t.id === id) });
+    const tender = detail.data ?? null;
+    const error = detail.error?.message ?? '';
     const [tab, setTab] = useState('overview');
     const [busy, setBusy] = useState('');
     const [checklist, setChecklist] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
-    useEffect(() => { let active = true; api<Tender>(`/tenders/${encodeURIComponent(id)}`).then(t => { if (active) {
-        setTender(t);
-        setError('');
-    } }).catch(e => { if (active)
-        setError(e.message); }); return () => { active = false; }; }, [id, data.tenders]);
     useEffect(() => { const requested = new URLSearchParams(window.location.hash.split('?')[1] || '').get('tab'); setTab(requested && ['overview', 'conditions', 'documents', 'criteria', 'changes', 'partners', 'espd', 'history'].includes(requested) ? requested : 'overview'); setChecklist(false); }, [id]);
     const act = async (kind: string, callback: () => Promise<void>) => { setBusy(kind); try {
         await callback();
@@ -447,7 +447,7 @@ function TenderDetail({ id, data, refresh, notify, goChat }: Shared & {
             message: string;
         }[];
         message?: string;
-    }>(`/tenders/${id}/analyze`); setTender(result); await refresh(); notify(result.analysis?.map(item => item.message).filter(Boolean).join(' ') || result.message || 'Analiza je osvežena. Preverite pogoje in navedene vire.'); });
+    }>(`/tenders/${id}/analyze`); queryClient.setQueryData(queryKeys.tender(id), result); await refresh(); notify(result.analysis?.map(item => item.message).filter(Boolean).join(' ') || result.message || 'Analiza je osvežena. Preverite pogoje in navedene vire.'); });
     const upload = (file: File) => act('upload', async () => { const form = new FormData(); form.append('file', file); const result = await api<{
         status: string;
         message?: string;
@@ -463,7 +463,7 @@ function TenderDetail({ id, data, refresh, notify, goChat }: Shared & {
     <div className="detail-header"><div><div className="card-tags"><Badge>{labels[tender.kind]}</Badge><Badge tone={tender.status === 'open' ? 'green' : 'neutral'}>{labels[tender.status]}</Badge>{tender.source_type === 'demo' && <span className="demo-tag">DEMO RAZPIS</span>}<span className="detail-version">Različica {tender.version}</span></div><h1>{tender.title}</h1><div className="tender-buyer"><Building2 size={15}/>{tender.buyer}<i /><MapPin size={15}/>{tender.region}</div></div><button className={`button ${tender.following ? 'following' : ''}`} disabled={!!busy} onClick={follow}>{busy === 'follow' ? <Spinner small/> : <Bookmark size={17} fill={tender.following ? 'currentColor' : 'none'}/>}{tender.following ? 'Spremljam razpis' : 'Spremljaj razpis'}</button></div>
     <div className="detail-metrics"><div><Coins size={18}/><span>Ocenjena vrednost<strong>{money(tender.value)}</strong></span></div><div><CalendarDays size={18}/><span>Rok za oddajo<strong>{date(tender.deadline)}{tender.status === 'open' && days != null && <small>{days >= 0 ? `še ${days} dni` : 'rok je potekel'}</small>}</strong></span></div></div>
     <div className="detail-layout"><div className="detail-main"><div className="tabs detail-tabs">{[['overview', 'Pregled'], ['conditions', `Pogoji (${tender.tender_conditions?.items.length || conditions.length})`], ['documents', `Dokumenti (${tender.documents.length})`], ['criteria', 'Merila'], ['partners', 'Partnerji'], ['espd', 'ESPD'], ...(tender.source_type === 'real' ? [['history', 'Pretekle oddaje'], ['buyer-history', 'Zgodovina naročnika']] : []), ['changes', 'Spremembe']].map(([key, label]) => <button key={key} className={tab === key ? 'active' : ''} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}{key === 'changes' && tender.changes.length > 0 && <span>{tender.changes.length}</span>}</button>)}</div>
-      {tab === 'overview' && <><section className="surface detail-section"><div className="section-heading"><h2><FileText size={19}/>Kaj naročnik potrebuje?</h2><Badge tone="purple">Povzetek</Badge></div><p className="detail-summary">{tender.summary}</p>{tender.description && tender.description !== tender.summary && <details className="quiet-disclosure"><summary>Celoten opis</summary><p className="muted prose">{tender.description}</p></details>}<details className="quiet-disclosure"><summary>Področja, CPV in datum objave</summary><p className="muted small-text">Objavljeno: {date(tender.published_at)}</p><div className="topic-tags">{tender.topics.map(topic => <span key={topic}>{topic}</span>)}</div><div className="cpv-line"><span>CPV</span>{tender.cpv.map(code => <code key={code}>{code}</code>)}</div></details></section><AttachmentOpportunities key={JSON.stringify([tender.id, tender.version, data.profile.updated_at, tender.documents])} tenderId={tender.id}/><section className="surface detail-section"><div className="section-heading"><h2><Sparkles size={19}/>Zakaj je zanimiv za vas?</h2></div><div className="reason-list">{tender.match.reasons.map((reason, index) => <div key={index}><span><Check size={15}/></span><p>{reason}</p></div>)}</div>{tender.match.open_question && <div className="info-box amber"><CircleHelp size={18}/><p>{tender.match.open_question}</p></div>}</section>{tender.lots.length > 0 && <section className="surface detail-section"><h2><LayoutGrid size={19}/>Ujemanje po sklopih</h2>{tender.lots.map(lot => <div className="lot-card" key={lot.id}><div><h3>{lot.title}</h3><MatchBadge level={lot.match_level}/></div><p>{lot.summary}</p></div>)}</section>}<section className="surface detail-section"><div className="section-heading"><h2><ShieldCheck size={19}/>Pogoji na enem mestu</h2><button className="text-link" onClick={() => setTab('conditions')}>Vsi pogoji <ArrowRight size={14}/></button></div><div className="condition-summary">{(['met', 'unknown', 'unmet'] as const).map(status => <div key={status}><strong>{conditions.filter(c => c.status === status).length}</strong><StateBadge status={status}/></div>)}</div><p className="section-help">Prikaz velja za pogoje, izluščene iz obdelane dokumentacije.</p></section></>}
+      {tab === 'overview' && <><section className="surface detail-section"><div className="section-heading"><h2><FileText size={19}/>Kaj naročnik potrebuje?</h2><Badge tone="purple">Povzetek</Badge></div><p className="detail-summary">{tender.summary}</p>{tender.description && tender.description !== tender.summary && <details className="quiet-disclosure"><summary>Celoten opis</summary><p className="muted prose">{tender.description}</p></details>}<details className="quiet-disclosure"><summary>Področja, CPV in datum objave</summary><p className="muted small-text">Objavljeno: {date(tender.published_at)}</p><div className="topic-tags">{tender.topics.map(topic => <span key={topic}>{topic}</span>)}</div><div className="cpv-line"><span>CPV</span>{tender.cpv.map(code => <code key={code}>{code}</code>)}</div></details></section><AttachmentOpportunities key={tender.id} tenderId={tender.id} revision={JSON.stringify([tender.version, data.profile.updated_at, tender.documents])}/><section className="surface detail-section"><div className="section-heading"><h2><Sparkles size={19}/>Zakaj je zanimiv za vas?</h2></div><div className="reason-list">{tender.match.reasons.map((reason, index) => <div key={index}><span><Check size={15}/></span><p>{reason}</p></div>)}</div>{tender.match.open_question && <div className="info-box amber"><CircleHelp size={18}/><p>{tender.match.open_question}</p></div>}</section>{tender.lots.length > 0 && <section className="surface detail-section"><h2><LayoutGrid size={19}/>Ujemanje po sklopih</h2>{tender.lots.map(lot => <div className="lot-card" key={lot.id}><div><h3>{lot.title}</h3><MatchBadge level={lot.match_level}/></div><p>{lot.summary}</p></div>)}</section>}<section className="surface detail-section"><div className="section-heading"><h2><ShieldCheck size={19}/>Pogoji na enem mestu</h2><button className="text-link" onClick={() => setTab('conditions')}>Vsi pogoji <ArrowRight size={14}/></button></div><div className="condition-summary">{(['met', 'unknown', 'unmet'] as const).map(status => <div key={status}><strong>{conditions.filter(c => c.status === status).length}</strong><StateBadge status={status}/></div>)}</div><p className="section-help">Prikaz velja za pogoje, izluščene iz obdelane dokumentacije.</p></section></>}
       {tab === 'conditions' && <section className="surface detail-section"><div className="section-heading"><div><h2>Pogoji razpisa</h2><p className="section-help">Vsi pogoji za sodelovanje iz dokumentacije, vsak z izvornim citatom. Kjer je mogoče, je pogoj preverjen s profilom podjetja.</p></div><button className="button small" disabled={!!busy} onClick={analyze}>{busy === 'analyze' ? <Spinner small/> : <RefreshCw size={14}/>}Osveži analizo</button></div><TenderConditionList data={tender.tender_conditions}/>{conditions.length > 0 && <><h3 className="conditions-subheading">Ali izpolnjujete pogoje?</h3><div className="conditions-table"><div className="conditions-header"><span>Pogoj iz dokumentacije</span><span>Vaše podjetje</span><span>Ugotovitev</span></div>{conditions.map(condition => <div className="condition-row" key={condition.id}><div><strong>{condition.title}</strong>{condition.document_id && condition.page && <a target="_blank" rel="noreferrer" href={`/api/documents/${condition.document_id}#page=${condition.page}`}><FileText size={12}/>Dokument, str. {condition.page}<ArrowUpRight size={12}/></a>}{condition.quote && <details className="evidence-quote"><summary>Poglej izvorno besedilo</summary><blockquote>»{condition.quote}«</blockquote></details>}</div><div>{condition.company_value || 'Podatek še ni na voljo'}</div><div><StateBadge status={condition.status}/></div></div>)}</div></>}<a href="#/profil" className="profile-callout"><Building2 size={19}/><div><strong>Manjka podatek o vašem podjetju?</strong><span>Dopolnite reference ali zmogljivosti in ponovno preverite ujemanje.</span></div><ArrowRight size={18}/></a></section>}
       {tab === 'documents' && <section className="surface detail-section"><div className="section-heading"><div><h2>Razpisna dokumentacija</h2><p className="section-help">Izvorne datoteke, iz katerih izhajajo ugotovitve.</p></div><button className="button small" disabled={!!busy} onClick={() => fileRef.current?.click()}>{busy === 'upload' ? <Spinner small/> : <Upload size={15}/>}Dodaj PDF</button><input ref={fileRef} type="file" accept=".pdf,application/pdf" className="sr-only" aria-label="Naloži PDF dokumentacijo" onChange={e => { const file = e.target.files?.[0]; if (file)
         upload(file); }}/></div>{tender.documents.length ? <div className="documents-list">{tender.documents.map(doc => <div className="document-row" key={doc.id}><div className="pdf-icon"><FileText size={23}/><small>{doc.analysis_mode === 'archive' ? 'ZIP' : doc.pages ? 'PDF' : 'FILE'}</small></div><div><strong>{doc.title}</strong><span>{doc.analysis_mode === 'archive' ? 'Arhiv prilog' : `${doc.pages || '—'} strani`} · Različica {doc.version}</span><Badge tone={doc.status === 'processed' ? 'green' : 'amber'}>{doc.status === 'unprocessed' ? 'Potrebna dodatna obdelava' : doc.analysis_mode === 'archive' ? 'Priloge razpakirane' : 'Besedilo obdelano'}</Badge>{doc.error && <p className="muted small-text">{doc.error}</p>}</div><a className="button small" target="_blank" rel="noreferrer" href={doc.url || `/api/documents/${doc.id}`}><Eye size={15}/>Odpri</a></div>)}</div> : <EmptyState title="Dokumentov še ni." icon={<FileText size={25}/>}>Naložite besedilni PDF. Skenirani dokumenti se označijo za dodatno obdelavo.</EmptyState>}<div className="info-box"><CircleHelp size={17}/><p>Uvoz besedila in analiza pogojev sta ločena koraka. Po dodajanju dokumenta osvežite analizo na zavihku Pogoji.</p></div></section>}

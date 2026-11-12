@@ -1,10 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { QueryClientProvider } from '@tanstack/react-query';
 import Root from './Root';
+import { queryClient } from './queryClient';
 import './styles.css';
 import './workspace-theme.css';
 import './espd.css';
 import './notifications.css';
 import './motion.css';
 import './past-awards.css';
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><Root /></React.StrictMode>);
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={queryClient}><Root /></QueryClientProvider></React.StrictMode>);
