@@ -37,7 +37,7 @@
     {
       "page": 1,
       "heading": "Predmet in obseg naročila",
-      "text": "To je izmišljen razpis za predstavitev prototipa Razpisni radar. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski.\n\nPredmet je razvoj platforme za analizo satelitskih posnetkov in spremljanje stanja vegetacije. Vključeni so obdelava časovnih vrst, zaznavanje sprememb, strojno učenje, pregled rezultatov na zemljevidu in izvoz podatkov prek API. Rešitev je namenjena strokovnim uporabnikom in javnim organizacijam.\n\nPredvidena izvedba traja osem mesecev. Oddaja vključuje metodologijo, izvorno kodo, načrt validacije in dokumentacijo. POPRAVEK: zahteva glede števila primerljivih referenc se spremeni z ene na dve. Drugi pogoji in merila ostanejo enaki."
+      "text": "To je izmišljen razpis za predstavitev prototipa RazpIzi. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski.\n\nPredmet je razvoj platforme za analizo satelitskih posnetkov in spremljanje stanja vegetacije. Vključeni so obdelava časovnih vrst, zaznavanje sprememb, strojno učenje, pregled rezultatov na zemljevidu in izvoz podatkov prek API. Rešitev je namenjena strokovnim uporabnikom in javnim organizacijam.\n\nPredvidena izvedba traja osem mesecev. Oddaja vključuje metodologijo, izvorno kodo, načrt validacije in dokumentacijo. POPRAVEK: zahteva glede števila primerljivih referenc se spremeni z ene na dve. Drugi pogoji in merila ostanejo enaki."
     },
     {
       "page": 2,

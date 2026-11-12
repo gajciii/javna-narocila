@@ -46,7 +46,7 @@ def req(id, title, kind, domain=None, minimum=None, page=2, quote="", **extra):
 
 
 def documents():
-    common = "To je izmišljen razpis za predstavitev prototipa Razpisni radar. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski."
+    common = "To je izmišljen razpis za predstavitev prototipa RazpIzi. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski."
     energy_requirements = [
         req("energy-reference", "Najmanj ena primerljiva energetska referenca", "reference_count", "energy", 1, max_age_years=3, quote="Ponudnik mora izkazati najmanj eno zaključeno referenco na področju energetskega spremljanja v zadnjih treh letih."),
         req("energy-value", "Vrednost primerljive reference najmanj 80.000 EUR", "reference_value", "energy", 80000, max_age_years=3, quote="Vrednost najmanj ene primerljive zaključene reference mora znašati vsaj 80.000 EUR brez DDV."),
@@ -103,7 +103,7 @@ def render(doc):
         canvas.rect(21*mm, A4[1]-17*mm, 12*mm, 2*mm, fill=1, stroke=0)
         canvas.setFont("RadarBold",9)
         canvas.setFillColor(navy)
-        canvas.drawString(21*mm,A4[1]-25*mm,"RAZPISNI RADAR")
+        canvas.drawString(21*mm,A4[1]-25*mm,"RazpIzi")
         canvas.setFont("Radar",8)
         canvas.setFillColor(gray)
         canvas.drawRightString(A4[0]-21*mm,A4[1]-25*mm,"DEMO DOKUMENTACIJA")
@@ -123,7 +123,7 @@ def render(doc):
         story.append(Paragraph(f"0{p['page']}  {p['heading']}",styles["h"]))
         for para in p["text"].split("\n\n"):
             story.append(Paragraph(para,styles["body"]))
-    SimpleDocTemplate(str(OUT/f"{doc['id']}.pdf"),pagesize=A4,leftMargin=21*mm,rightMargin=21*mm,topMargin=39*mm,bottomMargin=29*mm,title=doc["title"],author="Razpisni radar - izmišljen demo",pageCompression=1).build(story,onFirstPage=page,onLaterPages=page)
+    SimpleDocTemplate(str(OUT/f"{doc['id']}.pdf"),pagesize=A4,leftMargin=21*mm,rightMargin=21*mm,topMargin=39*mm,bottomMargin=29*mm,title=doc["title"],author="RazpIzi - izmišljen demo",pageCompression=1).build(story,onFirstPage=page,onLaterPages=page)
 
 
 def main():

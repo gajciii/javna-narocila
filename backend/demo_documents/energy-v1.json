@@ -57,7 +57,7 @@
     {
       "page": 1,
       "heading": "Predmet in obseg naročila",
-      "text": "To je izmišljen razpis za predstavitev prototipa Razpisni radar. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski.\n\nPredmet je razvoj programske platforme po meri za spremljanje porabe električne energije, vode in toplote. Rešitev vključuje integracijo obstoječih IoT senzorjev, zajem podatkov prek MQTT, REST API, spletno nadzorno ploščo in opozorila. Sama dobava merilnikov ni predmet naročila.\n\nPredvidena izvedba traja šest mesecev. Ponudnik pripravi analizo, prototip, produkcijsko rešitev, dokumentacijo API in usposabljanje. Podprta morata biti izvoz podatkov in pregled sprememb."
+      "text": "To je izmišljen razpis za predstavitev prototipa RazpIzi. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski.\n\nPredmet je razvoj programske platforme po meri za spremljanje porabe električne energije, vode in toplote. Rešitev vključuje integracijo obstoječih IoT senzorjev, zajem podatkov prek MQTT, REST API, spletno nadzorno ploščo in opozorila. Sama dobava merilnikov ni predmet naročila.\n\nPredvidena izvedba traja šest mesecev. Ponudnik pripravi analizo, prototip, produkcijsko rešitev, dokumentacijo API in usposabljanje. Podprta morata biti izvoz podatkov in pregled sprememb."
     },
     {
       "page": 2,

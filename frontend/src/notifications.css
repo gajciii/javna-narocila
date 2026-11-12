@@ -1,0 +1,57 @@
+/* Notifications: a clear event, its effect, and one primary next step. */
+.notifications-heading p { display: block; margin-top: 10px; font-size: 15px; color: var(--muted); }
+.notification-tabs { gap: 26px; }
+.notification-tabs > button { font-size: 15px; }
+.notification-card,
+.notification-card.unread,
+.notification-card.read {
+  padding: 24px;
+  gap: 18px;
+  border: 1px solid var(--line);
+  border-left-width: 1px;
+  border-radius: 14px;
+  box-shadow: none;
+  opacity: 1;
+  background: #fff;
+}
+.notification-card.unread { border-left: 4px solid var(--slate); padding-left: 21px; }
+.notification-card.notification-improvement.unread { border-left-color: var(--copper); }
+.notification-card.notification-deadline.unread { border-left-color: var(--ochre); }
+.notification-type-icon { width: 42px; height: 42px; border-radius: 11px; }
+.notification-content h3 { margin: 8px 0 0; color: var(--ink); font-size: 20px; font-weight: 600; line-height: 1.4; }
+.notification-content > p { margin: 10px 0 0; font-size: 15px; line-height: 1.6; max-width: 760px; }
+.notification-meta { gap: 10px; margin: 0; min-height: 22px; }
+.notification-category { color: var(--slate); font-size: 13px; font-weight: 600; }
+.notification-improvement .notification-category, .saved-plan .notification-category { color: var(--copper); }
+.notification-deadline .notification-category { color: var(--ochre); }
+.notification-source { padding: 2px 7px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+.notification-unread-label { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; }
+.notification-unread-label i { width: 5px; height: 5px; border-radius: 50%; background: var(--ochre); }
+.notification-meta time { margin-left: auto; padding: 0; color: var(--muted); font-size: 12px; }
+.notification-impact { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 15px; }
+.notification-impact > span { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
+.notification-impact strong { color: var(--slate); font-size: 17px; font-weight: 600; }
+.notification-impact .historical strong { color: var(--muted); }
+.notification-actions { margin-top: 19px; gap: 12px 22px; }
+.notification-actions .button { display: inline-flex; font-size: 14px; text-decoration: none; }
+.notification-actions > .text-link, .notification-actions > .subtle-link { font-size: 13px; }
+.notification-read-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.notification-actions .notification-read-action { margin-left: auto; }
+.notification-help { font-size: 14px; }
+@media (max-width: 640px) {
+  .notifications-heading { align-items: flex-start; flex-direction: column; gap: 15px; }
+  .notifications-heading > .button { padding-left: 0; min-height: 30px; font-size: 13px; }
+  .notification-tabs { gap: 22px; }
+  .notification-card, .notification-card.read, .notification-card.unread { padding: 19px 16px; gap: 12px; }
+  .notification-card.unread { padding-left: 13px; }
+  .notification-type-icon { width: 32px; height: 32px; border-radius: 8px; }
+  .notification-type-icon svg { width: 18px; height: 18px; }
+  .notification-content h3 { font-size: 18px; }
+  .notification-content > p { font-size: 14px; }
+  .notification-meta { gap: 7px; }
+  .notification-meta time { margin-left: 0; flex-basis: 100%; margin-top: 1px; }
+  .notification-actions { gap: 14px; }
+  .notification-actions .notification-read-action { margin-left: 0; }
+  .notification-impact { flex-direction: column; align-items: flex-start; gap: 7px; }
+  .improvement-toolbar { align-items: flex-start; }
+}

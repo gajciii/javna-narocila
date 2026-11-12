@@ -6,7 +6,7 @@ import requests
 
 BASE = 'https://www.enarocanje.si'
 HOSTS = {'www.enarocanje.si', 'enarocanje.si'}
-HEADERS = {'Accept': 'application/json', 'User-Agent': 'RazpisniRadar/0.2'}
+HEADERS = {'Accept': 'application/json', 'User-Agent': 'RazpIzi/0.2'}
 
 
 def official_url(url, attachment=False):

@@ -53,7 +53,7 @@
     {
       "page": 1,
       "heading": "Predmet in obseg naročila",
-      "text": "To je izmišljen razpis za predstavitev prototipa Razpisni radar. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski.\n\nNaročnik potrebuje razvoj spletne aplikacije za organizacijo športnih tekmovanj. Rešitev vključuje prijave tekmovalcev, upravljanje kategorij, rezultate v realnem času, mobilno prilagoditev in povezovanje merilne opreme prek API. Administracija mora omogočati vloge organizatorja, sodnika in urednika.\n\nPredvidena izvedba traja štiri mesece. Obvezna sta uvoz obstoječih rezultatov in preizkus na demonstracijskem tekmovanju. Datum in vrednost primerljive reference sta potrebna za presojo referenčnega pogoja."
+      "text": "To je izmišljen razpis za predstavitev prototipa RazpIzi. Ne gre za dejansko javno naročilo. Vsi pogoji in vrednosti so demonstracijski.\n\nNaročnik potrebuje razvoj spletne aplikacije za organizacijo športnih tekmovanj. Rešitev vključuje prijave tekmovalcev, upravljanje kategorij, rezultate v realnem času, mobilno prilagoditev in povezovanje merilne opreme prek API. Administracija mora omogočati vloge organizatorja, sodnika in urednika.\n\nPredvidena izvedba traja štiri mesece. Obvezna sta uvoz obstoječih rezultatov in preizkus na demonstracijskem tekmovanju. Datum in vrednost primerljive reference sta potrebna za presojo referenčnega pogoja."
     },
     {
       "page": 2,

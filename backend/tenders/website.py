@@ -24,7 +24,7 @@ MAX_PAGE_BYTES = 1_500_000
 MAX_PAGES = 8
 MAX_TEXT_PER_PAGE = 20_000
 TIME_BUDGET = 25
-USER_AGENT = 'RazpisniRadar/0.4 (predizpolnitev profila; enkraten ogled)'
+USER_AGENT = 'RazpIzi/0.4 (predizpolnitev profila; enkraten ogled)'
 
 # Subpages that usually describe what a company does.
 PRIORITY_PATHS = ['storitv', 'service', 'o-nas', 'onas', 'about', 'referenc', 'projekt', 'portfolio', 'resitv',

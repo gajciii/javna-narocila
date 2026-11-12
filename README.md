@@ -1,6 +1,6 @@
-# Razpisni radar
+# RazpIzi
 
-**Je ta javni razpis za nas?** Razpisni radar poveže javna naročila s profilom podjetja in pokaže, zakaj je priložnost zanimiva, kateri pogoji so izpolnjeni in kaj je treba še preveriti.
+**Je ta javni razpis za nas?** RazpIzi poveže javna naročila s profilom podjetja in pokaže, zakaj je priložnost zanimiva, kateri pogoji so izpolnjeni in kaj je treba še preveriti.
 
 Prototip za **hackathon, izziv št. 2: podatkovno inženirstvo in AI za javna naročila**. React, TypeScript, Django REST Framework in SQLite. Za predstavitev deluje tudi brez API ključev.
 
@@ -170,12 +170,9 @@ npm.cmd --prefix frontend run build
 
 Linux / macOS: `./scripts/check.sh` izvede iste preglede in še `docker compose config --quiet`; za slednjega je potreben Docker CLI. Gradnja vmesnika vključuje TypeScript preverjanje in zaznavanje neuporabljene kode.
 
-## Delo z AI agenti
-
-Na projektu sodeluje več ljudi in AI agentov. Pravila so v [AGENTS.md](AGENTS.md). Codex, Cursor in večina drugih agentov jo preberejo samodejno, Claude Code pa prek `CLAUDE.md`.
+## Dnevnik sprememb
 
 - **Git log je dnevnik sprememb.** Vsak commit ima poleg naslova telo: zakaj je bila sprememba narejena, katere odločitve so bile sprejete, migracije in konfiguracija, kaj je preverjeno in kaj ne ter kaj ostaja odprto. Predloga je v `.gitmessage`; vključite jo z `git config commit.template .gitmessage`.
-- **Odprte točke** so na dnu `AGENTS.md`. Agent jih ob delu posodablja: rešene briše, nove dodaja.
 - Spremembe API-ja se zapišejo tudi v CONTRACT.md.
 
 Zgodovino z razlagami pregledate z `git log` (brez `--oneline`).

@@ -1,4 +1,4 @@
-# Razpisni radar - implementation contract
+# RazpIzi - implementation contract
 
 Local single-user hackathon app. Slovenian UI. React/TypeScript/Vite frontend, Django/DRF/SQLite backend. General product; no PRIOT or GIC branding. All invented inputs explicitly demo. Dates relative to Europe/Ljubljana today for demo notices. Real IJS archive remains fixed/closed.
 

@@ -1,10 +1,10 @@
-# Razpisni radar — zgodba za predstavitev
+# RazpIzi — zgodba za predstavitev
 
 ## Problem in ideja
 
 Podjetje najde zanimiv razpis, vendar mora pred odločitvijo pregledati dokumentacijo, pogoje, reference in roke. Po vsakem popravku se del dela ponovi.
 
-**Razpisni radar poveže razpis s profilom podjetja in pojasni, kaj ustreza, kaj manjka in kje je dokaz.** Cilj je skrajšati predhodni pregled z ur na minute; prihranek časa v prototipu še ni izmerjen.
+**RazpIzi poveže razpis s profilom podjetja in pojasni, kaj ustreza, kaj manjka in kje je dokaz.** Cilj je skrajšati predhodni pregled z ur na minute; prihranek časa v prototipu še ni izmerjen.
 
 ## Pet minut za komisijo
 

@@ -1,0 +1,56 @@
+/* Shared motion: short entrances and responsive controls, without layout jumps. */
+:root { --motion-fast: 160ms; --motion-enter: 280ms; --motion-ease: cubic-bezier(.2, .7, .2, 1); }
+@keyframes radar-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes radar-rise { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+@keyframes radar-toast { from { opacity: 0; translate: 0 9px; } to { opacity: 1; translate: none; } }
+@keyframes radar-pop { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+/* Route changes preserve the fixed/sticky positioning inside each page. */
+.page-transition { min-width: 0; animation: radar-fade 220ms var(--motion-ease); }
+:is(.tender-card, .notification-card, .overview-item, .partner-candidates > article,
+    .impact-card, .reference-editor, .chat-message, .empty-state) {
+  animation: radar-rise var(--motion-enter) var(--motion-ease) backwards;
+}
+:is(.tender-card, .notification-card, .overview-item, .impact-card):nth-child(2) { animation-delay: 35ms; }
+:is(.tender-card, .notification-card, .overview-item, .impact-card):nth-child(3) { animation-delay: 65ms; }
+:is(.tender-card, .notification-card, .overview-item, .impact-card):nth-child(4) { animation-delay: 90ms; }
+:is(.tender-card, .notification-card, .impact-card):nth-child(n+5) { animation-delay: 110ms; }
+:is(.profile-section:not([hidden]), .detail-section, .espd, .chat-context,
+    .chat-task-grid, .filter-panel, .active-filter-list, .scenario-actions,
+    .plan-delete, .plan-merge-row, .cert-options, .company-results) {
+  animation: radar-rise var(--motion-enter) var(--motion-ease);
+}
+.quiet-disclosure[open] > :not(summary), .filter-section[open] > :not(summary),
+.improvement-assumptions[open] > :not(summary) { animation: radar-fade 180ms ease-out; }
+.modal-backdrop, .nav-scrim { animation: radar-fade 180ms ease-out; }
+.modal { animation: radar-pop var(--motion-enter) var(--motion-ease); }
+.dropdown-menu { transform-origin: top right; animation: radar-pop 180ms var(--motion-ease); }
+.toast { animation: radar-toast 220ms var(--motion-ease); }
+:is(.button, .icon-button, .bookmark-button, .send-button, .main-nav a,
+    .tabs > button, .text-link, .subtle-link, .overview-item, .chat-task-grid > button,
+    .tender-card, .notification-card, .agenda-item, .input-chip, .cert-option) {
+  transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease, box-shadow 200ms ease,
+    opacity var(--motion-fast) ease, transform 200ms var(--motion-ease);
+}
+:is(input, textarea, select) { transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease; }
+.progress-track > span { transition: width 350ms var(--motion-ease); }
+.main-nav a::before { transition: background-color var(--motion-fast) ease; }
+.text-link > svg:last-child, .card-detail-link > svg, .overview-item > svg:last-child { transition: transform var(--motion-fast) var(--motion-ease); }
+@media (hover: hover) and (pointer: fine) {
+  .button:hover:not(:disabled), .send-button:hover:not(:disabled) { transform: translateY(-1px); }
+  .tender-card:hover { transform: translateY(-3px); border-color: var(--slate); }
+  .notification-card:hover { border-top-color: var(--slate); border-right-color: var(--slate); border-bottom-color: var(--slate); }
+  .overview-item:hover, .chat-task-grid > button:hover { transform: translateY(-2px); }
+  .text-link:hover > svg:last-child, .card-detail-link:hover > svg, .overview-item:hover > svg:last-child { transform: translateX(3px); }
+  .icon-button:hover:not(:disabled), .bookmark-button:hover:not(:disabled) { transform: scale(1.06); }
+}
+.button:active:not(:disabled), .icon-button:active:not(:disabled), .send-button:active:not(:disabled), .overview-item:active { transform: scale(.98); }
+@media (max-width: 920px) { .main-nav.open { animation: radar-rise 200ms var(--motion-ease); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .button:hover, .tender-card:hover, .overview-item:hover, .chat-task-grid > button:hover,
+  .icon-button:hover, .bookmark-button:hover, .button:active, .icon-button:active,
+  .send-button:active, .overview-item:active { transform: none !important; }
+  .text-link:hover > svg:last-child, .card-detail-link:hover > svg, .overview-item:hover > svg:last-child { transform: none !important; }
+}
+@media print { *, *::before, *::after { animation: none !important; transition: none !important; } }

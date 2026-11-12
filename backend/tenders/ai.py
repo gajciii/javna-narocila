@@ -32,7 +32,7 @@ def structured_call(schema, instruction, payload):
     from openai import OpenAI
     if provider() == 'openrouter':
         client = OpenAI(api_key=os.environ['OPENROUTER_API_KEY'], base_url=OPENROUTER_BASE_URL, timeout=45, max_retries=0,
-                        default_headers={'X-Title': 'Razpisni radar'})
+                        default_headers={'X-Title': 'RazpIzi'})
         # Chat Completions is OpenRouter's stable API. require_parameters routes only to
         # providers that honour structured output; data_collection=deny skips providers that train on prompts.
         response = client.chat.completions.create(

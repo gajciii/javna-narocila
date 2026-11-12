@@ -51,7 +51,7 @@ export default function EspdPanel({ tenderId, notify }: { tenderId: string; noti
     const save = () => run('save', async () => { load(await api<Espd>(`/tenders/${encodeURIComponent(tenderId)}/espd`, { method: 'PUT', body: JSON.stringify(answers) })); notify('ESPD osnutek je shranjen.'); });
     const reset = () => { if (!window.confirm('Izbrišem shranjen osnutek ESPD za ta razpis? Podatki o podjetju za druge razpise ostanejo.')) return; run('reset', async () => { await api(`/tenders/${encodeURIComponent(tenderId)}/espd`, { method: 'DELETE' }); load(await api<Espd>(`/tenders/${encodeURIComponent(tenderId)}/espd`)); notify('Osnutek ESPD je ponastavljen.'); }); };
     const exportJson = () => {
-        const blob = new Blob([JSON.stringify({ format: 'razpisni-radar-espd', version: 1, exported_at: new Date().toISOString(), part1: espd.part1, part2: espd.part2, part4: rows, answers }, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify({ format: 'razpizi-espd', version: 1, exported_at: new Date().toISOString(), part1: espd.part1, part2: espd.part2, part4: rows, answers }, null, 2)], { type: 'application/json' });
         const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `espd-${tenderId}.json` });
         link.click(); URL.revokeObjectURL(link.href);
     };
@@ -159,7 +159,7 @@ function EspdPrint({ espd, answers, rows }: { espd: Espd; answers: EspdAnswers; 
     const p = answers.participation;
     return <article className="espd-print" aria-hidden="true">
         <h1>Enotni evropski dokument v zvezi z oddajo javnega naročila (ESPD)</h1>
-        <p className="espd-print-note">Osnutek, pripravljen v aplikaciji Razpisni radar. Pred oddajo preverite vse podatke in obrazec oddajte na način, ki ga določa naročnik.</p>
+        <p className="espd-print-note">Osnutek, pripravljen v aplikaciji RazpIzi. Pred oddajo preverite vse podatke in obrazec oddajte na način, ki ga določa naročnik.</p>
         <h2>Del I: Informacije o postopku javnega naročanja in naročniku</h2>
         <table><tbody>
             <tr><th>Naročnik</th><td>{espd.part1.buyer}</td></tr>
