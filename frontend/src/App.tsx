@@ -152,7 +152,7 @@ export default function App() {
     <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); document.getElementById('main-content')?.focus(); }}>Preskoči na vsebino</a>
     {mobileNav && <div className="nav-scrim" onClick={() => setMobileNav(false)}/>}
     <header className="topbar">
-      <a className="brand topbar-brand" href="#/razpisi" aria-label="RazpIzi, začetna stran"><Radar size={28} strokeWidth={1.8}/><span>Razp<span>Izi</span></span></a>
+      <a className="brand topbar-brand" href="#/" aria-label="RazpIzi, domača stran"><Radar size={28} strokeWidth={1.8}/><span>Razp<span>Izi</span></span></a>
       <nav id="main-navigation" className={`main-nav ${mobileNav ? 'open' : ''}`} aria-label="Glavna navigacija">
         <a href="#/razpisi" aria-current={section === 'Razpisi' ? 'page' : undefined} className={section === 'Razpisi' ? 'active' : ''} onClick={() => setFilters(f => ({ ...f, view: 'recommended' }))}>Razpisi</a>
         <a href="#/svetovalec" aria-current={section === 'AI pomočnik' ? 'page' : undefined} className={section === 'AI pomočnik' ? 'active' : ''}>Pomočnik</a>
