@@ -274,7 +274,7 @@ input[type=range] { accent-color: var(--accent); }
 .toast { color: #5b6262; border-color: #d5d9d3; font-size: 15px; }
 
 /* Opaque white surfaces; color is reserved for solid accents. */
-.tender-intro { background: #fff; border: 1px solid #d5d9d3; border-radius: 16px; padding: 24px; }
+.page-intro { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
 .page-heading h1, .detail-header h1 { color: var(--navy); }
 .tender-card, .profile-section, .detail-section { border-color: #d5d9d3; }
 .tender-card:hover { border-color: #d5d9d3; box-shadow: 0 6px 20px #1737760b; }
@@ -408,6 +408,28 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
 .chat-task-grid > button:hover { border-color: var(--copper); }
 .topbar .sync-button:hover { background: #c1543e; border-color: #c1543e; color: #fff; }
 .profile-savebar, .modal, .dropdown-menu { border-color: #d5d9d3; }
+
+/* Profile title, save action, and company identity share the main-page frame. */
+.profile-intro { margin-bottom: 36px; }
+.profile-intro .page-heading { margin: 0 0 24px; }
+.profile-intro .profile-identity {
+  margin: 0; padding: 20px 0 0; gap: 12px;
+  background: transparent; color: var(--ink);
+  border: 0; border-top: 1px solid var(--line); border-radius: 0;
+}
+.profile-intro .profile-identity > svg {
+  width: 40px; height: 40px; padding: 10px; flex-shrink: 0;
+  color: #fff; background: var(--slate); border-radius: 9px;
+}
+.profile-intro .profile-identity > strong { color: var(--ink); font-size: 18px; }
+.profile-intro .profile-identity > span:last-child { color: var(--muted); font-size: 14px; }
+@media (max-width: 700px) {
+  .profile-intro { padding: 16px; margin-bottom: 25px; }
+  .profile-intro .page-heading { margin-bottom: 20px; }
+  .profile-intro .profile-identity { padding-top: 16px; gap: 10px; }
+  .profile-intro .profile-identity > strong { overflow-wrap: anywhere; }
+  .profile-intro .profile-identity > span:last-child { margin-left: 0; }
+}
 
 @media (max-width: 1160px) {
   .topbar { gap: 25px; padding: 0 28px; }
