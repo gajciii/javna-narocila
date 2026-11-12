@@ -9,4 +9,5 @@ import './espd.css';
 import './notifications.css';
 import './motion.css';
 import './past-awards.css';
+import './editorial-theme.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={queryClient}><Root /></QueryClientProvider></React.StrictMode>);
