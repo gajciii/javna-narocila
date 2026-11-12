@@ -7964,3 +7964,22 @@ button, a {
 .tender-condition-source .evidence-quote { margin: 0; }
 .condition-state.manual { color: #6b6f68; white-space: nowrap; }
 .conditions-subheading { margin: 28px 0 10px; font-size: 15px; }
+
+/* Tooltip explaining the "Potrebna dopolnitev" condition state */
+.condition-state.has-tooltip { position: relative; cursor: help; border-radius: 4px; }
+.condition-state.has-tooltip:focus-visible { outline: 2px solid var(--amber, #b7791f); outline-offset: 2px; }
+.state-tooltip {
+  position: absolute; z-index: 50; top: calc(100% + 8px); right: 0;
+  width: 280px; padding: 10px 12px; border-radius: 8px;
+  background: #1f2420; color: #f4f5f1; box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+  font-size: 13px; font-weight: 400; line-height: 1.45; white-space: normal; text-align: left;
+  display: flex; flex-direction: column; gap: 6px;
+  opacity: 0; visibility: hidden; transform: translateY(-4px); pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease, visibility .15s;
+}
+.state-tooltip::before { content: ""; position: absolute; bottom: 100%; right: 16px; border: 6px solid transparent; border-bottom-color: #1f2420; }
+.state-tooltip strong { font-weight: 600; color: #fff; }
+.state-tooltip-reason { padding: 6px 8px; border-radius: 6px; background: rgba(255, 255, 255, .08); }
+.state-tooltip small { font-size: 12px; color: #c9ccc4; }
+.condition-state.has-tooltip:hover .state-tooltip,
+.condition-state.has-tooltip:focus-visible .state-tooltip { opacity: 1; visibility: visible; transform: translateY(0); }
