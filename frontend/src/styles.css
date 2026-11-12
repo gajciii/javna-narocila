@@ -2791,11 +2791,11 @@ input::-webkit-calendar-picker-indicator {
 
 .notification-card.unread {
   border-color:#d5d9d3;
-  box-shadow:inset 3px 0 #a7cebe;
+  box-shadow:none;
 }
 
 .notification-card.read {
-  opacity:.8;
+  opacity:1;
 }
 
 .notification-type-icon {

@@ -163,7 +163,9 @@ export default function App() {
     </header>
     <div className="workspace">
       <main id="main-content" className="main-content" tabIndex={-1}>
+        <div className="page-transition" key={route}>
         {route.startsWith('/razpisi/') ? <TenderDetail key={route} {...shared} id={decodeURIComponent(route.split('/')[2].split('?')[0])} goChat={goChat}/> : route === '/profil' ? <ProfilePage {...shared}/> : route === '/svetovalec' ? <ChatPage {...shared} messages={messages} setMessages={setMessages} selection={chatSelection} setSelection={setChatSelection} applyFilters={suggested => { setFilters({ ...defaults, ...suggested }); navigate('/razpisi'); }}/> : route === '/obvestila' ? <NotificationsPage {...shared}/> : <TendersPage {...shared} filters={filters} setFilters={setFilters}/>}
+        </div>
       </main>
 
     </div>
