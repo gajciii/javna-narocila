@@ -7907,6 +7907,10 @@ button, a {
 .keyword-expansion { margin: 0 0 14px; padding: 12px 16px; border: 1px solid var(--border, #d5d9d3); border-radius: 9px; background: var(--surface, #fff); font-size: 14px; }
 .keyword-expansion > p { margin: 0 0 6px; }
 .keyword-expansion summary { cursor: pointer; }
+.keyword-gain { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: -2px 0 8px; }
+.keyword-gain strong { font-size: 20px; line-height: 1.2; }
+.keyword-gain.positive strong { color: #23784a; }
+.keyword-gain span { color: var(--muted, #5f655e); }
 .keyword-evidence-list { display: grid; gap: 12px; margin-top: 12px; }
 .keyword-evidence-list > div { border-top: 1px solid var(--border, #d5d9d3); padding-top: 10px; }
 .keyword-evidence-list p { margin: 4px 0; }
@@ -7947,3 +7951,16 @@ button, a {
 .email-notification-settings .field { max-width: 460px; margin: 0; }
 .email-notification-settings form > p { margin: 0; }
 .email-notification-settings form > button { justify-self: start; }
+
+.tender-condition-groups { display: grid; gap: 22px; margin-top: 8px; }
+.tender-condition-group h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 15px; }
+.tender-condition-group h3 span { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: #eef0ea; color: #4b5149; }
+.tender-condition { padding: 12px 0; border-top: 1px solid var(--border, #e3e5df); }
+.tender-condition-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.tender-condition p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; }
+.tender-condition-company { display: flex; align-items: center; gap: 6px; color: var(--muted, #5f655e); }
+.tender-condition-source { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin-top: 8px; font-size: 13px; }
+.tender-condition-source a { display: inline-flex; align-items: center; gap: 5px; }
+.tender-condition-source .evidence-quote { margin: 0; }
+.condition-state.manual { color: #6b6f68; white-space: nowrap; }
+.conditions-subheading { margin: 28px 0 10px; font-size: 15px; }

@@ -1,6 +1,7 @@
 """Shared work queue. Indexing is global; assessments belong to profile snapshots."""
 import hashlib
 import json
+import logging
 import uuid
 import zipfile
 from xml.etree.ElementTree import ParseError
@@ -15,6 +16,8 @@ from .document_index import EXTRACTOR_VERSION, index_document, index_key, search
 from .documents import active_documents
 from .models import PipelineJob, PipelineAttempt, PipelineRun, PipelineRunItem
 from .relevance import profile_input, settings as gemini_settings
+
+log = logging.getLogger(__name__)
 
 LEASE_SECONDS = 300
 
@@ -147,6 +150,12 @@ def execute(job):
                     errors.append(document.pk)
                 renew(job)
             result = {'document_count': len(documents), 'unreadable_count': len(errors)}
+            # Condition extraction is best effort; an AI outage must not fail or retry indexing.
+            from .tender_conditions import extract_conditions
+            try:
+                result['condition_count'] = len(extract_conditions(tender).conditions)
+            except Exception as exc:
+                log.warning('Condition extraction failed: %s', type(exc).__name__)
         else:
             documents = [doc for doc in active_documents(tender, metadata_only=True)
                          if doc.extraction.get('mode') != 'archive']

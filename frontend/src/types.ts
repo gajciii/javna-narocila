@@ -77,8 +77,23 @@ export interface TenderDocument {
     analysis_mode?: string;
     error?: string;
 }
+export interface TenderCondition {
+    id: string;
+    category: 'exclusion' | 'professional' | 'economic' | 'technical' | 'guarantee' | 'other';
+    category_label: string;
+    title: string;
+    requirement: string;
+    quote: string;
+    document_id: string;
+    document_title: string;
+    page: number | null;
+    locator: string;
+    status: ConditionState | 'manual';
+    company_value: string;
+}
 export interface Tender {
     id: string;
+    tender_conditions?: { mode: 'live' | 'empty' | 'unavailable' | 'pending'; message: string; current?: boolean; items: TenderCondition[] };
     title: string;
     buyer: string;
     region: string;

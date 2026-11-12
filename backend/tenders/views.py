@@ -104,10 +104,15 @@ def keyword_expansion_view(request):
     return Response(expand(query.strip()))
 
 
+def tender_detail(tender, profile):
+    from .tender_conditions import conditions_payload
+    return {**serialize_tender(tender, profile), 'tender_conditions': conditions_payload(tender, profile)}
+
+
 @api_view(['GET'])
 def tender_view(request, tender_id):
     ensure_seed()
-    return Response(serialize_tender(get_object_or_404(Tender, pk=tender_id), get_profile()))
+    return Response(tender_detail(get_object_or_404(Tender, pk=tender_id), get_profile()))
 
 
 @api_view(['POST'])
@@ -119,7 +124,7 @@ def follow_view(request, tender_id):
         raise ValidationError({'following': 'Pričakovana je logična vrednost.'})
     tender.following = following
     tender.save(update_fields=['following'])
-    return Response(serialize_tender(tender, get_profile()))
+    return Response(tender_detail(tender, get_profile()))
 
 
 @api_view(['GET', 'POST'])
@@ -274,8 +279,14 @@ def sync_view(request):
 def analyze_view(request, tender_id):
     ensure_seed()
     tender = get_object_or_404(Tender, pk=tender_id)
+    from .tender_conditions import extract_conditions
     outcomes = [analyze_document(doc) for doc in active_documents(tender)]
-    result = serialize_tender(tender, get_profile())
+    record = extract_conditions(tender, force=True)
+    if record.mode == 'live':
+        outcomes.append({'mode': 'live', 'message': f'Izluščenih pogojev razpisa: {len(record.conditions)}.'})
+    elif record.message:
+        outcomes.append({'mode': 'demo', 'message': record.message})
+    result = tender_detail(tender, get_profile())
     result['analysis'] = outcomes or [{'mode': 'demo', 'message': 'Za analizo najprej dodajte besedilni PDF.'}]
     return Response(result)
 

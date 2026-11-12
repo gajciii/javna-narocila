@@ -39,6 +39,16 @@ class Document(models.Model):
     indexed_content = models.ForeignKey('IndexedContent', null=True, blank=True, on_delete=models.SET_NULL)
 
 
+class TenderConditions(models.Model):
+    """All participation conditions of a tender, extracted from its current indexed documents."""
+    tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='condition_list')
+    fingerprint = models.CharField(max_length=64)
+    mode = models.CharField(max_length=12)  # live, empty, unavailable
+    conditions = models.JSONField(default=list)
+    message = models.TextField(blank=True)
+    extracted_at = models.DateTimeField()
+
+
 class IndexedContent(models.Model):
     """Profile-independent extraction shared by identical document bytes."""
     id = models.CharField(primary_key=True, max_length=64)
