@@ -414,6 +414,24 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
 .topbar .sync-button:hover { background: #c1543e; border-color: #c1543e; color: #fff; }
 .profile-savebar, .modal, .dropdown-menu { border-color: #d5d9d3; }
 
+/* Shared building photograph as a quiet background behind supporting page titles. */
+.building-intro {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: grid; align-items: center; min-height: 180px;
+  background: #183c4e; border-color: var(--slate); color: #fff;
+}
+.building-intro::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: url('/corporate-building.webp') center 72% / cover no-repeat;
+  opacity: .28;
+}
+.building-intro > .page-heading { position: relative; z-index: 1; }
+.building-intro .page-heading h1, .building-intro .page-heading p { color: #fff; }
+.building-intro .button.ghost { color: #fff; border-color: #fff; background: transparent; padding: 10px 14px; min-height: 40px; }
+.building-intro .button.ghost:hover:not(:disabled) { color: var(--ink); border-color: #fff; background: #fff; }
+.building-intro .badge { color: var(--slate); border-color: #fff; background: #fff; }
+.building-intro :is(button, a):focus-visible { outline-color: #fff; }
+
 /* Profile title, save action, and company identity share the main-page frame. */
 .profile-intro { margin-bottom: 36px; }
 .profile-intro .page-heading { margin: 0 0 24px; }
