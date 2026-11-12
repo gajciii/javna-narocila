@@ -182,12 +182,17 @@ def effective_status(data):
     return 'open'
 
 
-def serialize_tender(tender, profile, documents=None):
+def serialize_tender(tender, profile, documents=None, content_result=None):
     data = dict(tender.data)
     docs = active_documents(tender) if documents is None else documents
     requirements = [req for doc in docs if doc.status == 'processed' and doc.extraction.get('mode') != 'unprocessed' for req in doc.extraction.get('requirements', [])]
     conditions = [evaluate_requirement(req, profile) for req in requirements]
+    if content_result is None:
+        from .relevance import resolve_matches
+        content_result = resolve_matches([tender], profile)[tender.pk]
     level, score, reasons = content_match(data, profile)
+    if content_result.get('mode') == 'gemini':
+        level, score, reasons = content_result['level'], content_result['score'], content_result['reasons']
     status = effective_status(data)
     has_unknown = any(c['status'] == 'unknown' for c in conditions)
     has_unmet = any(c['status'] == 'unmet' for c in conditions)
@@ -230,5 +235,6 @@ def serialize_tender(tender, profile, documents=None):
             open_question = preference_notes[0]
     return {**data, 'id': tender.pk, 'status': status, 'following': tender.following, 'criteria': criteria, 'lots': lots,
             'documents': [serialize_document(doc) for doc in docs], 'preference_notes': preference_notes,
-            'match': {'level': level, 'score': score, 'recommendation': recommendation, 'reasons': reasons,
+            'match': {'level': level, 'score': score, 'mode': content_result.get('mode', 'rules'),
+                      'warning': content_result.get('warning'), 'recommendation': recommendation, 'reasons': reasons,
                       'open_question': open_question, 'conditions': conditions}}

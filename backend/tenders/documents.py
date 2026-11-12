@@ -12,15 +12,15 @@ def normalized(text):
     return re.sub(r'\s+', ' ', str(text)).strip().casefold()
 
 
-def extract_pages(path):
+def extract_pages(path, max_bytes=10 * 1024 * 1024, max_pages=150):
     """PDF text extraction, preserving page numbers. Never invent OCR output."""
-    if Path(path).stat().st_size > 10 * 1024 * 1024:
-        raise ValueError('Dokument presega omejitev 10 MB.')
+    if Path(path).stat().st_size > max_bytes:
+        raise ValueError('Dokument presega omejitev velikosti.')
     reader = PdfReader(path)
     if reader.is_encrypted:
         raise ValueError('Zaščitenih PDF-jev v prototipu ne obdelujemo.')
-    if len(reader.pages) > 150:
-        raise ValueError('Dokument presega omejitev 150 strani za prototip.')
+    if len(reader.pages) > max_pages:
+        raise ValueError('Dokument presega omejitev strani za prototip.')
     pages = []
     for number, page in enumerate(reader.pages, 1):
         contents = page.get_contents()

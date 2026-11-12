@@ -1,5 +1,5 @@
 from django.urls import path
-from tenders import views, partner_views, espd_views
+from tenders import views, partner_views, espd_views, opportunities
 
 urlpatterns = [
     path('api/partners', partner_views.partners_view),
@@ -7,6 +7,7 @@ urlpatterns = [
     path('api/tenders/<slug:tender_id>/partners', partner_views.tender_partners_view),
     path('api/tenders/<slug:tender_id>/espd', espd_views.tender_espd_view),
     path('api/tenders/<slug:tender_id>/similar-awards', views.similar_awards_view),
+    path('api/tenders/<slug:tender_id>/attachment-opportunities', opportunities.attachment_opportunities_view),
     path('api/certifications', partner_views.certifications_view),
     path('api/bootstrap', views.bootstrap_view),
     path('api/profile', views.profile_view),

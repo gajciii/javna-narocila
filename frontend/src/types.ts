@@ -102,6 +102,8 @@ export interface Tender {
     match: {
         level: MatchLevel;
         score: number;
+        mode: 'gemini' | 'rules';
+        warning?: string | null;
         recommendation: 'recommended' | 'review' | 'unsuitable' | 'closed';
         reasons: string[];
         open_question: string;
@@ -330,7 +332,13 @@ export interface Espd {
     updated_at: string | null;
 }
 export interface PastAwardWinner { name: string; registration_number: string }
+export interface PastAwardParticipant extends PastAwardWinner {
+    outcome: 'winner' | 'not_selected' | 'unknown'; label: string; source_url: string;
+    provenance: 'award_notice' | 'imported_record';
+}
 export interface PastAward {
+    participants: PastAwardParticipant[];
+    participant_coverage: 'partial_records' | 'winners_only';
     id: string; notice_id: string; notice_url: string; notice_number: string; published_on: string | null; similarity: number;
     title: string; lot_title: string; buyer: string; kind: 'services' | 'goods' | 'works' | null; cpv: string[]; procedure: string;
     framework: boolean; currency: string | null; estimated_value: number | null; awarded_value: number | null;

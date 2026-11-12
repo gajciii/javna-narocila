@@ -20,7 +20,10 @@ def all_notifications():
 
 def all_tenders(profile=None):
     profile = profile or get_profile()
-    return [serialize_tender(t, profile) for t in Tender.objects.all()]
+    from .relevance import resolve_matches
+    tenders = list(Tender.objects.all())
+    matches = resolve_matches(tenders, profile)
+    return [serialize_tender(t, profile, content_result=matches[t.pk]) for t in tenders]
 
 
 def serialize_search(item):

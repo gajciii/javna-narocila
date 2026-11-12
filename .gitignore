@@ -5,6 +5,7 @@ __pycache__/
 *.sqlite3-*
 .env
 !.env.example
+backend/reports/
 node_modules/
 dist/
 *.tsbuildinfo

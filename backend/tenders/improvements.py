@@ -158,7 +158,7 @@ def snapshot(profile=None):
     records = []
     for tender in Tender.objects.all():
         docs = active_documents(tender)
-        before = serialize_tender(tender, profile, docs)
+        before = serialize_tender(tender, profile, docs, content_result={'mode': 'rules'})
         if before['status'] in ('open', 'closed') and before['match']['level'] != 'low':
             records.append((tender, docs, before))
     return profile, records
@@ -183,7 +183,7 @@ def evaluate(actions, source_type, context=None):
     for tender, docs, before in records:
         if before['source_type'] != source_type:
             continue
-        after = serialize_tender(tender, hypothetical, docs)
+        after = serialize_tender(tender, hypothetical, docs, content_result={'mode': 'rules'})
         requirements = {(d.id, r['id']): r for d in docs for r in d.extraction.get('requirements', [])}
         previous = {(c['document_id'], c['id']): c for c in before['match']['conditions']}
         changes, unresolved = [], []
