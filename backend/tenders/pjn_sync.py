@@ -89,7 +89,8 @@ def persist_notice(data):
         else:
             # Refresh provenance without erasing document state or past changes.
             record.data = {**old, 'source_metadata': {**old_meta, 'fetched_at': meta['fetched_at'],
-                **({'buyers': meta['buyers']} if 'buyers' in meta else {})}}
+                **({'buyers': meta['buyers']} if 'buyers' in meta else {}),
+                **({'submission_url': meta['submission_url']} if meta.get('submission_url') else {})}}
             record.save(update_fields=['data', 'updated_at'])
         if changed:
             TenderVersion.objects.create(tender=record, version=record.data['version'], data=record.data)

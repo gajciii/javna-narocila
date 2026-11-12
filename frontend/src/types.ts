@@ -111,7 +111,7 @@ export interface Tender {
     status: 'open' | 'closed' | 'cancelled' | 'unconfirmed';
     source_type: 'demo' | 'real';
     source_url: string | null;
-    source_metadata?: { notice_number?: string; fetched_at?: string; attachment_url?: string; phase?: string; correction_description?: string };
+    source_metadata?: { notice_number?: string; fetched_at?: string; attachment_url?: string; submission_url?: string | null; phase?: string; correction_description?: string };
     summary: string;
     description?: string;
     topics: string[];

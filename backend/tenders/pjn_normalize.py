@@ -8,7 +8,7 @@ from pathlib import Path
 from django.utils import timezone
 from django.utils.html import strip_tags
 
-from .pjn_transport import official_url
+from .pjn_transport import official_url, submission_url
 
 SOURCE = 'Javne informacije Slovenije – portal javnih naročil'
 
@@ -103,7 +103,7 @@ def normalize_notice(raw, notice_id):
             'notice_id': str(notice_id), 'dossier_id': raw['idDosje'], 'notice_number': raw.get('objavaIdent'),
             'attribution': SOURCE, 'fetched_at': timezone.now().isoformat(), 'published_timestamp': published.isoformat() if published else None,
             'phase': phase.get('naziv', 'Ni podatka'), 'previous_notice_id': raw.get('idObrazecPrejPopravek'),
-            'correction_description': text(raw.get('popravekOpis')), 'attachment_url': attachment,
+            'correction_description': text(raw.get('popravekOpis')), 'attachment_url': attachment, 'submission_url': submission_url(raw.get('elektronskaPredlozitevURL')),
             'external_documentation_url': raw.get('razpisnaDokumentacijaURL') if isinstance(raw.get('razpisnaDokumentacijaURL'), str) else None,
             'access_restricted': raw.get('dokumentacijaDostopOmejen') is True,
             'attachments_processed': False, 'codelists_as_of': codes['retrieved_at']},

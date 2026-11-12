@@ -19,6 +19,17 @@ def official_url(url, attachment=False):
     return bool(valid and (not attachment or parsed.path == '/api/datoteka/get'))
 
 
+def submission_url(value):
+    """Electronic submission link from a notice (e-JN); only plain HTTPS links are kept."""
+    try:
+        parsed = urlsplit(value.strip())
+    except (AttributeError, ValueError):
+        return None
+    if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or len(value) > 500:
+        return None
+    return value.strip()
+
+
 def fetch(path, body=None, max_bytes=2 * 1024 * 1024):
     url = path if path.startswith('https://') else BASE + '/api/' + path.lstrip('/')
     for redirect in range(3):

@@ -7983,3 +7983,7 @@ button, a {
 .state-tooltip small { font-size: 12px; color: #c9ccc4; }
 .condition-state.has-tooltip:hover .state-tooltip,
 .condition-state.has-tooltip:focus-visible .state-tooltip { opacity: 1; visibility: visible; transform: translateY(0); }
+
+.tender-source-links { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 14px; }
+.tender-source-links a { display: inline-flex; align-items: center; gap: 6px; }
+.tender-source-links .text-link { font-size: 14px; }
