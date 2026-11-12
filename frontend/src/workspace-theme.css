@@ -97,7 +97,8 @@ input[type=range] { accent-color: var(--accent); }
 .image-intro > .page-heading { min-width: 0; }
 .image-intro .page-heading > .button { max-width: 100%; white-space: normal; text-align: left; }
 .image-intro .page-heading > .button > svg { flex-shrink: 0; }
-.notifications-intro .corporate-photo, .assistant-intro .corporate-photo { object-position: center; }
+.simple-intro { margin-bottom: 36px; }
+.simple-intro > .page-heading { margin: 0; }
 
 .opportunities-columns { display: block; }
 .opportunities-main { min-width: 0; }
@@ -474,6 +475,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
   .page-heading h1, .opportunities-heading h1 { font-size: 32px; letter-spacing: -.6px; }
   .current-company { font-size: 14px; }
   .page-intro { padding: 16px; }
+  .simple-intro { margin-bottom: 25px; }
   .image-intro { grid-template-columns: minmax(0, 1fr) 40%; gap: 16px; min-height: 140px; margin-bottom: 25px; }
   .image-intro .page-heading { gap: 13px; }
   .image-intro h1 { font-size: 29px; }
