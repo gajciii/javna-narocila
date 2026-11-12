@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Activity, ArrowLeft, CheckCircle2, Clock3, Database, LockKeyhole, LogOut, Play, RefreshCw, Server, ShieldCheck, XCircle } from 'lucide-react';
+import { Activity, ArrowLeft, CheckCircle2, Clock3, Database, Download, LockKeyhole, LogOut, Play, RefreshCw, Server, ShieldCheck, XCircle } from 'lucide-react';
 import './pipeline-admin.css';
 
 type Session = { authenticated: boolean; username: string; csrf_token: string };
@@ -211,6 +211,12 @@ export default function PipelineAdmin() {
             })}><LogOut size={16}/>Odjava · {session.username}</button></div></div></section>
         {error && <div className="error-banner" role="alert">{error}</div>}
         {message && <div className="pipeline-message" role="status"><CheckCircle2 size={18}/>{message}</div>}
+        <section className="surface pipeline-panel">
+            <div className="section-heading"><h2><Database size={18}/>Izvoz podatkovne baze</h2></div>
+            <p className="section-help">Prenesite podatke aplikacije za uvoz v lokalno razvojno okolje. Izvoz vsebuje tudi profil podjetja in shranjene vnose; podatki niso anonimizirani. Uporabniški računi, gesla, prijavne seje in datoteke dokumentov niso vključeni.</p>
+            <a className="button" href="/api/admin/pipeline/database-export" target="_blank" rel="noopener noreferrer" download><Download size={16}/>Prenesi izvoz baze (.json.gz)</a>
+            <p className="section-help">Pri večji bazi lahko priprava traja nekaj časa. Dokumente iz S3 je treba prenesti ločeno.</p>
+        </section>
         {!overview ? <section className="surface pipeline-panel">Nalagam stanje pipelinea …</section> : <>
             {!overview.remote_enabled && <div className="info-box">Ločeni pipeline v tem okolju ni omogočen. Pregled zgodovine je na voljo, ročni zagon je onemogočen.</div>}
             <div className="pipeline-metrics">

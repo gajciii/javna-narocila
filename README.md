@@ -23,6 +23,12 @@ Vmesnik uporablja stalno navigacijo, berljive kartice in vidno utemeljitev ocene
 
 Potrebujete **Python 3.10+** (priporočeno 3.12), **Node.js 22+** in npm. Ukaze izvajajte v korenu projekta.
 
+Za razvoj Reacta in Djanga z lokalnim PostgreSQL uporabite
+[`compose.dev.yaml`](compose.dev.yaml) in [`.env.local.example`](.env.local.example).
+Compose zažene samo bazo; aplikacija teče lokalno. Postopek za Windows in macOS/Linux
+je v [navodilih za lokalni razvoj](docs/local-development.md).
+Spodnji običajni zagon brez `DATABASE_URL` uporablja SQLite.
+
 ### Windows / PowerShell
 
 Priprava ob prvem zagonu:

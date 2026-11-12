@@ -8,6 +8,7 @@ urlpatterns = [
     path('api/admin/pipeline/login', pipeline_admin.login_view),
     path('api/admin/pipeline/logout', pipeline_admin.logout_view),
     path('api/admin/pipeline/overview', pipeline_admin.overview_view),
+    path('api/admin/pipeline/database-export', pipeline_admin.database_export_view),
     path('api/admin/pipeline/runs', pipeline_admin.runs_view),
     path('api/admin/pipeline/runs/<int:run_id>', pipeline_admin.run_view),
     path('api/admin/pipeline/jobs/<int:job_id>', pipeline_admin.job_view),

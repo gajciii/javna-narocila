@@ -1,5 +1,6 @@
 """Staff-only pipeline administration, using Django sessions and CSRF protection."""
 import json
+import logging
 import uuid
 from functools import wraps
 from datetime import timedelta
@@ -9,7 +10,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
 from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -81,6 +82,21 @@ def admin_endpoint(methods):
 
 def timestamp(value):
     return value.isoformat() if value else None
+
+
+@admin_endpoint(['GET'])
+def database_export_view(request):
+    from .database_export import database_archive
+    try:
+        archive = database_archive()
+    except Exception:
+        logging.getLogger(__name__).exception('Application database export failed')
+        return Response({'error': 'Izvoz baze ni uspel. Poskusite znova ali preverite dnevnik strežnika.'}, status=500)
+    filename = 'razpizi-data-' + timezone.now().strftime('%Y%m%d-%H%M%S') + '.json.gz'
+    response = FileResponse(archive, as_attachment=True, filename=filename, content_type='application/gzip')
+    response['X-Content-Type-Options'] = 'nosniff'
+    logging.getLogger(__name__).info('Application database exported by staff user %s', request.user.pk)
+    return response
 
 
 def run_rows(query):

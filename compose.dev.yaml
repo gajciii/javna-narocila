@@ -1,0 +1,23 @@
+# Only PostgreSQL; Django and Vite run on the host.
+# Fixed development credentials deliberately ignore production variables in .env.
+name: razpizi-local
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: razpizi_local
+      POSTGRES_USER: razpizi
+      POSTGRES_PASSWORD: razpizi-local-only
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U razpizi -d razpizi_local"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+volumes:
+  database:
