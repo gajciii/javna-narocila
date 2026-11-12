@@ -57,6 +57,17 @@ class WebsiteProfileTests(TestCase):
             self.assertTrue(item['evidence'] and item['evidence'][0]['url'].startswith('https://primer.si/'))
         self.assertEqual(get_profile(), before)
 
+    def test_registration_number_is_read_from_contact_page_only_with_its_label(self):
+        home = HOME.replace('<a href="/pogoji">', '<a href="/kontakt">Kontakt</a><a href="/pogoji">')
+        contact = '<html><body><p>Tel.: 01 234 5678</p><p>Davčna številka: SI12345678</p><table><tr><td>Matična številka:</td><td>6235220</td></tr></table></body></html>'
+        pages = {'https://primer.si/': home, 'https://primer.si/storitve/spletne-trgovine': SHOP, 'https://primer.si/kontakt': contact}
+        self.fetch.side_effect = lambda url, deadline: (url, pages[url])
+        data = self.post('primer.si').json()
+        self.assertEqual([n['value'] for n in data['registration_numbers']], ['6235220000'])
+        self.assertEqual(data['registration_numbers'][0]['evidence'][0]['url'], 'https://primer.si/kontakt')
+        # The contact page only supplies the number; it is not used for profile suggestions.
+        self.assertNotIn('https://primer.si/kontakt', [p['url'] for p in data['pages']])
+
     def test_invalid_and_internal_urls_are_rejected(self):
         for value in ['', 'ftp://primer.si', 'http://localhost', 'https://user:pw@primer.si', 'https://primer.si:8080']:
             self.assertEqual(self.post(value).status_code, 400, value)

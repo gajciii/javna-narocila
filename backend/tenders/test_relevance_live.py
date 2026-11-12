@@ -82,6 +82,32 @@ class LiveRelevanceTests(TestCase):
         self.assertEqual(cached[record.pk]['mode'], 'rules')
         post.assert_not_called()
 
+    @patch('tenders.relevance.CHUNK_SIZE', 2)
+    @patch('tenders.relevance.requests.post')
+    def test_parallel_batches_keep_per_batch_failures_and_update_cache(self, post):
+        failing = 'energy-iot'
+        title = Tender.objects.get(pk=failing).data['title']
+        def response(*args, **kwargs):
+            questions = kwargs['json']['questions']
+            if any(title in q['instructions'] for q in questions.values()):
+                return MagicMock(status_code=503, json=lambda: {})
+            return MagicMock(status_code=200, json=lambda: {'answers': {
+                qid: {'probabilities': {'0': 0.1, '1': 0.2, '2': 0.7}} for qid in questions}})
+        post.side_effect = response
+        profile = get_profile()
+        tenders = list(Tender.objects.all())
+        results = resolve_matches(tenders, profile)
+        self.assertEqual(post.call_count, 4)  # 7 tenders in batches of two
+        self.assertEqual(results[failing]['mode'], 'rules')
+        self.assertEqual(sum(r['mode'] == 'gemini' for r in results.values()), 5)
+        self.assertEqual(RelevanceCache.objects.count(), 7)
+        # A changed profile re-scores and overwrites the existing rows instead of adding new ones.
+        changed = {**profile, 'description': profile['description'] + ' Optična omrežja.'}
+        resolve_matches(tenders, changed)
+        self.assertEqual(post.call_count, 8)
+        self.assertEqual(RelevanceCache.objects.count(), 7)
+        self.assertEqual(RelevanceCache.objects.filter(payload__mode='gemini').count(), 5)
+
     @patch('tenders.relevance.requests.post')
     def test_model_failure_uses_labelled_rules_and_short_retry_cache(self, post):
         post.return_value = MagicMock(status_code=403, text='key test-never-sent', json=lambda: {})

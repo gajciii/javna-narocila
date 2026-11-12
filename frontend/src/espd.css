@@ -69,6 +69,11 @@
 .website-chip.on { border-color:var(--accent); background:var(--cream, #f3f3ef); color:var(--ink); }
 .website-chip small { font-size:10px; color:var(--muted); }
 .website-chip:focus-within { outline:2px solid var(--accent); outline-offset:1px; }
+.website-registry { margin-top:0; align-items:center; }
+.website-registry > div { flex:1; min-width:0; }
+.website-registry p { margin:0; line-height:1.55; }
+.website-registry .button { flex-shrink:0; }
+@media (max-width:650px) { .website-registry { flex-wrap:wrap; } }
 .website-evidence { font-size:12px; color:var(--muted); }
 .website-evidence summary { cursor:pointer; color:var(--accent); width:fit-content; }
 .website-evidence p { margin:6px 0 0; overflow-wrap:anywhere; }

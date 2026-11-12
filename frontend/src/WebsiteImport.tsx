@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Globe, Sparkles, LoaderCircle, AlertCircle, Check, ExternalLink } from 'lucide-react';
+import { Globe, Sparkles, LoaderCircle, AlertCircle, Check, ExternalLink, Building2 } from 'lucide-react';
 import { post } from './api';
 import type { Profile, WebsiteAnalysis, WebsiteSuggestion } from './types';
 
@@ -13,7 +13,14 @@ function Evidence({ item }: { item: WebsiteSuggestion }) {
     return <details className="website-evidence"><summary>Vir</summary>{item.evidence.map((e, i) => <p key={i}>{e.kind === 'code' ? <em>{e.quote}</em> : <>»{e.quote}«</>} <a href={e.url} target="_blank" rel="noreferrer">{path(e.url)}<ExternalLink size={11}/></a></p>)}</details>;
 }
 
-export default function WebsiteImport({ initial, onApply }: { initial: string; onApply: (patch: WebsitePatch) => void }) {
+export default function WebsiteImport({ initial, onApply, registrationNumber, onRegistry, registryBusy }: {
+    initial: string;
+    onApply: (patch: WebsitePatch) => void;
+    /** Current form identity (10 digits); a number already in the form is not offered again. */
+    registrationNumber: string;
+    onRegistry: (number: string) => void;
+    registryBusy: boolean;
+}) {
     const [url, setUrl] = useState(initial);
     const [result, setResult] = useState<WebsiteAnalysis | null>(null);
     const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -53,11 +60,12 @@ export default function WebsiteImport({ initial, onApply }: { initial: string; o
         {result && s && <div className="website-results" aria-live="polite">
             <p className="company-result-count">{result.message}</p>
             {result.warning && <p className="company-lookup-warning">{result.warning}</p>}
+            {(result.registration_numbers || []).filter(n => n.value !== registrationNumber).slice(0, 1).map(n => <div className="info-box website-registry" key={n.value}><Building2 size={17}/><div><p>Na strani je navedena matična številka <strong>{n.value}</strong>. Iz AJPES lahko prevzamete uradni naziv in naslov; predlogi s spletne strani ostanejo.</p><Evidence item={n}/></div><button className="button small" type="button" disabled={registryBusy} onClick={() => onRegistry(n.value)}>{registryBusy ? <LoaderCircle size={15} className="spin"/> : <Building2 size={15}/>}Prevzemi iz AJPES</button></div>)}
             {!empty && <>
                 {s.activity && <label className="website-choice"><input type="checkbox" checked={picked.has('activity')} onChange={() => toggle('activity')}/><span><b>Dejavnost</b>{s.activity.value}<Evidence item={s.activity}/></span></label>}
                 {s.description && <label className="website-choice"><input type="checkbox" checked={picked.has('description')} onChange={() => toggle('description')}/><span><b>Opis (zamenja trenutnega)</b>{s.description.value}<Evidence item={s.description}/></span></label>}
                 {groups.map(([k, label]) => s[k].length > 0 && <div className="website-group" key={k}><b>{label}</b><div>{s[k].map(item => <label key={item.value} className={`website-chip ${picked.has(`${k}:${item.value}`) ? 'on' : ''}`} title={item.evidence.map(e => e.quote).join('\n')}><input type="checkbox" checked={picked.has(`${k}:${item.value}`)} onChange={() => toggle(`${k}:${item.value}`)}/>{picked.has(`${k}:${item.value}`) && <Check size={12}/>}{item.value}{item.evidence[0]?.kind === 'code' && <small>iz kode strani</small>}</label>)}</div></div>)}
-                <p className="company-source-note">Prebrane strani: {result.pages.map(p => path(p.url)).join(', ')}. Področja se dodajo obstoječim; reference, kadri in certifikati se s spletne strani ne sklepajo.</p>
+                <p className="company-source-note">Prebrane strani: {result.pages.map(p => path(p.url)).join(', ')}. Področja se dodajo obstoječim in ostanejo tudi, če nato izberete podjetje v AJPES; reference, kadri in certifikati se s spletne strani ne sklepajo.</p>
                 <div className="modal-actions"><button className="button" type="button" onClick={() => setResult(null)}>Zavrzi</button><button className="button primary" type="button" onClick={apply}><Check size={16}/>Prenesi izbrano v obrazec</button></div>
             </>}
         </div>}

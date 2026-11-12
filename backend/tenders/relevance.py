@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 import requests
@@ -25,6 +26,8 @@ RUBRIC = [
     'Primeren: predmet naročila je jedrna dejavnost podjetja in ga podjetje vsebinsko lahko izvede samo.',
 ]
 CHUNK_SIZE = 40
+# A profile change re-scores every tender (~25 batches); sequential calls made saving take ~15 s.
+PARALLEL_BATCHES = 8
 RETRY_AFTER = timedelta(minutes=15)
 
 
@@ -128,16 +131,28 @@ def resolve_matches(tenders, profile, cached_only=False):
             results[tender.pk] = {'mode': 'rules'}
         else:
             missing.append((tender, key))
-    for start in range(0, len(missing), CHUNK_SIZE):
-        batch = missing[start:start + CHUNK_SIZE]
+    batches = [missing[start:start + CHUNK_SIZE] for start in range(0, len(missing), CHUNK_SIZE)]
+
+    def decide(batch):
+        # Network only: tender.data is already loaded, so worker threads never touch the database.
         try:
-            decided = request_batch([tender for tender, _ in batch], profile, api_key, model)
+            return request_batch([tender for tender, _ in batch], profile, api_key, model)
         except (requests.RequestException, ValueError, TypeError) as exc:
             log.warning('Gemini relevance unavailable: %s', type(exc).__name__)
-            decided = {tender.pk: {'mode': 'rules', 'warning': 'AI presoja trenutno ni dosegljiva; uporabljena so pravila.'}
-                       for tender, _ in batch}
+            return {tender.pk: {'mode': 'rules', 'warning': 'AI presoja trenutno ni dosegljiva; uporabljena so pravila.'}
+                    for tender, _ in batch}
+
+    if len(batches) > 1:
+        with ThreadPoolExecutor(max_workers=min(PARALLEL_BATCHES, len(batches))) as pool:
+            decided_batches = list(pool.map(decide, batches))
+    else:
+        decided_batches = [decide(batch) for batch in batches]
+    rows = []
+    for batch, decided in zip(batches, decided_batches):
         for tender, key in batch:
-            result = decided[tender.pk]
-            RelevanceCache.objects.update_or_create(tender=tender, defaults={'key': key, 'payload': result})
-            results[tender.pk] = result
+            results[tender.pk] = decided[tender.pk]
+            rows.append(RelevanceCache(tender=tender, key=key, payload=decided[tender.pk], updated_at=now))
+    if rows:
+        RelevanceCache.objects.bulk_create(rows, batch_size=500, update_conflicts=True, unique_fields=['tender'],
+                                           update_fields=['key', 'payload', 'updated_at'])
     return results

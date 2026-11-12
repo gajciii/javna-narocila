@@ -302,6 +302,8 @@ export interface WebsiteAnalysis {
         technologies: WebsiteSuggestion[];
         keywords: WebsiteSuggestion[];
     };
+    /** Registration numbers stated on the site, normalized to 10 digits. */
+    registration_numbers: WebsiteSuggestion[];
     warning: string | null;
     message: string;
 }

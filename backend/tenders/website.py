@@ -186,6 +186,24 @@ class PageParser(HTMLParser):
             self.current.append(data)
 
 
+# "Matična številka: 1234567000", "MŠ 1234567", "Mat. št.: …", "Company reg. no. …".
+REGISTRY_LABEL = re.compile(
+    r'(?:mati[čc]n\w*(?:\s+(?:[šs]t(?:evilk\w*)?\.?))?|\bm\.?\s?[šs]\.|\bm[šs]\b|\bmat\.\s*[šs]t\.?'
+    r'|registration\s+(?:no|number)\.?|company\s+(?:reg(?:istration)?\.?\s+)?(?:no|number)\.?)'
+    r'\s*[:\-–]?\s*(\d{7}(?:\d{3})?)(?!\d)', re.I)
+
+
+def registry_numbers(url, blocks):
+    """Registration numbers stated next to their label; the label avoids tax IDs and phone numbers."""
+    text = ' '.join(blocks)
+    found = []
+    for match in REGISTRY_LABEL.finditer(text):
+        number = match.group(1) + ('000' if len(match.group(1)) == 7 else '')
+        quote = re.sub(r'\s+', ' ', text[max(0, match.start() - 30):match.end() + 10]).strip()
+        found.append({'value': number, 'evidence': [{'quote': quote, 'url': url, 'kind': 'text'}]})
+    return found
+
+
 def parse(url, html):
     parser = PageParser()
     parser.feed(html)
@@ -202,7 +220,8 @@ def parse(url, html):
     detected = [name for name, markers in CODE_SIGNATURES if any(m in lowered for m in markers)]
     generator = parser.meta.get('generator', '')
     return {'url': url, 'title': re.sub(r'\s+', ' ', parser.title).strip()[:200], 'meta': parser.meta,
-            'blocks': blocks, 'links': parser.links, 'code_technologies': detected, 'generator': generator[:120]}
+            'blocks': blocks, 'links': parser.links, 'code_technologies': detected, 'generator': generator[:120],
+            'registry_numbers': registry_numbers(url, parser.blocks)}
 
 
 def candidate_links(page, host):
@@ -241,7 +260,34 @@ def crawl(url):
                 pages.append(parse(page_url, page_html))
         except (WebsiteUnavailable, ValueError):
             errors.append(f'Podstrani {link} ni bilo mogoče prebrati.')
-    return final_url, pages, errors
+    extra = []
+    if not any(p['registry_numbers'] for p in pages):
+        # Contact and imprint pages are skipped for suggestions but usually state the registration number.
+        for link in contact_links(home, host)[:1]:
+            if time.monotonic() > deadline - 2:
+                break
+            try:
+                page_url, page_html = fetch(link, deadline)
+                if site_key(urlsplit(page_url).hostname) == host:
+                    extra = parse(page_url, page_html)['registry_numbers']
+            except (WebsiteUnavailable, ValueError):
+                pass
+    return final_url, pages, errors, extra
+
+
+CONTACT_PATHS = ['kontakt', 'contact', 'impresum', 'imprint', 'o-podjetju', 'podatki-o-podjetju']
+
+
+def contact_links(page, host):
+    links = []
+    for href in page['links']:
+        absolute = urljoin(page['url'], href.strip())
+        parts = urlsplit(absolute)
+        if parts.scheme in ('http', 'https') and site_key(parts.hostname) == host and any(t in text_normalize(parts.path) for t in CONTACT_PATHS):
+            clean = urlunsplit((parts.scheme, parts.netloc.lower(), parts.path, '', ''))
+            if clean not in links:
+                links.append(clean)
+    return links
 
 
 SENTENCE = re.compile(r'(?<=[.!?])\s+')
@@ -372,9 +418,16 @@ def ai_suggestions(pages):
     return result
 
 
+def unique_numbers(found):
+    result = {}
+    for item in found:
+        result.setdefault(item['value'], item)
+    return list(result.values())[:3]
+
+
 def analyze(url):
     start = normalize_url(url)
-    final_url, pages, errors = crawl(start)
+    final_url, pages, errors, extra_numbers = crawl(start)
     words = sum(len(b.split()) for p in pages for b in p['blocks'])
     if words < 40:
         raise WebsiteUnavailable('Na strani je premalo berljivega besedila (morda se vsebina naloži šele z JavaScriptom). Profil dopolnite ročno.')
@@ -390,6 +443,7 @@ def analyze(url):
         'url': start, 'final_url': final_url, 'mode': mode,
         'pages': [{'url': p['url'], 'title': p['title']} for p in pages],
         'suggestions': suggestions,
+        'registration_numbers': unique_numbers([n for p in pages for n in p['registry_numbers']] + extra_numbers),
         'warning': ' '.join(dict.fromkeys(errors)) or None,
         'message': (('AI predlog s preverjenimi citati' if mode == 'live' else 'Predlog po ključnih besedah s spletne strani')
                     + f' · prebranih strani: {len(pages)}. Izberite, kaj prenesete v obrazec; shrani se šele s potrditvijo profila.')
