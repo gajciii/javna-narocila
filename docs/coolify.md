@@ -8,13 +8,15 @@
 ## 1. Zasebna povezava
 
 Tailscale teče v lastnem vsebniku in deluje kot prehod iz Docker omrežja do `it-server-pc`.
+Odjemalec se poveže na naš Headscale **`https://vpn.viptronik.si`**, kar Compose nastavi
+z `TS_EXTRA_ARGS=--login-server=...`. Naslov lahko spremenite z `TAILSCALE_LOGIN_SERVER`.
 Namestitev Tailscale na gostitelju Coolify ni potrebna. Gostitelj mora podpirati Linux
 `/dev/net/tun` in dovoliti `NET_ADMIN`, kar Compose dodeli samo vsebniku `tailscale`.
 
-V Coolify nastavite `TAILSCALE_AUTHKEY`: preavtoriziran auth key iz istega tailneta kot
-`it-server-pc`. Za nadomestne namestitve je primeren ponovno uporaben ključ. Ključ vnesite
-med skrivnosti Coolify, brez dodajanja v Git. Če tailnet zahteva odobritev naprav ali podpise
-Tailnet Lock, novo napravo odobrite v konzoli Tailscale.
+V Coolify nastavite `TAILSCALE_AUTHKEY`: preauth key, ustvarjen na našem Headscale za
+ustreznega uporabnika. Za nadomestne namestitve je primeren ponovno uporaben ključ.
+Ključ vnesite med skrivnosti Coolify, brez dodajanja v Git. Ključ mora pripadati Headscale
+strežniku `vpn.viptronik.si`.
 
 Pravila tailneta morajo dovoljevati novi napravi dostop do:
 
@@ -45,6 +47,10 @@ Za drugo okolje uporabite drug `TAILSCALE_HOSTNAME` in svoj volumen. Ob poteku k
 naprave ali preklicu dostopa posodobite prijavo naprave; veljavnost auth keya in naprave
 sta ločeni nastavitvi Tailscale.
 
+Če je bil ta vsebnik že prijavljen na drug nadzorni strežnik, samo sprememba URL-ja zaradi
+`TS_AUTH_ONCE=true` ne preklopi obstoječe prijave. V terminalu storitve `tailscale` izvedite
+`tailscale logout`, nato ponovno zaženite storitev z novim URL-jem in Headscale ključem.
+
 Backend počaka na zdrav Tailscale vsebnik, nato izvede migracije. Če povezava ne deluje,
 v terminalu `tailscale` preverite `tailscale status` in `tailscale ping 100.64.0.7` ter pravila
 za ciljni TCP vrati. Uspešen healthcheck Tailscale potrdi, da ima naprava Tailscale IP; dostop do
@@ -72,7 +78,8 @@ V **Environment Variables** vnesite vrednosti iz `.env.coolify.example`.
 | --- | --- |
 | `PUBLIC_APP_URL` | Npr. `https://razpizi.example.com`, brez poti in brez notranjega `:80`. |
 | `DJANGO_SECRET_KEY` | Dolg, naključen ključ za to spletno namestitev. |
-| `TAILSCALE_AUTHKEY` | Auth key za prijavo novega Tailscale vsebnika. |
+| `TAILSCALE_LOGIN_SERVER` | Headscale URL, privzeto `https://vpn.viptronik.si`. |
+| `TAILSCALE_AUTHKEY` | Preauth key iz našega Headscale za prijavo novega vsebnika. |
 | `TAILSCALE_HOSTNAME` | Ime naprave v tailnetu, privzeto `razpizi-coolify`. |
 | `TAILSCALE_TARGET_IP` | Zasebni IP strežnika pipelinea, privzeto `100.64.0.7`. |
 | `DATABASE_URL` | Povezava do obstoječe baze prek prehoda, npr. `postgresql://razpizi:<URL-kodirano geslo>@tailscale:55432/razpizi`. |
@@ -126,3 +133,4 @@ ostanejo v obstoječi S3 shrambi na ločenem strežniku.
 
 Referenca: [Coolify Docker Compose](https://coolify.io/docs/applications/builds/docker-compose).
 Podrobnosti prehoda: [Tailscale Docker parameters](https://tailscale.com/docs/features/containers/docker/docker-params).
+Prijava: [Headscale registration methods](https://headscale.net/stable/ref/registration/).

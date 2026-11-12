@@ -7,7 +7,8 @@ services:
     restart: unless-stopped
     hostname: ${TAILSCALE_HOSTNAME:-razpizi-coolify}
     environment:
-      TS_AUTHKEY: ${TAILSCALE_AUTHKEY:?Set a Tailscale auth key in Coolify}
+      TS_AUTHKEY: ${TAILSCALE_AUTHKEY:?Set a Headscale preauth key in Coolify}
+      TS_EXTRA_ARGS: --login-server=${TAILSCALE_LOGIN_SERVER:-https://vpn.viptronik.si}
       TS_HOSTNAME: ${TAILSCALE_HOSTNAME:-razpizi-coolify}
       TS_AUTH_ONCE: "true"
       TS_STATE_DIR: /var/lib/tailscale
