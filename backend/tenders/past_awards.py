@@ -2,17 +2,21 @@
 
 Source data are published PJN award notices (``phase=RESULT``) as JSON records, e.g. from the
 ``publicmoney/enarocanje-slovenia-scraper`` Apify actor. Import is explicit (management command);
-nothing here downloads data. Retrieval is deterministic text + CPV similarity; when a Gemini key
+nothing here downloads data. The normalized table ships in ``source_data/past_awards/`` and loads
+automatically into an empty table; the raw scraper output is kept next to it for re-import. Retrieval is deterministic text + CPV similarity; when a Gemini key
 is configured, the Gemini Decisions API re-ranks the candidates. Every result links to its official
 notice. Records are untrusted data: only bounded, typed fields are kept.
 """
+import gzip
 import hashlib
+import json
 import math
 import os
 import re
 import statistics
 from collections import Counter
 from datetime import date
+from pathlib import Path
 
 import requests
 from django.db import transaction
@@ -38,6 +42,7 @@ STOPWORDS = {
     'mala', 'male', 'vrednosti', 'vrednost', 'skupaj', 'nabava', 'nakup', 'izbor', 'izvajalca', 'izvajalec',
 }
 _index = {'revision': None}
+BUNDLE = Path(__file__).resolve().parent.parent / 'source_data' / 'past_awards' / 'past_awards.json.gz'
 
 
 def clean(value, limit=600):
@@ -122,6 +127,37 @@ def import_notices(records):
     _index['revision'] = None
     return {'notices': len({r['notice_id'] for r in rows}), 'lots': len(rows),
             'created': len({r['id'] for r in rows} - existing), 'updated': len(existing)}
+
+
+def read_json(path):
+    path = Path(path)
+    opener = gzip.open if path.suffix == '.gz' else open
+    with opener(path, 'rt', encoding='utf-8') as handle:
+        return json.load(handle)
+
+
+def write_bundle(path=BUNDLE):
+    """Snapshot of the normalized table, reproducible (sorted, gzip without timestamp)."""
+    rows = [{'id': a.pk, 'notice_id': a.notice_id, 'dossier_id': a.dossier_id,
+             'published_on': a.published_on.isoformat() if a.published_on else None, 'data': a.data}
+            for a in PastAward.objects.order_by('pk')]
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, 'wb') as raw, gzip.GzipFile(fileobj=raw, mode='wb', compresslevel=9, mtime=0, filename='') as handle:
+        handle.write(json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8'))
+    return len(rows)
+
+
+def ensure_past_awards(path=BUNDLE):
+    """Load the bundled snapshot into an empty table; never overwrites imported data."""
+    if PastAward.objects.exists() or not Path(path).exists():
+        return 0
+    rows = read_json(path)
+    PastAward.objects.bulk_create([PastAward(id=r['id'], notice_id=r['notice_id'], dossier_id=r.get('dossier_id') or '',
+                                             published_on=parse_date(r.get('published_on')), data=r['data'])
+                                   for r in rows], batch_size=500, ignore_conflicts=True)
+    _index['revision'] = None
+    return len(rows)
 
 
 def stems(text):

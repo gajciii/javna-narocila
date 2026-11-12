@@ -132,3 +132,28 @@ class ViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['results'][0]['winners'][0]['name'], 'Tiskarna d.o.o.')
         self.assertEqual(self.client.get('/api/tenders/missing/similar-awards').status_code, 404)
+
+
+class BundleTests(TestCase):
+    def test_bundle_roundtrip_loads_only_into_empty_table(self):
+        import tempfile
+        from pathlib import Path
+        from .past_awards import ensure_past_awards, write_bundle
+        import_notices([notice(1), notice(2, dossier=20, number='JN000002/2026-SL4/01')])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'bundle.json.gz'
+            self.assertEqual(write_bundle(path), 2)
+            first = path.read_bytes()
+            write_bundle(path)
+            self.assertEqual(path.read_bytes(), first)  # reproducible for Git
+            self.assertEqual(ensure_past_awards(path), 0)  # existing data is never overwritten
+            PastAward.objects.all().delete()
+            self.assertEqual(ensure_past_awards(path), 2)
+            self.assertEqual(PastAward.objects.get(pk='pjn-1-1').data['winners'][0]['name'], 'Tiskarna d.o.o.')
+            self.assertEqual(ensure_past_awards(Path(tmp) / 'missing.json.gz'), 0)
+
+    def test_shipped_bundle_is_readable(self):
+        from .past_awards import BUNDLE, read_json
+        rows = read_json(BUNDLE)
+        self.assertGreater(len(rows), 1000)
+        self.assertTrue(all(r['id'].startswith('pjn-') for r in rows[:50]))

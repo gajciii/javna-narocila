@@ -119,13 +119,13 @@ LLM se uporabi, če je nastavljen `OPENROUTER_API_KEY` ali `OPENAI_API_KEY`. Gem
 
 Zavihek **Pretekle oddaje** (samo pri resničnih razpisih) poišče podobne sklope v uvoženih obvestilih o oddaji. Pokaže, kdo je bil izbran, koliko ponudb je naročnik prejel, pogodbeno in ocenjeno vrednost ter najnižjo in najvišjo dopustno ponudbo. Doda še mediane in najpogostejše izbrane ponudnike. Imen neuspešnih ponudnikov obvestila o oddaji ne objavljajo.
 
-Zbirko je treba uvoziti posebej. Aplikacija je sama ne prenaša, ker PJN API nima množičnega prenosa:
+Zbirka je v repozitoriju (`backend/source_data/past_awards/`, licenca CC BY 4.0): izvorni izvoz strgalnika in normalizirana tabela. Ob prvem zagonu (`seed_demo`, v Dockerju samodejno) ali ob prvem odprtju zavihka se naloži v prazno tabelo. Že uvoženih podatkov ne prepiše. Aplikacija sama oddaj ne prenaša, ker PJN API nima množičnega prenosa. Nov izvoz uvozite in osvežite zbirko za Git z:
 
 ```bash
-.venv/bin/python backend/manage.py import_past_awards tmp/apify/pjn_oddaje_*.json
+.venv/bin/python backend/manage.py import_past_awards pot/do/izvoza.json --write-bundle
 ```
 
-Vhod je JSON seznam obvestil v obliki Apify strgalnika [`publicmoney/enarocanje-slovenia-scraper`](https://apify.com/publicmoney/enarocanje-slovenia-scraper) (`phase: RESULT`, `fetchDetails: true`; na brezplačnem paketu okoli 2 $ za 1.000 obvestil). Ponovni uvoz posodobi obstoječe zapise. Kandidate izbere besedilna podobnost naslova in opisa skupaj s kodo CPV. Če je nastavljen `GEMINI_API_KEY`, kandidate (največ 40) razvrsti Gemini Decisions API: ostanejo tisti z verjetnostjo podobnosti vsaj 0,5. Rezultat se shrani in ponovno uporabi, dokler se razpis ali zbirka ne spremenita. Brez ključa ali ob napaki se prikaže besedilno ujemanje z oznako. Gemini prejme samo javne podatke razpisa in preteklih oddaj, profila podjetja ne. Vir: Portal javnih naročil, CC BY 4.0.
+Vhod je JSON (ali JSON.gz) seznam obvestil v obliki Apify strgalnika [`publicmoney/enarocanje-slovenia-scraper`](https://apify.com/publicmoney/enarocanje-slovenia-scraper) (`phase: RESULT`, `fetchDetails: true`; na brezplačnem paketu okoli 2 $ za 1.000 obvestil). Ponovni uvoz posodobi obstoječe zapise. Kandidate izbere besedilna podobnost naslova in opisa skupaj s kodo CPV. Če je nastavljen `GEMINI_API_KEY`, kandidate (največ 40) razvrsti Gemini Decisions API: ostanejo tisti z verjetnostjo podobnosti vsaj 0,5. Rezultat se shrani in ponovno uporabi, dokler se razpis ali zbirka ne spremenita. Brez ključa ali ob napaki se prikaže besedilno ujemanje z oznako. Gemini prejme samo javne podatke razpisa in preteklih oddaj, profila podjetja ne. Vir: Portal javnih naročil, CC BY 4.0.
 
 ### Podjetja, partnerji in demo podatki
 
@@ -153,7 +153,7 @@ Partnerji prispevajo samo podatke s podprtimi dokazili. Uporabniška potrditev n
 | `backend/tenders/website.py`, `frontend/src/WebsiteImport.tsx` | Predlogi profila s spletne strani podjetja |
 | `backend/tenders/past_awards.py`, `frontend/src/PastAwards.tsx` | Uvoz obvestil o oddaji in podobna pretekla naročila |
 | `backend/tenders/relevance_eval.py`, `backend/eval/` | Primerjava pristopov za vsebinsko ujemanje na označenem naboru |
-| `backend/demo_documents/`, `source_data/` | Demo dokumentacija in šifranti |
+| `backend/demo_documents/`, `source_data/` | Demo dokumentacija, šifranti in zbirka preteklih oddaj |
 | `scripts/` | Priprava, zagon in preverjanje za Bash |
 
 Podatkovni objekti, API in pravila so opisani v [CONTRACT.md](CONTRACT.md). SQLite baze, preneseni dokumenti, ključi in razvojna okolja so izključeni iz Gita.

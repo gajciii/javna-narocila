@@ -330,6 +330,7 @@ def document_view(request, document_id):
 
 @api_view(['GET'])
 def similar_awards_view(request, tender_id):
-    from .past_awards import similar_awards
+    from .past_awards import ensure_past_awards, similar_awards
     ensure_seed()
+    ensure_past_awards()
     return Response(similar_awards(get_object_or_404(Tender, pk=tender_id)))
