@@ -1,42 +1,99 @@
 # Coolify: Git repository / Docker Compose, Base Directory /,
 # Compose Location /compose.coolify.yaml. Domain belongs to frontend, port 80.
-# PostgreSQL, object storage and pipeline workers stay on it-server-pc.
+# The whole stack (web, PostgreSQL, S3 storage, pipeline worker, scheduler) runs on
+# the Coolify host. Every service has a memory limit: the host has no swap.
 services:
-  tailscale:
-    image: tailscale/tailscale:v1.104.4@sha256:ed6480b33c6eb67c9cbd203ed42b9fb57e361986725b6856def71b7a3d9e276c
+  postgres:
+    image: postgres:17
     restart: unless-stopped
-    hostname: ${TAILSCALE_HOSTNAME:-razpizi-coolify}
+    command: [postgres, -c, shared_buffers=256MB, -c, effective_cache_size=768MB]
     environment:
-      TS_AUTHKEY: ${TAILSCALE_AUTHKEY:?Set a Headscale preauth key in Coolify}
-      TS_EXTRA_ARGS: --login-server=${TAILSCALE_LOGIN_SERVER:-https://vpn.viptronik.si}
-      TS_HOSTNAME: ${TAILSCALE_HOSTNAME:-razpizi-coolify}
-      TS_AUTH_ONCE: "true"
-      TS_STATE_DIR: /var/lib/tailscale
-      TS_USERSPACE: "false"
-      TS_ACCEPT_DNS: "false"
-      # Forward incoming Docker traffic to this private tailnet machine,
-      # preserving the destination port (PostgreSQL 55432 and S3 9002).
-      TS_TAILNET_TARGET_IP: ${TAILSCALE_TARGET_IP:-100.64.0.7}
-      TS_ENABLE_HEALTH_CHECK: "true"
-      TS_LOCAL_ADDR_PORT: 127.0.0.1:9003
-    cap_add:
-      - NET_ADMIN
-      - NET_RAW
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    sysctls:
-      net.ipv4.ip_forward: "1"
+      POSTGRES_DB: razpizi
+      POSTGRES_USER: razpizi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set the PostgreSQL password in Coolify}
+    # Loopback only: reach it from a workstation with `ssh -L 55432:127.0.0.1:55432 server-1`.
+    ports:
+      - "127.0.0.1:55432:5432"
     volumes:
-      - tailscale-state:/var/lib/tailscale
-    expose:
-      - "55432"
-      - "9002"
+      - database:/var/lib/postgresql/data
+    mem_limit: 1g
+    shm_size: 256m
     healthcheck:
-      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:9003/healthz]
+      test: [CMD-SHELL, "pg_isready -U razpizi -d razpizi"]
       interval: 5s
       timeout: 3s
-      retries: 30
-      start_period: 30s
+      retries: 20
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  storage:
+    image: ghcr.io/versity/versitygw:v1.11.0@sha256:8319a530d08d537426e2f855bae5280709795dc73a3f0c347973ef915d6343c5
+    restart: unless-stopped
+    command: [--port, ":9000", posix, /data]
+    environment:
+      ROOT_ACCESS_KEY: ${PIPELINE_S3_ACCESS_KEY:?Set the S3 access key}
+      ROOT_SECRET_KEY: ${PIPELINE_S3_SECRET_KEY:?Set the S3 secret key}
+    ports:
+      - "127.0.0.1:9002:9000"
+    volumes:
+      - objects:/data
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: [python, manage.py, pipeline_worker]
+    environment:
+      DATABASE_URL: postgresql://razpizi:${POSTGRES_PASSWORD}@postgres:5432/razpizi
+      PIPELINE_REMOTE: "1"
+      PIPELINE_S3_ENDPOINT: http://storage:9000
+      PIPELINE_S3_BUCKET: ${PIPELINE_S3_BUCKET:-razpizi-documents}
+      PIPELINE_S3_ACCESS_KEY: ${PIPELINE_S3_ACCESS_KEY}
+      PIPELINE_S3_SECRET_KEY: ${PIPELINE_S3_SECRET_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_DECISION_MODEL: ${GEMINI_DECISION_MODEL:-gemini-decision-1}
+      PIPELINE_MAX_DOWNLOAD: ${PIPELINE_MAX_DOWNLOAD:-8589934592}
+      PIPELINE_MAX_EXPANDED: ${PIPELINE_MAX_EXPANDED:-34359738368}
+      TMPDIR: /scratch
+    volumes:
+      - scratch:/scratch
+    mem_limit: 2g
+    cpus: 2
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      storage:
+        condition: service_started
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  scheduler:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: [python, manage.py, enqueue_pipeline, --watch]
+    environment:
+      DATABASE_URL: postgresql://razpizi:${POSTGRES_PASSWORD}@postgres:5432/razpizi
+      PIPELINE_REMOTE: "1"
+      PIPELINE_S3_ENDPOINT: http://storage:9000
+      PIPELINE_S3_BUCKET: ${PIPELINE_S3_BUCKET:-razpizi-documents}
+      PIPELINE_S3_ACCESS_KEY: ${PIPELINE_S3_ACCESS_KEY}
+      PIPELINE_S3_SECRET_KEY: ${PIPELINE_S3_SECRET_KEY}
+    mem_limit: 256m
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
     logging:
       driver: json-file
       options:
@@ -54,9 +111,9 @@ services:
       DJANGO_TRUST_PROXY_SSL: "1"
       DJANGO_SECURE_SSL_REDIRECT: "1"
       SESSION_COOKIE_SECURE: "1"
-      DATABASE_URL: ${DATABASE_URL:?Set the private PostgreSQL URL}
+      DATABASE_URL: postgresql://razpizi:${POSTGRES_PASSWORD}@postgres:5432/razpizi
       PIPELINE_REMOTE: "1"
-      PIPELINE_S3_ENDPOINT: ${PIPELINE_S3_ENDPOINT:?Set the private S3 endpoint}
+      PIPELINE_S3_ENDPOINT: http://storage:9000
       PIPELINE_S3_BUCKET: ${PIPELINE_S3_BUCKET:-razpizi-documents}
       PIPELINE_S3_ACCESS_KEY: ${PIPELINE_S3_ACCESS_KEY:?Set the S3 access key}
       PIPELINE_S3_SECRET_KEY: ${PIPELINE_S3_SECRET_KEY:?Set the S3 secret key}
@@ -77,10 +134,13 @@ services:
     expose:
       - "8000"
     depends_on:
-      tailscale:
+      postgres:
         condition: service_healthy
+      storage:
+        condition: service_started
     volumes:
       - web-media:/data/media
+    mem_limit: 1536m
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"]
       interval: 15s
@@ -100,6 +160,7 @@ services:
     restart: unless-stopped
     expose:
       - "80"
+    mem_limit: 128m
     depends_on:
       backend:
         condition: service_healthy
@@ -115,4 +176,6 @@ services:
         max-file: "3"
 volumes:
   web-media:
-  tailscale-state:
+  database:
+  objects:
+  scratch:

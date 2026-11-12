@@ -76,19 +76,40 @@ def validated_extraction(data, document):
             'mode': data.get('mode', 'demo'), 'rejected_requirements': len(data.get('requirements', [])) - len(requirements)}
 
 
+_digests = {}
+
+
+def _file_digest(path):
+    stat = path.stat()
+    key = (str(path), stat.st_mtime_ns, stat.st_size)
+    if key not in _digests:
+        _digests[key] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return _digests[key]
+
+
 def load_demo_documents():
     root = settings.DEMO_DOCUMENTS_ROOT
     if not root.exists():
         return
-    for sidecar in root.glob('*.json'):
+    entries = []
+    for sidecar in sorted(root.glob('*.json')):
         try:
             metadata = json.loads(sidecar.read_text(encoding='utf-8'))
-            file_path = sidecar.with_suffix('.pdf')
-            if not file_path.exists() or not Tender.objects.filter(pk=metadata['tender_id']).exists():
+            entries.append((metadata, sidecar.with_suffix('.pdf'), metadata['id'], metadata['tender_id']))
+        except (KeyError, OSError, json.JSONDecodeError):
+            continue
+    if not entries:
+        return
+    # Runs on every API request: two batched queries instead of two per demo file.
+    tenders = set(Tender.objects.filter(pk__in={e[3] for e in entries}).values_list('pk', flat=True))
+    existing = dict(Document.objects.filter(pk__in=[e[2] for e in entries]).exclude(extraction={})
+                    .values_list('pk', 'sha256'))
+    for metadata, file_path, doc_id, tender_id in entries:
+        try:
+            if tender_id not in tenders or not file_path.exists():
                 continue
-            digest = hashlib.sha256(file_path.read_bytes()).hexdigest()
-            old = Document.objects.filter(pk=metadata['id']).first()
-            if old and old.sha256 == digest and old.extraction:
+            digest = _file_digest(file_path)
+            if existing.get(doc_id) == digest:
                 continue
             pages = extract_pages(file_path)
             readable = sum(len(p['text'].strip()) for p in pages) >= 50

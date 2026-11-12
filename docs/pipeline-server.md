@@ -133,7 +133,8 @@ volumnu `scratch`; po trdem izpadu lahko ostanejo začasni imeniki, zato spremlj
 
 ## Trenutna namestitev
 
-`it-server-pc`, SSH `viptronik@it-server-pc`, imenik `/home/viptronik/razpizi-pipeline`.
-Spletna aplikacija se povezuje prek Tailscale na `100.64.0.7`. Gesla so samo v zasebnih
-okoljskih datotekah. Običajni lokalni način ostane mogoč z `PIPELINE_REMOTE=0` in praznim
-`DATABASE_URL`, vendar se pri tem uporabi ločena SQLite kopija.
+Od 12. 11. 2026 celoten pipeline (PostgreSQL, S3, worker, scheduler) teče na Coolify strežniku
+`server-1` v skladu `compose.coolify.yaml`; glejte [Coolify navodila](coolify.md).
+Prejšnja namestitev na `it-server-pc` (`/home/viptronik/razpizi-pipeline`) je ustavljena;
+njeni volumni so ohranjeni kot rezervna kopija. Ta dokument opisuje samostojno namestitev
+z `compose.pipeline.yaml` na ločenem strežniku.

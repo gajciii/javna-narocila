@@ -4,12 +4,12 @@ import hashlib
 import json
 import math
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from .models import Tender, Notification, ImprovementPlan
 from .seed import get_profile, today
-from .documents import active_documents
+from .documents import active_documents, document_metadata
 from .matching import (serialize_tender, evaluate_requirement, text_normalize,
                        certification_key, certification_needs_review)
 
@@ -156,8 +156,11 @@ def simulate(profile, actions):
 def snapshot(profile=None):
     profile = profile or get_profile()
     records = []
-    for tender in Tender.objects.all():
-        docs = active_documents(tender)
+    # One prefetch without page text; per-tender queries loaded every PDF's text over the network.
+    tenders = Tender.objects.prefetch_related(Prefetch('document_records',
+        queryset=document_metadata().order_by('id'), to_attr='_document_metadata'))
+    for tender in tenders:
+        docs = active_documents(tender, metadata_only=True)
         before = serialize_tender(tender, profile, docs, content_result={'mode': 'rules'})
         if before['status'] in ('open', 'closed') and before['match']['level'] != 'low':
             records.append((tender, docs, before))

@@ -1,61 +1,35 @@
 # Spletna aplikacija na Coolify
 
-`compose.coolify.yaml` zažene tri storitve: React/Nginx (`frontend`), Django/Gunicorn
-(`backend`) in Tailscale (`tailscale`). PostgreSQL, zasebna shramba dokumentacije, delavec in scheduler ostanejo na
-`it-server-pc`. Coolify na eni HTTPS domeni posreduje promet v `frontend`; Nginx zahteve
-`/api/` posreduje v zasebni `backend:8000`. Ta Compose ne ustvarja druge baze ali drugega pipelinea.
+`compose.coolify.yaml` zažene celoten sklad na Coolify strežniku (`server-1`):
 
-## 1. Zasebna povezava
+| Storitev | Namen | Omejitev RAM |
+| --- | --- | --- |
+| `frontend` | React/Nginx, javna domena | 128 MB |
+| `backend` | Django/Gunicorn | 1,5 GB |
+| `postgres` | PostgreSQL 17 (`shared_buffers=256MB`) | 1 GB |
+| `storage` | zasebna S3 shramba dokumentacije (versitygw) | 512 MB |
+| `worker` | prenos in indeksiranje prilog (`cpus: 2`) | 2 GB |
+| `scheduler` | dnevni urnik in ročne zahteve iz administracije | 256 MB |
 
-Tailscale teče v lastnem vsebniku in deluje kot prehod iz Docker omrežja do `it-server-pc`.
-Odjemalec se poveže na naš Headscale **`https://vpn.viptronik.si`**, kar Compose nastavi
-z `TS_EXTRA_ARGS=--login-server=...`. Naslov lahko spremenite z `TAILSCALE_LOGIN_SERVER`.
-Namestitev Tailscale na gostitelju Coolify ni potrebna. Gostitelj mora podpirati Linux
-`/dev/net/tun` in dovoliti `NET_ADMIN`, kar Compose dodeli samo vsebniku `tailscale`.
+Strežnik nima swapa, zato ima vsaka storitev `mem_limit`. Če worker preseže omejitev, ga
+Docker ponovno zažene; opravilo se po poteku najema nadaljuje oziroma ponovi (največ trikrat).
+Skupna zgornja meja je ~5,4 GB, običajna poraba ~1,5–2 GB.
 
-V Coolify nastavite `TAILSCALE_AUTHKEY`: preauth key, ustvarjen na našem Headscale za
-ustreznega uporabnika. Za nadomestne namestitve je primeren ponovno uporaben ključ.
-Ključ vnesite med skrivnosti Coolify, brez dodajanja v Git. Ključ mora pripadati Headscale
-strežniku `vpn.viptronik.si`.
+Coolify na eni HTTPS domeni posreduje promet v `frontend`; Nginx zahteve `/api/` posreduje
+v zasebni `backend:8000`. Baza in shramba sta dosegljivi samo v Docker omrežju aplikacije
+in na `127.0.0.1` gostitelja.
 
-Pravila tailneta morajo dovoljevati novi napravi dostop do:
+## 1. Dostop do baze in shrambe z delovne postaje
 
-- `100.64.0.7:55432` — PostgreSQL;
-- `100.64.0.7:9002` — zasebna shramba S3.
-
-Vsebnik posreduje promet na `TAILSCALE_TARGET_IP` (privzeto `100.64.0.7`) in ohrani vrata.
-**Backend mora uporabljati gostitelja `tailscale`**, da gre promet skozi ta prehod:
-
-```dotenv
-DATABASE_URL=postgresql://razpizi:<URL-kodirano geslo>@tailscale:55432/razpizi
-PIPELINE_S3_ENDPOINT=http://tailscale:9002
-```
-
-Uporabniško ime, geslo, ime baze in vedro ostanejo enaki. Pri kopiranju obstoječega
-`DATABASE_URL` zamenjajte samo gostitelja `100.64.0.7` z `tailscale`.
-Stranski vsebnik nima javne domene ali objavljenih vrat. Obstoječih vrat baze in shrambe
-ne odpirajte v javni internet. Za preverjanje v Coolify terminalu storitve `backend` zaženite:
+Vrata sta objavljena samo na loopback naslovu gostitelja (`127.0.0.1:55432` in `127.0.0.1:9002`).
+Za lokalni razvoj ali administracijo uporabite SSH tunel:
 
 ```bash
-python manage.py check_pipeline_connection
+ssh -N -L 55432:127.0.0.1:55432 -L 9002:127.0.0.1:9002 server-1
 ```
 
-Ukaz prebere samo stanje baze in vedra. Ne izpisuje povezovalnih nizov, ključev ali gesel.
-Identiteta naprave je v volumnu `tailscale-state`, nastavitev `TS_AUTH_ONCE=true` pa jo
-ponovno uporabi ob ponovnem zagonu. Volumna pri običajni ponovni namestitvi ne izbrišite.
-Za drugo okolje uporabite drug `TAILSCALE_HOSTNAME` in svoj volumen. Ob poteku ključa
-naprave ali preklicu dostopa posodobite prijavo naprave; veljavnost auth keya in naprave
-sta ločeni nastavitvi Tailscale.
-
-Če je bil ta vsebnik že prijavljen na drug nadzorni strežnik, samo sprememba URL-ja zaradi
-`TS_AUTH_ONCE=true` ne preklopi obstoječe prijave. V terminalu storitve `tailscale` izvedite
-`tailscale logout`, nato ponovno zaženite storitev z novim URL-jem in Headscale ključem.
-
-Backend počaka na zdrav Tailscale vsebnik, nato izvede migracije. Če povezava ne deluje,
-v terminalu `tailscale` preverite `tailscale status` in `tailscale ping 100.64.0.7` ter pravila
-za ciljni TCP vrati. Uspešen healthcheck Tailscale potrdi, da ima naprava Tailscale IP; dostop do
-PostgreSQL-a in vedra dodatno preveri zgornji ukaz. Javni spletni promet še vedno obravnava
-Coolifyjev HTTPS proxy; Tailscale Serve in Funnel nista vključena.
+Lokalni `.env` nato uporablja `DATABASE_URL=postgresql://razpizi:<geslo>@127.0.0.1:55432/razpizi`
+in `PIPELINE_S3_ENDPOINT=http://127.0.0.1:9002`. Geslo je v Coolify spremenljivki `POSTGRES_PASSWORD`.
 
 ## 2. Nastavitev vira in domene
 
@@ -64,11 +38,9 @@ Coolifyjev HTTPS proxy; Tailscale Serve in Funnel nista vključena.
 3. Nastavite **Base Directory** na `/` in **Docker Compose Location** na `/compose.coolify.yaml`.
 4. Dodelite HTTPS domeno samo storitvi **frontend**, z notranjimi vrati **80**.
    Primer vrednosti v Coolify Domains: `https://razpizi.example.com:80`.
-   `:80` označuje ciljna vrata vsebnika; obiskovalci uporabljajo običajen HTTPS naslov.
 5. DNS domene usmerite na javni naslov Coolify strežnika in omogočite HTTPS v Coolify.
 
-`backend` in `tailscale` ne potrebujeta javne domene ali objavljenih vrat. Compose ne objavlja nobenih vrat
-na gostitelju; javni promet prevzame Coolifyjev proxy. Ne podvajajte tega s port mappingom.
+Ostale storitve ne potrebujejo javne domene. Ne objavljajte vrat baze ali shrambe na javnem naslovu.
 
 ## 3. Okoljske spremenljivke
 
@@ -78,22 +50,15 @@ V **Environment Variables** vnesite vrednosti iz `.env.coolify.example`.
 | --- | --- |
 | `PUBLIC_APP_URL` | Npr. `https://razpizi.example.com`, brez poti in brez notranjega `:80`. |
 | `DJANGO_SECRET_KEY` | Dolg, naključen ključ za to spletno namestitev. |
-| `TAILSCALE_LOGIN_SERVER` | Headscale URL, privzeto `https://vpn.viptronik.si`. |
-| `TAILSCALE_AUTHKEY` | Preauth key iz našega Headscale za prijavo novega vsebnika. |
-| `TAILSCALE_HOSTNAME` | Ime naprave v tailnetu, privzeto `razpizi-coolify`. |
-| `TAILSCALE_TARGET_IP` | Zasebni IP strežnika pipelinea, privzeto `100.64.0.7`. |
-| `DATABASE_URL` | Povezava do obstoječe baze prek prehoda, npr. `postgresql://razpizi:<URL-kodirano geslo>@tailscale:55432/razpizi`. |
-| `PIPELINE_S3_ENDPOINT` | `http://tailscale:9002`. |
+| `POSTGRES_PASSWORD` | Geslo baze; samo črke in številke (uporabi se neposredno v URL-ju). |
 | `PIPELINE_S3_BUCKET` | `razpizi-documents`. |
-| `PIPELINE_S3_ACCESS_KEY` | Obstoječi ključ zasebne shrambe. |
-| `PIPELINE_S3_SECRET_KEY` | Obstoječe geslo zasebne shrambe. |
+| `PIPELINE_S3_ACCESS_KEY` | Ključ zasebne shrambe. |
+| `PIPELINE_S3_SECRET_KEY` | Geslo zasebne shrambe. |
+| `GEMINI_API_KEY` | Ključ za presojo prilog (worker in backend). |
 
-Zasebne povezovalne vrednosti so v lokalni `.env` oziroma `.env.pipeline.client` in na
-pipeline strežniku v zasebni `.env.pipeline`. Kopirajte jih neposredno v nastavitve Coolify;
-ne dodajajte jih v repozitorij. `.env.coolify` in njegove zasebne različice so izključene iz Gita.
-
-AI ključe dodajte po potrebi. Za enako obnašanje uporabite isti `GEMINI_DECISION_MODEL` in
-ključ Gemini kot na pipeline strežniku. Ključi ostanejo v backendu; Vite jih ne prejme med gradnjo.
+`DATABASE_URL` in `PIPELINE_S3_ENDPOINT` določa Compose (`postgres:5432`, `http://storage:9000`).
+PostgreSQL ob prvem zagonu s praznim volumnom ustvari bazo z `POSTGRES_PASSWORD`; kasnejša
+sprememba spremenljivke gesla v obstoječi bazi ne spremeni (uporabite `ALTER ROLE`).
 
 `PUBLIC_APP_URL` določi dovoljeno ime gostitelja in zaupanja vreden izvor za prijavo ter
 spremembe podatkov. Če domeno zamenjate, spremenite tudi to vrednost in ponovno namestite.
@@ -103,9 +68,6 @@ Ta namestitev pričakuje aplikacijo v korenu domene, ne podpot `/app`.
 
 Spletna namestitev privzeto zahteva prijavo za celoten API aplikacije, ker trenutno vsi
 uporabniki uporabljajo isti profil podjetja. Obiskovalec se preusmeri na prijavo v administracijo.
-Uporabite obstoječi račun `admin` iz skupne PostgreSQL baze in njegovo geslo. Po prijavi
-izberite **Razpisi** za običajni vmesnik ali ostanite v administratorskem portalu.
-
 Za povsem novo bazo račun ustvarite v terminalu storitve `backend`:
 
 ```bash
@@ -113,12 +75,12 @@ python manage.py createsuperuser
 ```
 
 HTTPS je zaključen na Coolify proxyju. Nginx ohrani pravilen `X-Forwarded-Proto`, Django
-pa uporablja varne sejne/CSRF piškotke in preverja CSRF tudi za običajne spremembe profila.
-Backend mora ostati v zasebnem Docker omrežju; nastavitev zaupanja proxyju temelji na tem.
+pa uporablja varne sejne/CSRF piškotke. Backend mora ostati v zasebnem Docker omrežju.
 
-Ob zagonu backend izvede migracije in zažene Gunicorn. Podatkov obstoječe baze ne ponastavlja.
-Ročni zagoni iz administracije se izvajajo na `it-server-pc`; v Coolify ne dodajajte workerja
-ali schedulerja iz `compose.pipeline.yaml`.
+Ob zagonu backend izvede migracije in zažene Gunicorn. Ponovna namestitev ponovno zažene tudi
+worker in scheduler; prekinjeno opravilo nadaljuje drug zagon po poteku najema (pet minut).
+Podatki so v volumnih `database`, `objects` in `web-media`; `scratch` vsebuje samo začasne datoteke.
+Teh volumnov pri ponovni namestitvi ne brišite in zanje uredite varnostne kopije.
 
 ## 5. Preverjanje namestitve
 
@@ -127,10 +89,4 @@ ali schedulerja iz `compose.pipeline.yaml`.
 - `https://<domena>/#/administracija` odpre prijavo in pregled pipelinea;
 - `python manage.py check_pipeline_connection` v backend vsebniku preveri PostgreSQL in S3.
 
-Compose vsebuje healthchecke za vse tri storitve. Prvi zagon lahko traja dlje zaradi prijave v tailnet in migracij. Volumen
-`web-media` ohrani lokalne delovne datoteke spletne aplikacije; izvorni dokumenti pipelinea
-ostanejo v obstoječi S3 shrambi na ločenem strežniku.
-
 Referenca: [Coolify Docker Compose](https://coolify.io/docs/applications/builds/docker-compose).
-Podrobnosti prehoda: [Tailscale Docker parameters](https://tailscale.com/docs/features/containers/docker/docker-params).
-Prijava: [Headscale registration methods](https://headscale.net/stable/ref/registration/).
