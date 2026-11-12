@@ -38,6 +38,12 @@ def month_dates(period):
 
 
 def grid_rows(period):
+    for row in grid_entries(period):
+        yield str(row['idObrazec'])
+
+
+def grid_entries(period):
+    """Grid rows of every notice published in the month; each has ``idObrazec`` and the procedure phase."""
     start, end = month_dates(period)
     seen, offset = set(), 0
     while True:
@@ -63,7 +69,7 @@ def grid_rows(period):
             if notice_id in seen:
                 raise ValueError('Seznam vsebuje podvojeno objavo; preverite premik strani med zajemom.')
             seen.add(notice_id)
-            yield notice_id
+            yield row
         offset += len(rows)
         if offset >= total:
             break

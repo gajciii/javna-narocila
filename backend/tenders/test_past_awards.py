@@ -99,6 +99,14 @@ class PjnAwardTests(TestCase):
         self.assertEqual(Tender.objects.get(pk='pjn-dosje-646581').data['status'], 'closed')
         self.assertEqual(PastAward.objects.filter(notice_id='1230270').count(), 3)
 
+    @patch('tenders.pjn_sync.fetch_json')
+    def test_rejected_notice_is_not_stored_but_award_is_recorded(self, fetch_json):
+        ensure_seed()
+        fetch_json.return_value = deepcopy(PJN_AWARD)
+        self.assertEqual(collect_notice('1230270', download=False, accept=lambda data: False)['mode'], 'skipped')
+        self.assertFalse(Tender.objects.filter(pk='pjn-dosje-646581').exists())
+        self.assertEqual(PastAward.objects.filter(notice_id='1230270').count(), 3)
+
     @patch('tenders.pjn_sync.import_notices', side_effect=RuntimeError)
     @patch('tenders.pjn_sync.fetch_json')
     def test_award_recording_failure_never_breaks_tender_collection(self, fetch_json, _):

@@ -95,6 +95,9 @@ class PipelineRun(models.Model):
     mode = models.CharField(max_length=12, default='monthly')
     period = models.CharField(max_length=7, blank=True)
     max_notices = models.PositiveIntegerField(null=True, blank=True)
+    # Only notices whose submission deadline is still ahead are stored and indexed.
+    open_only = models.BooleanField(default=False)
+    skipped_count = models.PositiveIntegerField(default=0)
     state = models.CharField(max_length=12, default='queued')
     requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     request_key = models.UUIDField(null=True, blank=True, unique=True)

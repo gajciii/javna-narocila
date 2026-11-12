@@ -108,7 +108,8 @@ def persist_notice(data):
     return record, created, changed
 
 
-def collect_notice(notice_id, download=True):
+def collect_notice(notice_id, download=True, accept=None):
+    """``accept`` may reject the normalized notice; it is then neither stored nor downloaded."""
     attempt = SyncAttempt.objects.create(source_id=str(notice_id))
     try:
         raw = fetch_json(f'obrazec/objava/obrazecGet?id={notice_id}')
@@ -117,6 +118,8 @@ def collect_notice(notice_id, download=True):
         attempt.save(update_fields=['raw', 'success'])
         record_awards(raw)
         normalized = normalize_notice(raw, notice_id)
+        if accept and not accept(normalized):
+            return {'mode': 'skipped', 'message': 'Objava ne ustreza izbranemu obsegu.'}
         record, created, changed = persist_notice(normalized)
         result = {'mode': 'live', 'tender': record, 'created': created, 'changed': changed,
                   'message': 'Pridobljeni so dejanski metapodatki iz e-Naročanja.'}

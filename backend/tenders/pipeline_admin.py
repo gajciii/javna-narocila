@@ -132,7 +132,8 @@ def serialize_run(run):
     else:
         status = 'complete'
     return {'id': run.pk, 'source': run.source, 'mode': run.mode, 'period': run.period,
-        'max_notices': run.max_notices, 'state': run.state, 'status': status,
+        'max_notices': run.max_notices, 'open_only': run.open_only, 'skipped_count': run.skipped_count,
+        'state': run.state, 'status': status,
         'requested_by': run.requested_by.username if run.requested_by else None,
         'listed_count': run.listed_count, 'error_count': run.error_count, 'error': run.error,
         'created_at': timestamp(run.created_at), 'started_at': timestamp(run.started_at),
@@ -212,7 +213,8 @@ def runs_view(request):
             if not isinstance(data.get('period', ''), str):
                 raise ValueError('Neveljaven mesec.')
             run = create_run(source='manual', mode=data.get('mode', 'monthly'), period=data.get('period', ''),
-                max_notices=data.get('max_notices'), requested_by=request.user, request_key=request_key)
+                max_notices=data.get('max_notices'), requested_by=request.user, request_key=request_key,
+                open_only=data.get('open_only', False))
         except (ValueError, TypeError, AttributeError) as exc:
             return Response({'error': str(exc) if str(exc) and 'UUID' not in str(exc) else 'Neveljavni podatki zagona.'}, status=400)
         return Response(serialize_run(run_rows(PipelineRun.objects.filter(pk=run.pk)).get()), status=202)

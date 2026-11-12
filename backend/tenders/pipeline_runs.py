@@ -2,14 +2,14 @@
 import socket
 import time
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
 from .models import PipelineAgent, PipelineControl, PipelineRun, PipelineRunItem, Tender
-from .monthly_pipeline import grid_rows, month_dates
+from .monthly_pipeline import grid_entries, month_dates
 from .pipeline_jobs import close_processed_runs, enqueue_index, index_identity
 from .pjn_sync import collect_notice, sync_awards
 
@@ -23,7 +23,16 @@ def beat_agent(agent, state='idle', job_id=None, run_id=None):
         job_id=job_id, run_id=run_id)
 
 
-def create_run(*, source, mode='monthly', period='', max_notices=None, requested_by=None, request_key=None):
+def deadline_ahead(data):
+    """True when the tender states a submission deadline that has not passed yet."""
+    try:
+        return datetime.fromisoformat(data['deadline']) > timezone.now()
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def create_run(*, source, mode='monthly', period='', max_notices=None, requested_by=None, request_key=None,
+               open_only=False):
     if mode not in ('monthly', 'existing'):
         raise ValueError('Izberite zajem meseca ali obstoječe razpise.')
     if mode == 'monthly':
@@ -33,11 +42,14 @@ def create_run(*, source, mode='monthly', period='', max_notices=None, requested
         period = ''
     if max_notices is not None and (isinstance(max_notices, bool) or not isinstance(max_notices, int) or not 1 <= max_notices <= 5000):
         raise ValueError('Omejitev mora biti celo število od 1 do 5000 ali prazna.')
-    defaults = dict(source=source, mode=mode, period=period, max_notices=max_notices, requested_by=requested_by)
+    if not isinstance(open_only, bool):
+        raise ValueError('Neveljavna izbira odprtih razpisov.')
+    defaults = dict(source=source, mode=mode, period=period, max_notices=max_notices, requested_by=requested_by,
+                    open_only=open_only)
     if request_key:
         run, created = PipelineRun.objects.get_or_create(request_key=request_key, defaults=defaults)
-        if not created and (run.mode, run.period, run.max_notices, run.requested_by_id) != (
-                mode, period, max_notices, requested_by.pk if requested_by else None):
+        if not created and (run.mode, run.period, run.max_notices, run.open_only, run.requested_by_id) != (
+                mode, period, max_notices, open_only, requested_by.pk if requested_by else None):
             raise ValueError('Identifikator zahteve je že uporabljen za drug zagon.')
         return run
     return PipelineRun.objects.create(**defaults)
@@ -66,11 +78,11 @@ def claim_run(schedule=False):
 
 def collect_run(run, agent=None):
     """Replays safely after interruption; a run links each shared job only once."""
-    listed, errors, log = 0, 0, []
+    listed, skipped, errors, log = 0, 0, 0, []
     owned = lambda: PipelineRun.objects.filter(pk=run.pk, lease=run.lease, state='collecting')
 
     def progress():
-        updated = owned().update(listed_count=listed, error_count=errors, error_log=log[-20:],
+        updated = owned().update(listed_count=listed, skipped_count=skipped, error_count=errors, error_log=log[-20:],
             lease_until=timezone.now() + timedelta(minutes=5))
         if agent:
             beat_agent(agent, 'working', run_id=run.pk)
@@ -84,7 +96,7 @@ def collect_run(run, agent=None):
                 records = records[:run.max_notices]
             iterable = records.iterator()
         else:
-            iterable = grid_rows(run.period)
+            iterable = grid_entries(run.period)
         progress()
         for value in iterable:
             if run.max_notices is not None and listed >= run.max_notices:
@@ -92,23 +104,37 @@ def collect_run(run, agent=None):
             listed += 1
             if run.mode == 'existing':
                 tender = value
+            elif run.open_only and value.get('sifPostopekFazaNaziv') == 'Rezultat':
+                # Award notices never carry a submission deadline; skip them without fetching.
+                skipped += 1
+                progress()
+                continue
             else:
+                value = str(value['idObrazec'])
                 tender = Tender.objects.filter(data__source_metadata__notice_id=value).first()
                 if tender is None:
-                    result = collect_notice(value, download=False)
+                    result = collect_notice(value, download=False,
+                                            accept=deadline_ahead if run.open_only else None)
+                    time.sleep(0.5)
+                    if result.get('mode') == 'skipped':
+                        skipped += 1
+                        progress()
+                        continue
                     if result.get('mode') != 'live':
                         errors += 1
                         log.append({'notice_id': value, 'message': 'Metapodatkov objave ni bilo mogoče pridobiti.'})
                         progress()
                         continue
                     tender = result['tender']
+            if run.open_only and not deadline_ahead(tender.data):
+                skipped += 1
+                progress()
+                continue
             from .models import PipelineJob
             reused = PipelineJob.objects.filter(key=index_identity(tender)).exists()
             job = enqueue_index(tender, retry=True)
             PipelineRunItem.objects.get_or_create(run=run, job=job, defaults={'reused': reused})
             progress()
-            if run.mode == 'monthly':
-                time.sleep(0.5)
         if run.mode == 'monthly':
             # Award notices of this month are recorded while collecting; this fills the days since the
             # newest stored award (month boundaries, notices collected before awards were recorded).
@@ -119,10 +145,11 @@ def collect_run(run, agent=None):
             except ValueError as exc:
                 log.append({'notice_id': 'oddaje', 'message': f'Zajem obvestil o oddaji ni uspel: {str(exc)[:200]}'})
         owned().update(state='partial' if errors else 'collected', finished_at=timezone.now(),
-                       lease=None, lease_until=None, listed_count=listed, error_count=errors, error_log=log[-20:], error='')
+                       lease=None, lease_until=None, listed_count=listed, skipped_count=skipped, error_count=errors,
+                       error_log=log[-20:], error='')
     except Exception as exc:
         owned().update(state='failed', finished_at=timezone.now(), lease=None, lease_until=None,
-            listed_count=listed, error_count=errors, error_log=log[-20:],
+            listed_count=listed, skipped_count=skipped, error_count=errors, error_log=log[-20:],
             error=f'Zajem se ni zaključil ({type(exc).__name__}).')
     finally:
         # Runs whose jobs were all indexed earlier never see a job finish.

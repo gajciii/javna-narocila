@@ -114,7 +114,9 @@ Portal prikazuje:
 - vrsto opravil, velikost indeksa in zadnji odziv delavca ter schedulerja;
 - zgodovino dnevnih, ročnih in CLI zagonov ter povezane razpise in njihova trenutna stanja;
 - vsa opravila, tudi presoje prilog na zahtevo, z ločenim dnevnikom posameznih poskusov;
-- ročni zajem izbranega meseca ali obstoječih razpisov, z omejitvijo števila objav;
+- ročni zajem izbranega meseca ali obstoječih razpisov, z omejitvijo števila objav; z možnostjo
+  »Samo razpisi z nepretečenim rokom« se obvestila o oddaji preskočijo brez prenosa, objave brez
+  roka ali s pretečenim rokom pa se ne shranijo in ne indeksirajo (število se izpiše kot preskočene);
 - ponovitev neuspešnega opravila, ki se zabeleži kot nov ročni zagon;
 - ustavitev in ponovni vklop dnevnega urnika. Že oddana opravila in ročni zagoni se nadaljujejo.
 

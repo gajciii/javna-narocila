@@ -213,7 +213,7 @@ class CollectionTests(TestCase):
     @patch('tenders.pipeline_runs.sync_awards', return_value={'errors': [{'notice_id': '9', 'message': 'x'}]})
     @patch('tenders.pipeline_runs.time.sleep')
     @patch('tenders.pipeline_runs.collect_notice', return_value={'mode': 'unavailable'})
-    @patch('tenders.pipeline_runs.grid_rows', return_value=iter(['1001', '1002']))
+    @patch('tenders.pipeline_runs.grid_entries', return_value=iter([{'idObrazec': 1001}, {'idObrazec': 1002}]))
     def test_collection_records_metadata_errors_and_continues(self, grid, collect, sleep, awards):
         create_run(source='cli', period=timezone.localdate().strftime('%Y-%m'))
         run = claim_run()
@@ -225,6 +225,32 @@ class CollectionTests(TestCase):
         self.assertEqual(run.jobs.count(), 1)
         awards.assert_called_once()
         self.assertEqual(run.error_log[-1]['notice_id'], 'oddaje')
+
+    @patch('tenders.pipeline_runs.sync_awards', return_value={'errors': []})
+    @patch('tenders.pipeline_runs.time.sleep')
+    @patch('tenders.pipeline_runs.collect_notice')
+    @patch('tenders.pipeline_runs.grid_entries')
+    def test_open_only_run_indexes_only_tenders_with_future_deadline(self, grid, collect, sleep, awards):
+        now = timezone.now()
+        self.tender.data['deadline'] = (now - timedelta(days=1)).isoformat()
+        self.tender.save()
+        fresh = Tender.objects.create(pk='collection-open', data={'version': 1, 'deadline': (now + timedelta(days=3)).isoformat(),
+            'source_metadata': {'notice_id': '1004'}})
+        grid.return_value = iter([{'idObrazec': 1001}, {'idObrazec': 1002, 'sifPostopekFazaNaziv': 'Rezultat'},
+                                  {'idObrazec': 1003}, {'idObrazec': 1004}])
+        collect.return_value = {'mode': 'skipped'}
+        create_run(source='cli', period=timezone.localdate().strftime('%Y-%m'), open_only=True)
+        run = claim_run()
+        collect_run(run)
+        self.assertEqual(run.state, 'collected')
+        self.assertEqual((run.listed_count, run.skipped_count, run.error_count), (4, 3, 0))
+        self.assertEqual([job.tender_id for job in run.jobs.all()], [fresh.pk])
+        collect.assert_called_once()
+        self.assertEqual(collect.call_args.args, ('1003',))
+        accept = collect.call_args.kwargs['accept']
+        self.assertTrue(accept({'deadline': (now + timedelta(hours=1)).isoformat()}))
+        self.assertFalse(accept({'deadline': (now - timedelta(hours=1)).isoformat()}))
+        self.assertFalse(accept({'deadline': None}))
 
     def test_job_attempt_history_is_fenced_by_lease(self):
         enqueue_index(self.tender)
