@@ -91,9 +91,13 @@ input[type=range] { accent-color: var(--accent); }
 .page-heading p { display: none; }
 .current-company { display: inline-flex; align-items: center; gap: 8px; color: #5b6262; font-size: 15px; }
 .current-company:hover { color: var(--accent); }
-.tender-intro { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 44px; margin-bottom: 36px; min-height: 200px; }
-.tender-intro .opportunities-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; margin: 0; }
+.image-intro { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 44px; margin-bottom: 36px; min-height: 200px; }
+.image-intro .page-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; margin: 0; }
 .corporate-photo { display: block; width: 100%; height: 200px; object-fit: cover; object-position: center 77%; border-radius: 12px; }
+.image-intro > .page-heading { min-width: 0; }
+.image-intro .page-heading > .button { max-width: 100%; white-space: normal; text-align: left; }
+.image-intro .page-heading > .button > svg { flex-shrink: 0; }
+.notifications-intro .corporate-photo, .assistant-intro .corporate-photo { object-position: center; }
 
 .opportunities-columns { display: block; }
 .opportunities-main { min-width: 0; }
@@ -413,9 +417,9 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
 .profile-intro { margin-bottom: 36px; }
 .profile-intro .page-heading { margin: 0 0 24px; }
 .profile-intro .profile-identity {
-  margin: 0; padding: 20px 0 0; gap: 12px;
+  margin: 0; padding: 0; gap: 12px;
   background: transparent; color: var(--ink);
-  border: 0; border-top: 1px solid var(--line); border-radius: 0;
+  border: 0; border-radius: 0;
 }
 .profile-intro .profile-identity > svg {
   width: 40px; height: 40px; padding: 10px; flex-shrink: 0;
@@ -424,9 +428,9 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
 .profile-intro .profile-identity > strong { color: var(--ink); font-size: 18px; }
 .profile-intro .profile-identity > span:last-child { color: var(--muted); font-size: 14px; }
 @media (max-width: 700px) {
-  .profile-intro { padding: 16px; margin-bottom: 25px; }
+  .profile-intro { margin-bottom: 25px; }
   .profile-intro .page-heading { margin-bottom: 20px; }
-  .profile-intro .profile-identity { padding-top: 16px; gap: 10px; }
+  .profile-intro .profile-identity { gap: 10px; }
   .profile-intro .profile-identity > strong { overflow-wrap: anywhere; }
   .profile-intro .profile-identity > span:last-child { margin-left: 0; }
 }
@@ -469,9 +473,10 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
   .page-heading, .opportunities-heading { align-items: flex-start; margin-bottom: 25px; flex-direction: column; gap: 12px; }
   .page-heading h1, .opportunities-heading h1 { font-size: 32px; letter-spacing: -.6px; }
   .current-company { font-size: 14px; }
-  .tender-intro { grid-template-columns: minmax(0, 1fr) 40%; gap: 16px; padding: 16px; min-height: 140px; margin-bottom: 25px; }
-  .tender-intro .opportunities-heading { gap: 13px; }
-  .tender-intro h1 { font-size: 29px; }
+  .page-intro { padding: 16px; }
+  .image-intro { grid-template-columns: minmax(0, 1fr) 40%; gap: 16px; min-height: 140px; margin-bottom: 25px; }
+  .image-intro .page-heading { gap: 13px; }
+  .image-intro h1 { font-size: 29px; }
   .tender-intro .current-company { font-size: 13px; flex-wrap: wrap; gap: 5px; }
   .corporate-photo { height: 140px; object-position: center 72%; border-radius: 9px; }
 
@@ -510,6 +515,11 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
   .profile-tabs { gap: 22px; }
   .profile-tabs > button { font-size: 15px; }
 }
+@media (max-width: 520px) {
+  .image-intro { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .image-intro .corporate-photo { height: 150px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
