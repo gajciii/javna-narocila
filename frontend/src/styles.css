@@ -1915,6 +1915,14 @@ input::-webkit-calendar-picker-indicator {
   padding:0 0 0 9px;
 }
 
+.attachment-opportunity-quote {
+  margin: 12px 0;
+  padding-left: 12px;
+  border-left: 2px solid #d5d9d3;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .profile-callout {
   background:#fff;
   border:1px solid #d5d9d3;

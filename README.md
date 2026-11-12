@@ -98,6 +98,27 @@ Gumb **Osveži razpise** odpre zajem zadnjih objav ali uvoz po povezavi. Privzet
 
 Vsi načini si delijo omejitev **dveh zagonov na slovenski koledarski dan**; štejejo tudi neuspešni poskusi. Zadnji uspešni zajem in preostali zagoni so prikazani v oknu uvoza. Ob izpadu ostanejo shranjeni podatki dostopni. Šifranti v `backend/source_data/` so posnetek in se ne osvežujejo samodejno.
 
+### Novembrski arhivski cevovod (2026)
+
+Ločen ukaz `scan_november` prebere vse strani novembrskega seznama objav, prenese dosegljivo dokumentacijo vsake objave in shrani preverljive odlomke, ki bi lahko pomenili samostojen sklop ali priložnost za dobavo oziroma podizvajanje. Uporabi trenutno shranjeni profil podjetja ali profil iz datoteke JSON. Prvi preizkus na dveh objavah:
+
+```powershell
+.\.venv\Scripts\python.exe backend/manage.py migrate --noinput
+.\.venv\Scripts\python.exe backend/manage.py scan_november --max-notices 2
+```
+
+Za celoten november do dneva izvajanja odstranite `--max-notices`. Za drug profil lahko spremenite profil v aplikaciji ali podate svojo datoteko z `--profile`; `--terms "klime,hlajenje,prezračevanje"` doda iskalne izraze. Ukaz se lahko po prekinitvi ponovi: uspešno obdelane objave z istim profilom preskoči, `--refresh` pa jih prisilno ponovno obdela. Podrobno poročilo je v `backend/reports/2026-11.json`, pregled najdenih priložnosti za preglednico pa v `backend/reports/2026-11.csv`. Vsebujeta dokazne odlomke, dokument in stran oziroma del Office datoteke. JSON zabeleži tudi neprebrane priloge. Mapa poročil ni v Gitu. Novembra poročilo izrecno označi, da mesec še ni zaključen.
+
+Zajem je omejen na javno dosegljive priloge z uradne domene: največ 50 MB na prenos ali član arhiva, 200 članov, 250 MB razširjene vsebine in globino dveh gnezdenih ZIP-ov. PDF-je bere do 500 strani, poleg njih še DOCX, XLSX, PPTX, ODT/ODS in navadne besedilne datoteke. Skenirani, zaščiteni, preveliki, stari DOC/XLS in zunanje omejene priloge ostanejo označeni kot neobdelani; starejša objava istega dosjeja je označena kot nadomeščena, če je v bazi že novejša. Poročilo zato ne trdi, da je pokritje popolno. Besedilo vseh berljivih prilog se pregleda za izraze iz profila, največ 20 kandidatnih odlomkov na prilogo pa oceni Gemini Decision 1 (privzeto skupna omejitev 1.000 vprašanj na zagon). Dodatni zadetki in neocenjeni odlomki so vidno označeni za ročni pregled. V Google se pošljeta opis sposobnosti in javni odlomek, ne naziv ali matična številka podjetja. Ta pregled ne potrjuje pogojev za prijavo.
+
+Privzeto se uporabi **trenutni profil podjetja v aplikaciji**; nobena panoga ni vnaprej izbrana. Datoteka `backend/examples/hvac-profile.json` je samo neobvezen testni primer.
+
+Cevovod in zavihek Pretekle oddaje prikažeta znane ponudnike s statusom **Zmagovalec**, **Ni bil izbran** ali **Prijavljen – izid ni potrjen** ter virom. Zmagovalce določa obvestilo o oddaji. Dodatne strukturirane zapisnike je mogoče uvoziti z `manage.py import_participants zapisniki.json`; vsak zapis mora vsebovati `award_id` (točen sklop) in `participants`, kjer so polja `name`, `registration_number`, `outcome` (`not_selected` ali `unknown`) in `source_url` (javni zapisnik na e-JN/PJN). Uvoz ohrani prej vnesene ponudnike; ponovni uvoz oddaj jih ne izbriše. Nepotrjen izid se ne pretvori v poraz. Uvoženi vir je označen in ni avtomatično vsebinsko verificiran.
+
+Samodejni zajem javnega odpiranja e-JN še ni povezan: preverjanje neposrednega dostopa je vrnilo HTTP 407. Zato se za sklope brez dodatnega zapisnika jasno izpiše, da imena drugih ponudnikov še niso pridobljena. Arhivski ukaz je ločen od gumba »Osveži razpise« in njegove dnevne kvote; med objavami privzeto počaka 0,5 sekunde.
+
+V podrobnostih razpisa na zavihku **Pregled** razdelek **Priložnost za dobavo ali podizvajanje** prikaže že shranjene ugotovitve za trenutni profil in dokumente. Z gumbom **Preveri priloge** lahko pregledate tudi posamezen razpis z že uvoženimi dokumenti. Vmesnik prikaže citat, povezavo do datoteke in znane ponudnike iz podobnih oddaj, kadar so na voljo. Povezava do PDF-ja odpre navedeno stran, Office datoteka pa se prenese.
+
 Vir: **Javne informacije Slovenije – portal javnih naročil**. [Dokumentacija API in pogoji ponovne uporabe](https://podatki.gov.si/dataset/api-pjn).
 
 ### Dokumenti in AI

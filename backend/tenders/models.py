@@ -142,3 +142,23 @@ class RelevanceCache(models.Model):
     key = models.CharField(max_length=64)
     payload = models.JSONField(default=dict)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class AttachmentOpportunityCache(models.Model):
+    tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True)
+    fingerprint = models.CharField(max_length=64)
+    result = models.JSONField(default=dict)
+
+
+class MonthlyScanItem(models.Model):
+    """Checkpoint and evidence for one published notice in a monthly archive scan."""
+    period = models.CharField(max_length=7)
+    notice_id = models.CharField(max_length=30)
+    tender = models.ForeignKey(Tender, on_delete=models.SET_NULL, null=True, blank=True)
+    fingerprint = models.CharField(max_length=64, blank=True)
+    state = models.CharField(max_length=12, default='pending')
+    result = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['period', 'notice_id'], name='unique_monthly_scan_notice')]

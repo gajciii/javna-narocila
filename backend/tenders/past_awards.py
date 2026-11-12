@@ -123,6 +123,9 @@ def import_notices(records):
     existing = set(PastAward.objects.filter(pk__in=[r['id'] for r in rows]).values_list('pk', flat=True))
     with transaction.atomic():
         for row in rows:
+            old = PastAward.objects.filter(pk=row['id']).first()
+            if old and old.data.get('participants'):
+                row['data']['participants'] = old.data['participants']
             PastAward.objects.update_or_create(pk=row['id'], defaults={k: v for k, v in row.items() if k != 'id'})
     _index['revision'] = None
     return {'notices': len({r['notice_id'] for r in rows}), 'lots': len(rows),
@@ -280,8 +283,11 @@ def gemini_rank(data, found, api_key, model):
 
 
 def serialize(score, award):
+    from .participants import participants
     d = award.data
-    return {'id': award.pk, 'notice_id': award.notice_id, 'notice_url': f'https://www.enarocanje.si/#/pregled-objav/{award.notice_id}',
+    return {'id': award.pk, 'notice_id': award.notice_id, 'participants': participants(award),
+            'participant_coverage': 'partial_records' if d.get('participants') else 'winners_only',
+            'notice_url': f'https://www.enarocanje.si/#/pregled-objav/{award.notice_id}',
             'published_on': award.published_on.isoformat() if award.published_on else None, 'similarity': round(score, 2),
             **{k: d.get(k) for k in ('notice_number', 'title', 'lot_title', 'buyer', 'kind', 'cpv', 'procedure', 'framework', 'currency',
                                      'estimated_value', 'awarded_value', 'lowest_offer', 'highest_offer', 'tenders_received', 'awarded', 'winners')}}

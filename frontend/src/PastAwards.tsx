@@ -14,6 +14,15 @@ function Award({ award }: { award: PastAward }) {
         <div className="past-award-head"><div><h3>{award.title}</h3>{award.lot_title && <p className="past-award-lot">{award.lot_title}</p>}<p className="past-award-meta">{award.buyer} · {day(award.published_on)}{award.framework && ' · okvirni sporazum'}</p></div><span className={`badge ${award.awarded ? '' : 'amber'}`}>{award.awarded ? `Podobnost ${Math.round(award.similarity * 100)} %` : 'Ni oddano'}</span></div>
         <dl className="past-award-facts"><div><dt>Zmagovalec</dt><dd>{winnerLabel(award)}</dd></div><div><dt>Prejetih ponudb</dt><dd>{award.tenders_received ?? 'Ni podatka'}</dd></div><div><dt>Pogodbena vrednost</dt><dd>{amount(award.awarded_value, award.currency)}</dd></div><div><dt>Ocenjena vrednost</dt><dd>{amount(award.estimated_value, award.currency)}</dd></div><div><dt>Dopustne ponudbe</dt><dd>{spread}</dd></div></dl>
         <a className="text-link" href={award.notice_url} target="_blank" rel="noreferrer">Obvestilo o oddaji {award.notice_number}<ExternalLink size={13}/></a>
+        <div className="past-award-participants"><h4>Znani ponudniki in izid</h4>
+            <ul>{(award.participants || []).map((p, i) => <li key={`${p.registration_number || p.name}-${i}`}>
+                <strong>{p.name}</strong> — {p.label}{p.registration_number && ` · MŠ ${p.registration_number}`} ·{' '}
+                <a href={p.source_url} target="_blank" rel="noreferrer">{p.provenance === 'award_notice' ? 'Obvestilo o oddaji' : 'Vir uvoženega zapisnika'}</a>
+            </li>)}</ul>
+            <p className="section-help">{award.participant_coverage === 'winners_only'
+                ? 'Imena drugih prijavljenih ponudnikov za ta sklop še niso pridobljena.'
+                : 'Prikazani so ponudniki iz razpoložljivih zapisnikov. Seznam ni nujno popoln; nepotrjen izid ne pomeni poraza.'}</p>
+        </div>
     </article>;
 }
 
@@ -41,7 +50,7 @@ export default function PastAwardsPanel({ tenderId }: { tenderId: string }) {
                 {s.top_winners.length > 0 && <div className="past-awards-winners"><h3><Trophy size={15}/>Najpogostejši izbrani ponudniki</h3><ol>{s.top_winners.map(w => <li key={w.registration_number || w.name}><span>{w.name}</span><small>{w.registration_number ? `MŠ ${w.registration_number} · ` : ''}{w.wins}×</small></li>)}</ol></div>}
                 <div className="past-awards-list">{data.results.map(award => <Award key={award.id} award={award}/>)}</div>
             </>}
-            <p className="past-awards-note">Podobnost ni ocena vaših možnosti za uspeh. Obvestila o oddaji navajajo le izbrane ponudnike in število ponudb, imen neuspešnih ponudnikov ne. Mediane so izračunane iz zgoraj prikazanih oddaj.</p>
+            <p className="past-awards-note">Podobnost ni ocena vaših možnosti za uspeh. Zmagovalci izhajajo iz obvestil o oddaji, drugi ponudniki iz dodatnih zapisnikov z navedenim virom. Mediane so izračunane iz zgoraj prikazanih oddaj.</p>
             <p className="past-awards-source">Vir: {data.dataset.attribution}, {data.dataset.label}, {data.dataset.license}. Zbirka zajema {data.dataset.lots} sklopov iz obvestil, objavljenih {day(data.dataset.coverage_from)} – {day(data.dataset.coverage_to)}, in ni popolna.</p>
         </>}
     </section>;
