@@ -97,7 +97,10 @@ def normalize_notice(raw, notice_id):
         'source_type': 'real', 'source_url': f'https://www.enarocanje.si/#/pregled-objav/{notice_id}',
         'summary': summary, 'description': summary, 'technologies': [], 'is_new': False,
         'has_update': correction, 'version': 1, 'criteria': criteria, 'lots': lots, 'changes': [],
-        'source_metadata': {'notice_id': str(notice_id), 'dossier_id': raw['idDosje'], 'notice_number': raw.get('objavaIdent'),
+        'source_metadata': {'buyers': [{'name': text(n.get('naziv'), 300),
+            'registration_number': n.get('maticna') if isinstance(n.get('maticna'), str) else ''}
+            for n in raw.get('narocnik', []) if isinstance(n, dict) and n.get('naziv')],
+            'notice_id': str(notice_id), 'dossier_id': raw['idDosje'], 'notice_number': raw.get('objavaIdent'),
             'attribution': SOURCE, 'fetched_at': timezone.now().isoformat(), 'published_timestamp': published.isoformat() if published else None,
             'phase': phase.get('naziv', 'Ni podatka'), 'previous_notice_id': raw.get('idObrazecPrejPopravek'),
             'correction_description': text(raw.get('popravekOpis')), 'attachment_url': attachment,

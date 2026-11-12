@@ -9,6 +9,16 @@ services:
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
       DATABASE_PATH: /data/db.sqlite3
       MEDIA_ROOT: /data/media
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-1}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-0}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-}
       DATABASE_URL: ${DATABASE_URL:-}
       PIPELINE_REMOTE: ${PIPELINE_REMOTE:-0}
       PIPELINE_S3_ENDPOINT: ${PIPELINE_S3_ENDPOINT:-}
@@ -29,6 +39,28 @@ services:
       timeout: 8s
       retries: 5
       start_period: 15s
+  mailer:
+    build: ./backend
+    restart: unless-stopped
+    command: [python, manage.py, send_notification_emails, --watch]
+    environment:
+      DATABASE_PATH: /data/db.sqlite3
+      DATABASE_URL: ${DATABASE_URL:-}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-1}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-0}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-}
+    volumes:
+      - radar-data:/data
+    depends_on:
+      backend:
+        condition: service_healthy
   frontend:
     build: ./frontend
     ports:

@@ -7912,3 +7912,38 @@ button, a {
 .keyword-evidence-list p { margin: 4px 0; }
 .keyword-evidence-list blockquote { margin: 8px 0; padding-left: 12px; border-left: 2px solid #d5d9d3; white-space: pre-wrap; }
 .keyword-evidence-list a { display: inline-flex; align-items: center; gap: 6px; }
+
+.buyer-history-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.buyer-history-filters .field { flex: 1 1 130px; margin: 0; }
+.buyer-history-filters > button { margin-bottom: 2px; }
+.buyer-signals { padding: 16px; background: #f6f4eb; border: 1px solid #e4dec7; border-radius: 9px; margin: 20px 0; font-size: 14px; }
+.buyer-signals p { margin: 8px 0 0; }
+.buyer-ranking-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 24px 0 14px; flex-wrap: wrap; }
+.buyer-ranking-head h3 { margin: 0; }
+.buyer-ranking-head .field { margin: 0; }
+.buyer-bars { display: grid; gap: 10px; }
+.buyer-bar { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(50px, 1fr) minmax(90px, auto); align-items: center; gap: 12px; text-align: left; background: transparent; color: inherit; border: 0; cursor: pointer; padding: 5px; font: inherit; font-size: 13px; }
+.buyer-bar > span:first-child { overflow-wrap: anywhere; }
+.buyer-bar[aria-pressed="true"] { background: #eef2e9; border-radius: 5px; }
+.buyer-bar-track { height: 14px; border-radius: 3px; background: #edf0e9; overflow: hidden; }
+.buyer-bar-track i { display: block; height: 100%; background: #5d7657; border-radius: 3px; }
+.buyer-bar strong { text-align: right; }
+.buyer-table-scroll { overflow-x: auto; margin-top: 20px; }
+.buyer-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.buyer-table caption { text-align: left; margin-bottom: 10px; color: #606964; }
+.buyer-table th, .buyer-table td { padding: 12px 10px; border-bottom: 1px solid #e1e5de; vertical-align: top; }
+.buyer-table th { font-weight: 600; background: #f5f6f2; }
+.buyer-table small { display: block; margin-top: 4px; color: #606964; }
+.buyer-table .text-link { text-align: left; }
+.buyer-methodology { margin-top: 20px; font-size: 13px; color: #606964; }
+.buyer-methodology summary { cursor: pointer; font-weight: 600; }
+.buyer-pagination { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 20px; font-size: 13px; }
+@media (max-width: 600px) { .buyer-bar { grid-template-columns: minmax(100px, 1fr) 65px 90px; gap: 6px; font-size: 12px; } }
+
+.email-notification-settings { padding: 18px 22px; margin-bottom: 20px; font-size: 14px; }
+.email-notification-settings summary { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.email-notification-settings summary > span { margin-left: auto; color: #606964; font-size: 12px; }
+.email-notification-settings form { display: grid; gap: 14px; margin-top: 16px; }
+.email-notification-settings .field { max-width: 460px; margin: 0; }
+.email-notification-settings form > p { margin: 0; }
+.email-notification-settings form > button { justify-self: start; }

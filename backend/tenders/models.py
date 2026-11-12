@@ -273,3 +273,30 @@ class MonthlyScanItem(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['period', 'notice_id'], name='unique_monthly_scan_notice')]
+
+
+class EmailNotificationSettings(models.Model):
+    """One recipient for the existing single-company application."""
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1)
+    enabled = models.BooleanField(default=False)
+    email = models.EmailField(blank=True)
+    enabled_since = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class NotificationEmail(models.Model):
+    notification = models.OneToOneField(Notification, on_delete=models.CASCADE, related_name='email_delivery')
+    recipient = models.EmailField()
+    sender = models.CharField(max_length=320, blank=True)
+    delivery_key = models.UUIDField(default=uuid.uuid4, editable=False)
+    subject = models.CharField(max_length=250)
+    body = models.TextField()
+    state = models.CharField(max_length=12, default='pending')
+    attempts = models.PositiveSmallIntegerField(default=0)
+    available_at = models.DateTimeField(default=timezone.now)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    error = models.CharField(max_length=250, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['state', 'available_at'], name='notification_email_pending')]

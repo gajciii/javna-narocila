@@ -100,6 +100,7 @@ def normalize_notice(raw):
             'published_on': parse_date(raw.get('publicationDate')),
             'data': {
                 'notice_number': clean(raw.get('noticeNumber'), 60),
+                'previous_notice_id': str(raw['previousNoticeId']) if re.fullmatch(r'[1-9]\d{0,29}', str(raw.get('previousNoticeId') or '')) else '',
                 'title': title, 'lot_title': lot_title if lot_title and lot_title != title else '',
                 'description': clean(lot.get('description') or raw.get('shortDescription'), 1200),
                 'buyer': clean(raw.get('buyer'), 300), 'buyer_registration_number': registration(raw.get('buyerRegistrationNumber')),
@@ -176,6 +177,7 @@ def from_pjn(raw):
     published = raw.get('objavaDejanskaDatum')
     return {
         'id': raw['id'], 'dossierId': raw.get('idDosje'), 'noticeNumber': raw.get('objavaIdent'),
+        'previousNoticeId': raw.get('idObrazecPrejPopravek'),
         'title': text(raw.get('naslov'), 500), 'shortDescription': text(raw.get('kratekOpis')),
         'buyer': text(buyer.get('naziv'), 300), 'buyerRegistrationNumber': buyer.get('maticna'),
         'publicationDate': published[:10] if isinstance(published, str) else None,

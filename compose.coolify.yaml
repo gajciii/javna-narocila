@@ -118,6 +118,15 @@ services:
       PIPELINE_S3_ACCESS_KEY: ${PIPELINE_S3_ACCESS_KEY:?Set the S3 access key}
       PIPELINE_S3_SECRET_KEY: ${PIPELINE_S3_SECRET_KEY:?Set the S3 secret key}
       MEDIA_ROOT: /data/media
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-1}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-0}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
@@ -147,6 +156,33 @@ services:
       timeout: 8s
       retries: 5
       start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  mailer:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: [python, manage.py, send_notification_emails, --watch]
+    environment:
+      DATABASE_URL: postgresql://razpizi:${POSTGRES_PASSWORD}@postgres:5432/razpizi
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-1}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-0}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+    mem_limit: 256m
+    init: true
     logging:
       driver: json-file
       options:

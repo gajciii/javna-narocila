@@ -362,3 +362,17 @@ def similar_awards_view(request, tender_id):
     ensure_seed()
     ensure_past_awards()
     return Response(similar_awards(get_object_or_404(Tender, pk=tender_id)))
+
+
+@api_view(['GET'])
+def buyer_history_view(request, tender_id):
+    from .buyer_history import history
+    from .past_awards import ensure_past_awards
+    ensure_past_awards()
+    return Response(history(get_object_or_404(Tender, pk=tender_id), request.query_params))
+
+
+@api_view(['GET', 'PUT'])
+def notification_email_settings_view(request):
+    from .email_notifications import save_settings, status
+    return Response(save_settings(request.data) if request.method == 'PUT' else status())

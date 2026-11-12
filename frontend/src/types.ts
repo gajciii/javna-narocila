@@ -356,3 +356,23 @@ export interface SimilarAwards {
         top_winners: (PastAwardWinner & { wins: number })[];
     };
 }
+
+export interface BuyerHistory {
+    mode: 'data' | 'empty' | 'ambiguous'; message: string;
+    buyers: PastAwardWinner[]; buyer_index: number;
+    buyer: (PastAwardWinner & { matched_by?: 'registration_number' | 'name' }) | null;
+    dataset: SimilarAwards['dataset'];
+    summary: {
+        lots: number; awarded_lots: number; not_awarded_lots: number; supplier_count: number;
+        known_bid_lots: number; single_bid_lots: number; single_bid_share: number | null;
+        total_value_eur: number; value_lots: number; joint_lots: number; framework_lots: number;
+        excluded_value_lots: number; superseded_lots: number; undated_lots: number;
+        coverage_from: string | null; coverage_to: string | null;
+    } | null;
+    suppliers: (PastAwardWinner & {
+        key: string; wins: number; sole_wins: number; joint_wins: number; single_bid_wins: number;
+        share: number | null; value_eur: number; value_count: number; value_share: number | null;
+    })[];
+    signals: { kind: string; text: string }[];
+    results: Omit<PastAward, 'similarity'>[]; history_count: number; page: number; page_size: number;
+}
