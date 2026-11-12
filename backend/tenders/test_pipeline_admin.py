@@ -24,6 +24,9 @@ class AdminTests(TestCase):
         cls.tender = Tender.objects.create(pk='admin-test', data={'version': 1, 'title': 'Razpis za pregled'})
 
     def setUp(self):
+        refresh = patch('tenders.storage_usage.start_refresh')
+        refresh.start()
+        self.addCleanup(refresh.stop)
         self.client = Client(enforce_csrf_checks=True)
         self.csrf = self.client.get(BASE + '/session').json()['csrf_token']
 

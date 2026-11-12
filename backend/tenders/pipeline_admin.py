@@ -26,6 +26,7 @@ from rest_framework.response import Response
 from .models import (Document, PipelineAgent, PipelineAttempt, PipelineControl, PipelineJob, PipelineRun, PipelineRunItem,
                      IndexedContent, DocumentChunk, PastAward)
 from .pipeline_runs import create_run
+from . import storage_usage
 
 
 @never_cache
@@ -171,12 +172,18 @@ def overview_view(request):
         'queue': {row['state']: row['count'] for row in PipelineJob.objects.values('state').annotate(count=Count('pk'))},
         'index': {'documents': IndexedContent.objects.count(), 'chunks': DocumentChunk.objects.count()},
         'past_awards': past_award_stats(),
+        'storage_usage': storage_usage_stats(),
         'schedule': {'enabled': control.schedule_enabled, 'next_run_at': timestamp(control.next_run_at)},
         'agents': [{'id': str(agent.pk), 'role': agent.role, 'hostname': agent.hostname,
             'online': agent.last_seen >= now - timedelta(seconds=90) and agent.state != 'stopped',
             'state': agent.state, 'last_seen': timestamp(agent.last_seen),
             'job_id': agent.job_id, 'run_id': agent.run_id} for agent in agents],
         'history_note': 'Prejšnja opravila so vključena. Posamezni poskusi se beležijo od uvedbe portala.'})
+
+
+def storage_usage_stats():
+    usage = storage_usage.current()
+    return {**usage, 'measured_at': timestamp(usage['measured_at']), 'next_refresh_at': timestamp(usage['next_refresh_at'])}
 
 
 def past_award_stats():

@@ -4,3 +4,5 @@
 
 .pipeline-list-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
 .pipeline-award-metrics>div{background:#f7f9f6;border-radius:8px}.pipeline-award-metrics strong.pipeline-award-date{font-size:17px;line-height:1.5;overflow-wrap:anywhere}
+.pipeline-metrics.pipeline-storage-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.pipeline-storage-metrics small:empty{display:none}
+@media(max-width:560px){.pipeline-metrics.pipeline-storage-metrics{grid-template-columns:1fr}}

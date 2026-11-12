@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Activity, ArrowLeft, CheckCircle2, Clock3, Database, Download, LockKeyhole, LogOut, Play, RefreshCw, Server, ShieldCheck, XCircle } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Activity, ArrowLeft, CheckCircle2, Clock3, Database, Download, HardDrive, LockKeyhole, LogOut, Play, RefreshCw, Server, ShieldCheck, XCircle } from 'lucide-react';
 import './pipeline-admin.css';
 
 type Session = { authenticated: boolean; username: string; csrf_token: string };
@@ -16,9 +16,12 @@ type Attempt = { id: number; number: number; state: string; worker: string; star
 type AwardCounts = { notices: number; lots: number; awarded_lots: number };
 type AwardStats = AwardCounts & { first_published_on: string | null; last_published_on: string | null;
     last_imported_at: string | null; undated_lots: number; months: (AwardCounts & { month: string })[] };
+type SizeMeasure = { bytes: number; objects?: number; location?: string } | { error: string } | null;
+type StorageUsage = { measuring: boolean; measured_at: string | null; next_refresh_at: string | null;
+    database: SizeMeasure; storage: SizeMeasure };
 type Overview = { remote_enabled: boolean; server_time: string; queue: Record<string, number>;
     index: { documents: number; chunks: number }; schedule: { enabled: boolean; next_run_at: string };
-    past_awards: AwardStats;
+    past_awards: AwardStats; storage_usage: StorageUsage;
     agents: { id: string; role: string; hostname: string; online: boolean; state: string; last_seen: string; job_id: number | null; run_id: number | null }[];
     history_note: string };
 type RunDetail = { run: Run; errors: { notice_id: string; message: string }[]; jobs: Job[]; count: number; page: number };
@@ -51,6 +54,19 @@ const formatDuration = (seconds: number) => {
 const formatBytes = (bytes: number) => bytes >= 1e9
     ? `${new Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(bytes / 1e9)} GB`
     : `${new Intl.NumberFormat('sl-SI', { maximumFractionDigits: 1 }).format(bytes / 1e6)} MB`;
+function StorageUsageMetrics({ usage }: { usage: StorageUsage }) {
+    const measured = usage.measured_at
+        ? `Izmerjeno ${formatDate(usage.measured_at)}${usage.measuring ? ' · osvežujem …' : ` · naslednja meritev po ${formatDate(usage.next_refresh_at)}`}`
+        : 'Merim velikost …';
+    const tile = (label: string, icon: ReactNode, value: SizeMeasure) => <div className="surface">{icon}<span>{label}</span>
+        <strong>{!value ? '…' : 'error' in value ? '—' : formatBytes(value.bytes)}</strong>
+        <small>{value && 'error' in value ? value.error : [value?.location, value?.objects !== undefined ? `${number(value.objects)} datotek` : ''].filter(Boolean).join(' · ')}</small>
+        <small>{measured}</small></div>;
+    return <div className="pipeline-metrics pipeline-storage-metrics">
+        {tile('Podatkovna baza', <Database size={20}/>, usage.database)}
+        {tile('Shramba dokumentov', <HardDrive size={20}/>, usage.storage)}
+    </div>;
+}
 function runDuration(run: Run) {
     if (run.duration_seconds !== null) return formatDuration(run.duration_seconds);
     if (run.started_at && ['collecting', 'processing'].includes(run.status)) return `teče ${formatDuration((Date.now() - Date.parse(run.started_at)) / 1000)}`;
@@ -251,6 +267,7 @@ export default function PipelineAdmin() {
                 <div className="surface"><XCircle size={20}/><span>Neuspešna opravila</span><strong>{number(overview.queue.failed || 0)}</strong></div>
                 <div className="surface"><Database size={20}/><span>Indeksirani dokumenti</span><strong>{number(overview.index.documents)}</strong><small>{number(overview.index.chunks)} odlomkov</small></div>
             </div>
+            <StorageUsageMetrics usage={overview.storage_usage}/>
             <PastAwardStats stats={overview.past_awards}/>
             <div className="pipeline-top-grid">
                 <section className="surface pipeline-panel"><div className="section-heading"><h2><Play size={18}/>Ročni zagon</h2></div><form onSubmit={startRun} className="pipeline-run-form">
