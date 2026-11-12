@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 
 from .deep_relevance import fold
 from .filtering import apply_filters
-from .keyword_expansion import expand
+from .keyword_expansion import expand, query_stems
 from .models import Document, DocumentChunk, IndexedContent, Tender
 
 
@@ -62,6 +62,23 @@ class KeywordExpansionTests(TestCase):
     @patch('tenders.keyword_expansion.structured_call', side_effect=TimeoutError)
     def test_provider_failure_returns_clear_message(self, call, enabled):
         self.assertEqual(expand('klimatske naprave')['mode'], 'unavailable')
+
+    def test_retrieval_does_not_truncate_typed_terms(self):
+        self.assertEqual(query_stems('robot'), {'robot'})
+        self.assertEqual(query_stems('klimatske in naprave'), {'klimats', 'napra'})
+        text = 'Ob robovih strehe se vgradi odkapni profil.'
+        DocumentChunk.objects.create(content=self.content, ordinal=1, page=4,
+            locator='stran 4', text=text, normalized_text=fold(text))
+        with patch('tenders.keyword_expansion.ai_enabled', return_value=True), \
+                patch('tenders.keyword_expansion.structured_call') as call:
+            self.assertEqual(expand('robot')['suggestions'], [])
+            call.assert_not_called()
+
+    @patch('tenders.keyword_expansion.ai_enabled', return_value=True)
+    @patch('tenders.keyword_expansion.structured_call')
+    def test_quote_with_different_line_breaks_is_accepted(self, call, enabled):
+        call.return_value = self.answer(quote='klimatskih naprav vključuje\nprezračevanje')
+        self.assertEqual(expand('klimatske naprave')['suggestions'][0]['term'], 'prezračevanje')
 
     def test_invalid_input(self):
         for query in ['', 'a', ['klima'], 'x' * 1001]:

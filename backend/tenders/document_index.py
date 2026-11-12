@@ -77,8 +77,8 @@ def index_key(documents):
         d.indexed_content_id, d.error) for d in documents)).encode()).hexdigest()
 
 
-def search_passages(documents, profile, extra_terms='', limit=40):
-    terms = sorted(prefixes(profile, extra_terms))[:150]
+def search_passages(documents, profile, extra_terms='', limit=40, terms=None):
+    terms = sorted(terms if terms is not None else prefixes(profile, extra_terms))[:150]
     if not terms:
         return [], 0
     by_content = {}

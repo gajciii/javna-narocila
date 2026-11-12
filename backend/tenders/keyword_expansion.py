@@ -48,11 +48,31 @@ def matching_tenders(terms, tender_ids):
     return {doc.tender_id for doc in documents if doc.indexed_content_id in contents}
 
 
+def query_stems(query):
+    # Profile matching truncates words to four letters, which turns "robot" into "robo"
+    # and retrieves "robovi". Here the user typed the term, so keep almost the whole
+    # word and only drop the Slovenian inflection ending.
+    words = re.findall(r'\w+', fold(query))
+    stems = set()
+    for word in words:
+        if len(word) >= 7:
+            stems.add(word[:-2])
+        elif len(word) >= 6:
+            stems.add(word[:-1])
+        elif len(word) >= 4 or (len(word) >= 2 and len(words) == 1):
+            # Short words are only meaningful alone (e.g. an acronym), not "in"/"za" in a phrase.
+            stems.add(word)
+    return stems
+
+
+def same_text(value):
+    return ' '.join(value.split())
+
+
 def expand(query):
     empty = {'suggestions': [], 'mode': 'unavailable'}
     documents = indexed_documents()
-    retrieval_query = query.upper() if re.fullmatch(r'[a-zA-Z]{2,3}', query) else query
-    passages, _ = search_passages(documents, {'keywords': [retrieval_query]}, limit=30)
+    passages, _ = search_passages(documents, {}, limit=30, terms=query_stems(query))
     if not passages:
         return {**empty, 'message': 'V indeksiranih dokumentih ni ustreznega konteksta za dodatne ključne besede.'}
     if not ai_enabled():
@@ -76,7 +96,7 @@ def expand(query):
             passage = passages[position]
             normalized = fold(term)
             if (not 2 <= len(term) <= 100 or ',' in term or '\n' in term or normalized in seen
-                    or len(quote) < 8 or quote not in passage['quote']
+                    or len(quote) < 8 or same_text(quote) not in same_text(passage['quote'])
                     or not re.search(r'(?<!\w)' + re.escape(normalized) + r'(?!\w)', fold(quote))):
                 continue
             seen.add(normalized)
