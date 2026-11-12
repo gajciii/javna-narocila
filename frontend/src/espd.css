@@ -10,27 +10,27 @@
 .espd-facts dt { color:var(--muted); }
 .espd-facts dd { margin:0; color:var(--ink); display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .espd-facts a { display:inline-flex; align-items:center; gap:4px; color:var(--accent); }
-.badge.red { color:#a1343c; background:#fdeeee; }
+.badge.red { color:#fff; background:var(--danger, #c43d22); }
 .espd-subsection { display:grid; gap:10px; margin-top:20px; font-size:13px; }
 .espd-rep { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:center; }
 .espd-question { display:grid; gap:8px; padding:14px 0; border-top:1px solid var(--line); }
 .espd-question p { margin:0; font-size:13px; color:var(--ink); line-height:1.55; }
 .espd-choice { display:inline-flex; gap:6px; }
 .espd-choice label { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid var(--line); border-radius:999px; font-size:12px; color:var(--muted); cursor:pointer; background:white; }
-.espd-choice label.on { border-color:var(--accent); background:var(--cream, #f3e6d5); color:var(--accent); font-weight:600; }
+.espd-choice label.on { border-color:var(--accent); background:var(--cream, #f3f3ef); color:var(--accent); font-weight:600; }
 .espd-choice input { position:absolute; opacity:0; pointer-events:none; }
 .espd-choice label:focus-within { outline:2px solid var(--accent); outline-offset:1px; }
-.espd-bulk { display:grid; gap:10px; justify-items:start; padding:14px; margin-bottom:8px; background:var(--page-bg, #fff9f2); border:1px solid var(--line); border-radius:10px; }
+.espd-bulk { display:grid; gap:10px; justify-items:start; padding:14px; margin-bottom:8px; background:var(--page-bg, #f3f3ef); border:1px solid var(--line); border-radius:10px; }
 .espd-group h3 { font-size:14px; color:var(--ink); margin:18px 0 0; }
 .espd-row { display:grid; gap:8px; padding:16px 0; border-top:1px solid var(--line); }
 .espd-row-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
 .espd-row-head strong { flex:1; font-size:14px; color:var(--ink); }
-.espd-section-tag { font-size:11px; font-weight:700; color:var(--accent); background:var(--cream, #f3e6d5); border-radius:6px; padding:2px 7px; }
+.espd-section-tag { font-size:11px; font-weight:700; color:var(--accent); background:var(--cream, #f3f3ef); border-radius:6px; padding:2px 7px; }
 .espd-row blockquote { margin:0; padding:8px 12px; border-left:2px solid var(--line); color:var(--muted); font-size:12px; font-style:italic; line-height:1.6; }
 .espd-row blockquote a { display:inline-flex; align-items:center; gap:3px; color:var(--accent); font-style:normal; margin-left:4px; }
 .espd-company-value { display:flex; align-items:center; gap:6px; margin:0; font-size:12px; color:var(--muted); }
 .espd-row .text-link { justify-self:start; background:none; border:0; padding:0; }
-.espd-declaration { font-size:13px; line-height:1.7; color:var(--ink); background:var(--page-bg, #fff9f2); border-radius:8px; padding:14px; }
+.espd-declaration { font-size:13px; line-height:1.7; color:var(--ink); background:var(--page-bg, #f3f3ef); border-radius:8px; padding:14px; }
 .espd-print { display:none; }
 @media (max-width:650px) {
   .espd-facts { grid-template-columns:1fr; gap:2px; }
@@ -66,8 +66,8 @@
 .website-group > div { display:flex; flex-wrap:wrap; gap:6px; }
 .website-chip { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border:1px solid var(--line); border-radius:999px; background:white; font-size:12px; color:var(--muted); cursor:pointer; }
 .website-chip input { position:absolute; opacity:0; pointer-events:none; }
-.website-chip.on { border-color:var(--accent); background:var(--cream, #f3e6d5); color:var(--ink); }
-.website-chip small { font-size:10px; color:#7a4b10; }
+.website-chip.on { border-color:var(--accent); background:var(--cream, #f3f3ef); color:var(--ink); }
+.website-chip small { font-size:10px; color:var(--muted); }
 .website-chip:focus-within { outline:2px solid var(--accent); outline-offset:1px; }
 .website-evidence { font-size:12px; color:var(--muted); }
 .website-evidence summary { cursor:pointer; color:var(--accent); width:fit-content; }
