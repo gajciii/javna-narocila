@@ -13,8 +13,12 @@ type Job = { id: number; kind: string; state: string; tender_id: string; title: 
     document_count: number | null; unreadable_count: number | null; findings_count: number };
 type Attempt = { id: number; number: number; state: string; worker: string; started_at: string;
     finished_at: string | null; error: string; summary: Record<string, number> };
+type AwardCounts = { notices: number; lots: number; awarded_lots: number };
+type AwardStats = AwardCounts & { first_published_on: string | null; last_published_on: string | null;
+    last_imported_at: string | null; undated_lots: number; months: (AwardCounts & { month: string })[] };
 type Overview = { remote_enabled: boolean; server_time: string; queue: Record<string, number>;
     index: { documents: number; chunks: number }; schedule: { enabled: boolean; next_run_at: string };
+    past_awards: AwardStats;
     agents: { id: string; role: string; hostname: string; online: boolean; state: string; last_seen: string; job_id: number | null; run_id: number | null }[];
     history_note: string };
 type RunDetail = { run: Run; errors: { notice_id: string; message: string }[]; jobs: Job[]; count: number; page: number };
@@ -27,6 +31,7 @@ const names: Record<string, string> = { queued: 'Čaka na zajem', collecting: 'Z
     worker: 'Delavec', scheduler: 'Scheduler' };
 const formatDate = (value?: string | null) => value ? new Date(value).toLocaleString('sl-SI', { timeZone: 'Europe/Ljubljana', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
 const number = (value: number) => new Intl.NumberFormat('sl-SI').format(value);
+const publicationDate = (value: string | null) => value ? new Date(`${value}T12:00:00Z`).toLocaleDateString('sl-SI', { timeZone: 'Europe/Ljubljana' }) : '—';
 const month = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Ljubljana', year: 'numeric', month: '2-digit' }).format(new Date());
 
 class AdminError extends Error { constructor(message: string, public status: number) { super(message); } }
@@ -66,6 +71,27 @@ function runJobsNote(run: Run) {
     return parts.join(' · ');
 }
 function State({ value }: { value: string }) { return <span className={`pipeline-state ${value}`}>{names[value] || value}</span>; }
+function PastAwardStats({ stats }: { stats: AwardStats }) {
+    return <section className="surface pipeline-panel" aria-label="Statistika preteklih oddaj">
+        <div className="section-heading"><h2><Database size={18}/>Pretekle oddaje</h2></div>
+        <p className="section-help">Podatki o sklopih, izbranih ponudnikih, ponudbah in vrednostih s Portala javnih naročil. Zajem teh podatkov poteka brez indeksiranja dokumentov.</p>
+        <div className="pipeline-metrics pipeline-award-metrics">
+            <div><span>Obvestila o oddaji</span><strong>{number(stats.notices)}</strong></div>
+            <div><span>Shranjeni sklopi</span><strong>{number(stats.lots)}</strong></div>
+            <div><span>Oddani sklopi</span><strong>{number(stats.awarded_lots)}</strong><small>Z izbranim ponudnikom</small></div>
+            <div><span>Zadnji uvoz ali posodobitev</span><strong className="pipeline-award-date">{formatDate(stats.last_imported_at)}</strong></div>
+        </div>
+        {stats.lots > 0 ? <>
+            <p className="section-help">Shranjene objave: {publicationDate(stats.first_published_on)} – {publicationDate(stats.last_published_on)}. Števila prikazujejo trenutno zbirko; popolnost posameznega obdobja ni preverjena. Osveževanje vsakih 5 sekund.</p>
+            {stats.undated_lots > 0 && <p className="section-help">Sklopi brez datuma objave: {number(stats.undated_lots)}.</p>}
+            <details className="quiet-disclosure"><summary>Pregled po mesecih objave</summary>
+                <div className="pipeline-table-wrap"><table className="pipeline-table"><thead><tr><th>Mesec objave</th><th>Obvestila</th><th>Sklopi</th><th>Oddani sklopi</th></tr></thead>
+                    <tbody>{stats.months.map(row => <tr key={row.month}><td>{row.month}</td><td>{number(row.notices)}</td><td>{number(row.lots)}</td><td>{number(row.awarded_lots)}</td></tr>)}</tbody>
+                </table></div>
+            </details>
+        </> : <p className="pipeline-empty">Pretekle oddaje še niso uvožene.</p>}
+    </section>;
+}
 function JobTable({ jobs, select }: { jobs: Job[]; select: (id: number) => void }) {
     return <div className="pipeline-table-wrap"><table className="pipeline-table"><thead><tr><th>Opravilo</th><th>Razpis</th><th>Stanje</th><th>Poskusi</th><th>Dokumenti</th><th>Opomba</th></tr></thead><tbody>{jobs.map(job => <tr key={job.id}>
         <td><button className="pipeline-link" onClick={() => select(job.id)}>#{job.id} · {names[job.kind]}</button><small>{formatDate(job.created_at)}</small></td>
@@ -225,6 +251,7 @@ export default function PipelineAdmin() {
                 <div className="surface"><XCircle size={20}/><span>Neuspešna opravila</span><strong>{number(overview.queue.failed || 0)}</strong></div>
                 <div className="surface"><Database size={20}/><span>Indeksirani dokumenti</span><strong>{number(overview.index.documents)}</strong><small>{number(overview.index.chunks)} odlomkov</small></div>
             </div>
+            <PastAwardStats stats={overview.past_awards}/>
             <div className="pipeline-top-grid">
                 <section className="surface pipeline-panel"><div className="section-heading"><h2><Play size={18}/>Ročni zagon</h2></div><form onSubmit={startRun} className="pipeline-run-form">
                     <label className="field"><span>Obseg</span><select value={mode} onChange={e => { setMode(e.target.value); submissionKey.current = ''; }}><option value="monthly">Objave izbranega meseca</option><option value="existing">Že shranjeni razpisi</option></select></label>

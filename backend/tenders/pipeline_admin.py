@@ -8,7 +8,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
-from django.db.models import Count, Exists, OuterRef, Q, Sum
+from django.db.models import Count, Exists, Max, Min, OuterRef, Q, Sum
+from django.db.models.functions import TruncMonth
 from django.db import transaction
 from django.http import FileResponse, JsonResponse
 from django.middleware.csrf import get_token
@@ -23,7 +24,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from .models import (Document, PipelineAgent, PipelineAttempt, PipelineControl, PipelineJob, PipelineRun, PipelineRunItem,
-                     IndexedContent, DocumentChunk)
+                     IndexedContent, DocumentChunk, PastAward)
 from .pipeline_runs import create_run
 
 
@@ -169,12 +170,28 @@ def overview_view(request):
     return Response({'remote_enabled': settings.PIPELINE_REMOTE, 'server_time': timestamp(now),
         'queue': {row['state']: row['count'] for row in PipelineJob.objects.values('state').annotate(count=Count('pk'))},
         'index': {'documents': IndexedContent.objects.count(), 'chunks': DocumentChunk.objects.count()},
+        'past_awards': past_award_stats(),
         'schedule': {'enabled': control.schedule_enabled, 'next_run_at': timestamp(control.next_run_at)},
         'agents': [{'id': str(agent.pk), 'role': agent.role, 'hostname': agent.hostname,
             'online': agent.last_seen >= now - timedelta(seconds=90) and agent.state != 'stopped',
             'state': agent.state, 'last_seen': timestamp(agent.last_seen),
             'job_id': agent.job_id, 'run_id': agent.run_id} for agent in agents],
         'history_note': 'Prejšnja opravila so vključena. Posamezni poskusi se beležijo od uvedbe portala.'})
+
+
+def past_award_stats():
+    totals = PastAward.objects.aggregate(
+        notices=Count('notice_id', distinct=True), lots=Count('pk'),
+        awarded_lots=Count('pk', filter=Q(data__awarded=True)),
+        first_published_on=Min('published_on'), last_published_on=Max('published_on'),
+        last_imported_at=Max('imported_at'), undated_lots=Count('pk', filter=Q(published_on__isnull=True)))
+    months = (PastAward.objects.filter(published_on__isnull=False).annotate(month=TruncMonth('published_on'))
+        .values('month').annotate(notices=Count('notice_id', distinct=True), lots=Count('pk'),
+                                 awarded_lots=Count('pk', filter=Q(data__awarded=True))).order_by('-month'))
+    return {**totals, 'first_published_on': timestamp(totals['first_published_on']),
+        'last_published_on': timestamp(totals['last_published_on']),
+        'last_imported_at': timestamp(totals['last_imported_at']),
+        'months': [{**row, 'month': row['month'].strftime('%Y-%m')} for row in months]}
 
 
 @admin_endpoint(['GET', 'POST'])

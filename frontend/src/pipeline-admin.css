@@ -3,3 +3,4 @@
 @media(max-width:560px){.pipeline-panel{padding:16px}.pipeline-metrics{gap:10px}.pipeline-metrics>div{padding:16px}.pipeline-metrics strong{font-size:25px}.pipeline-pagination{flex-wrap:wrap}.pipeline-service{align-items:flex-start;flex-wrap:wrap}.pipeline-login{margin:16px auto;padding:24px}.pipeline-actions{gap:8px}.pipeline-inline-filter select{max-width:100%}}
 
 .pipeline-list-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.pipeline-award-metrics>div{background:#f7f9f6;border-radius:8px}.pipeline-award-metrics strong.pipeline-award-date{font-size:17px;line-height:1.5;overflow-wrap:anywhere}

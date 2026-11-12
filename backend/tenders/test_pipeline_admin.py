@@ -1,5 +1,5 @@
 import uuid
-from datetime import timedelta
+from datetime import date, timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -7,7 +7,7 @@ from django.test import TestCase, Client, override_settings
 from django.utils import timezone
 
 from .models import (Document, PipelineAgent, PipelineAttempt, PipelineControl, PipelineJob, PipelineRun,
-                     PipelineRunItem, Tender)
+                     PipelineRunItem, Tender, PastAward)
 from .pipeline_jobs import claim, enqueue_index, finish
 from .pipeline_runs import create_run, claim_run, collect_run
 
@@ -122,6 +122,34 @@ class AdminTests(TestCase):
         states = {agent['hostname']: agent['online'] for agent in result['agents']}
         self.assertTrue(states['worker-live'])
         self.assertFalse(states['scheduler-old'])
+
+    def test_past_award_statistics_count_notices_once_and_group_by_publication_month(self):
+        self.login()
+        for pk, notice, published, data in (
+            ('first', '100', date(2026, 1, 1), {'awarded': True}),
+            ('second', '100', date(2026, 1, 1), {'awarded': False}),
+            ('third', '101', date(2026, 2, 28), {'awarded': True}),
+            ('undated', '102', None, {}),
+        ):
+            PastAward.objects.create(pk=pk, notice_id=notice, published_on=published, data=data)
+        imported_at = timezone.now() - timedelta(minutes=1)
+        PastAward.objects.update(imported_at=imported_at)
+        stats = self.client.get(BASE + '/overview').json()['past_awards']
+        self.assertEqual((stats['notices'], stats['lots'], stats['awarded_lots'], stats['undated_lots']), (3, 4, 2, 1))
+        self.assertEqual(stats['first_published_on'], '2026-01-01')
+        self.assertEqual(stats['last_published_on'], '2026-02-28')
+        self.assertEqual(stats['last_imported_at'], imported_at.isoformat())
+        self.assertEqual(stats['months'], [
+            {'month': '2026-02', 'notices': 1, 'lots': 1, 'awarded_lots': 1},
+            {'month': '2026-01', 'notices': 1, 'lots': 2, 'awarded_lots': 1},
+        ])
+        self.assertFalse(PipelineJob.objects.exists())
+
+    def test_past_award_statistics_are_empty_until_imported(self):
+        self.login()
+        stats = self.client.get(BASE + '/overview').json()['past_awards']
+        self.assertEqual(stats, {'notices': 0, 'lots': 0, 'awarded_lots': 0, 'undated_lots': 0,
+            'first_published_on': None, 'last_published_on': None, 'last_imported_at': None, 'months': []})
 
     def test_run_reports_duration_and_volume_and_retry_keeps_original_end(self):
         self.login()

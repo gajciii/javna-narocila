@@ -151,6 +151,8 @@ LLM se uporabi, če je nastavljen `OPENROUTER_API_KEY` ali `OPENAI_API_KEY`. Gem
 
 Zavihek **Pretekle oddaje** (samo pri resničnih razpisih) poišče podobne sklope v uvoženih obvestilih o oddaji. Pokaže, kdo je bil izbran, koliko ponudb je naročnik prejel, pogodbeno in ocenjeno vrednost ter najnižjo in najvišjo dopustno ponudbo. Doda še mediane in najpogostejše izbrane ponudnike. Imen neuspešnih ponudnikov obvestila o oddaji ne objavljajo.
 
+Administracija v razdelku **Pretekle oddaje** prikazuje število shranjenih obvestil, sklopov in oddanih sklopov, razpon datumov objave, zadnji uvoz ali posodobitev ter razrez po mesecih objave. Pregled se osvežuje vsakih 5 sekund, tudi med dopolnjevanjem starejših obdobij. Statistika opisuje shranjeno zbirko in ne potrjuje popolnosti zajema obdobja.
+
 Oddaje se prenašajo neposredno s Portala javnih naročil (`obrazecGet` obvestil v fazi »Rezultat«: sklopi, izbrani ponudniki z matično številko, število ponudb, izbrana ter najnižja in najvišja dopustna vrednost):
 
 - vsako obvestilo o oddaji, ki ga zajem prenese (dnevni zagon, `sync_pjn`, uvoz po URL-ju), se zapiše tudi med pretekle oddaje;
