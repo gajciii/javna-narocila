@@ -83,6 +83,9 @@ input[type=range] { accent-color: var(--accent); }
 .nav-scrim { z-index: 35; background: #18213930; }
 .main-content { width: 100%; max-width: 1320px; margin: 0 auto; padding: 46px 38px 60px; }
 .main-content:focus { outline: none; }
+/* Every page uses the main content container as its outer alignment. */
+.page-transition { width: 100%; min-width: 0; }
+.profile-layout, .chat-layout, .notification-layout { width: 100%; min-width: 0; max-width: none; margin-inline: 0; }
 .page-heading, .opportunities-heading { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-bottom: 32px; }
 .page-heading h1, .opportunities-heading h1 { font-size: 38px; line-height: 1.2; letter-spacing: -.9px; font-weight: 600; }
 .page-heading p { display: none; }

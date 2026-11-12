@@ -5287,7 +5287,6 @@ input::-webkit-calendar-picker-indicator {
 
 .profile-layout {
   display: block;
-  max-width: 1000px;
 }
 
 .profile-section .step-number {
@@ -5347,8 +5346,6 @@ input::-webkit-calendar-picker-indicator {
 
 .chat-layout {
   display: block;
-  max-width: 1050px;
-  margin: 0 auto;
 }
 
 .chat-panel {
@@ -5471,8 +5468,7 @@ input::-webkit-calendar-picker-indicator {
 }
 
 .chat-mode-note {
-  max-width: 1050px;
-  margin: 16px auto 0;
+  margin: 16px 0 0;
   font-size: 12px;
   color: #5b6262;
   line-height: 1.6;
@@ -5508,7 +5504,6 @@ input::-webkit-calendar-picker-indicator {
 
 .notification-layout {
   display: block;
-  max-width: 1100px;
 }
 
 .notification-tabs {
