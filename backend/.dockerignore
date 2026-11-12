@@ -5,3 +5,6 @@ __pycache__
 media
 raw_snapshots
 .env
+.env.*
+reports
+*.log

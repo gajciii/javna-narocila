@@ -1,9 +1,13 @@
 import type { Filters } from './types';
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
     const isForm = options.body instanceof FormData;
-    const response = await fetch(`/api${path}`, { ...options, headers: { ...(isForm ? {} : { 'Content-Type': 'application/json' }), ...options.headers } });
+    const csrf = document.cookie.split('; ').find(value => value.startsWith('csrftoken='))?.slice('csrftoken='.length);
+    const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes((options.method || 'GET').toUpperCase());
+    const response = await fetch(`/api${path}`, { ...options, headers: { ...(isForm ? {} : { 'Content-Type': 'application/json' }),
+        ...(csrf && unsafe ? { 'X-CSRFToken': decodeURIComponent(csrf) } : {}), ...options.headers } });
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
+        if (body.code === 'login_required') window.location.hash = '/administracija';
         const flatten = (value: unknown): string => typeof value === 'string' ? value : Array.isArray(value) ? value.map(flatten).join(' ') : value && typeof value === 'object' ? Object.values(value).map(flatten).join(' ') : '';
         throw new Error(flatten(body.error || body.detail || body.message || body) || `Zahteve ni bilo mogoče zaključiti (${response.status}).`);
     }

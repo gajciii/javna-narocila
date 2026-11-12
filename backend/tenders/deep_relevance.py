@@ -128,8 +128,8 @@ def historical_winners(tender, quote, limit=3):
     return [p for p in historical_participants(tender, quote, limit) if p['outcome'] == 'winner']
 
 
-def analyse(tender, documents, profile, extra_terms='', ai_budget=0, include_participants=True):
-    passages, overflow = candidate_passages(documents, profile, extra_terms)
+def analyse(tender, documents, profile, extra_terms='', ai_budget=0, include_participants=True, indexed_passages=None):
+    passages, overflow = indexed_passages if indexed_passages is not None else candidate_passages(documents, profile, extra_terms)
     key, model = gemini_settings()
     evaluated = min(len(passages), ai_budget) if key else 0
     warning = None

@@ -1,7 +1,18 @@
 from django.urls import path
-from tenders import views, partner_views, espd_views, opportunities
+from tenders import views, partner_views, espd_views, opportunities, pipeline_admin
+from tenders.health import health_view
 
 urlpatterns = [
+    path('api/health', health_view),
+    path('api/admin/pipeline/session', pipeline_admin.session_view),
+    path('api/admin/pipeline/login', pipeline_admin.login_view),
+    path('api/admin/pipeline/logout', pipeline_admin.logout_view),
+    path('api/admin/pipeline/overview', pipeline_admin.overview_view),
+    path('api/admin/pipeline/runs', pipeline_admin.runs_view),
+    path('api/admin/pipeline/runs/<int:run_id>', pipeline_admin.run_view),
+    path('api/admin/pipeline/jobs/<int:job_id>', pipeline_admin.job_view),
+    path('api/admin/pipeline/jobs', pipeline_admin.jobs_view),
+    path('api/admin/pipeline/schedule', pipeline_admin.schedule_view),
     path('api/partners', partner_views.partners_view),
     path('api/partners/<int:partner_id>', partner_views.partner_view),
     path('api/tenders/<slug:tender_id>/partners', partner_views.tender_partners_view),

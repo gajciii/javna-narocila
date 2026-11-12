@@ -46,6 +46,11 @@ def store_file(tender, title, payload, container=False):
 
 
 def download_documents(tender, max_file=MAX_FILE, max_expanded=MAX_EXPANDED, max_members=30):
+    if settings.PIPELINE_REMOTE:
+        from .pipeline_jobs import enqueue_index
+        job = enqueue_index(tender)
+        return {'downloaded': 0, 'queued': True, 'job_id': job.pk,
+                'warning': 'Dokumentacija je v vrsti za prenos in indeksiranje na ločenem strežniku.'}
     meta = dict(tender.data.get('source_metadata', {}))
     url = meta.get('attachment_url')
     if not url or meta.get('access_restricted') or not official_url(url, attachment=True):

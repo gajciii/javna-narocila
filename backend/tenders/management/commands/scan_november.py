@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
+from django.conf import settings
 
 from tenders.monthly_pipeline import run
 
@@ -19,6 +20,9 @@ class Command(BaseCommand):
         parser.add_argument('--output', help='Pot do poročila JSON.')
 
     def handle(self, *args, **options):
+        if settings.PIPELINE_REMOTE:
+            raise CommandError('Za ločeni strežnik uporabite enqueue_pipeline --period 2026-11; '
+                               'pregled prilog posameznega podjetja naročite v aplikaciji.')
         if options['max_notices'] is not None and options['max_notices'] < 1:
             raise CommandError('--max-notices mora biti pozitiven.')
         if options['max_ai_questions'] < 0 or options['delay'] < 0:

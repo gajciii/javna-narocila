@@ -9,6 +9,7 @@ import WebsiteImport, { type WebsitePatch } from './WebsiteImport';
 import EspdPanel from './Espd';
 import PastAwardsPanel from './PastAwards';
 import AttachmentOpportunities from './AttachmentOpportunities';
+import PipelineAdmin from './PipelineAdmin';
 import type { Bootstrap, ChatMessage, ChatResponse, Filters, Profile, Tender, Notification, MatchLevel, ConditionState, CompanyReference } from './types';
 const money = (value: number | null | undefined) => value == null ? 'Ni podatka' : new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
 const date = (value?: string | null, options?: Intl.DateTimeFormatOptions) => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleDateString('sl-SI', { timeZone: 'Europe/Ljubljana', ...(options || { day: 'numeric', month: 'short', year: 'numeric' }) }) : 'Ni podatka';
@@ -92,6 +93,7 @@ type Shared = {
 };
 export default function App() {
     const route = useRoute();
+    const isAdministration = route.startsWith('/administracija');
     const [data, setData] = useState<Bootstrap | null>(null);
     const [error, setError] = useState('');
     const [toast, setToast] = useState<{
@@ -108,10 +110,10 @@ export default function App() {
     const [importOpen, setImportOpen] = useState(false);
     const refresh = async () => { const next = await api<Bootstrap>('/bootstrap'); setData(next); setError(''); };
     const notify = (message: string, isError = false) => { setToast({ message, error: isError }); };
-    useEffect(() => { refresh().catch(e => setError(e.message)); }, []);
+    useEffect(() => { if (!isAdministration) refresh().catch(e => setError(e.message)); }, [isAdministration]);
     useEffect(() => { if (!toast)
         return; const timer = setTimeout(() => setToast(null), 5500); return () => clearTimeout(timer); }, [toast]);
-    useEffect(() => { const timer = setInterval(() => { api<Notification[]>('/notifications').then(notifications => setData(old => old ? { ...old, notifications } : old)).catch(() => { }); }, 30000); return () => clearInterval(timer); }, []);
+    useEffect(() => { if (isAdministration) return; const timer = setInterval(() => { api<Notification[]>('/notifications').then(notifications => setData(old => old ? { ...old, notifications } : old)).catch(() => { }); }, 30000); return () => clearInterval(timer); }, [isAdministration]);
     useEffect(() => { setMobileNav(false); setDemoOpen(false); }, [route]);
     useEffect(() => {
         const closeMenus = (event: KeyboardEvent) => {
@@ -144,6 +146,7 @@ export default function App() {
     finally {
         setDemoBusy('');
     } };
+    if (isAdministration) return <div className="app-shell"><header className="topbar"><a className="brand topbar-brand" href="#/razpisi" aria-label="RazpIzi, razpisi"><Radar size={28} strokeWidth={1.8}/><span>Razp<span>Izi</span></span></a><div className="topbar-actions"><a className="button" href="#/razpisi"><ArrowLeft size={16}/>Razpisi</a></div></header><div className="workspace"><main className="main-content"><PipelineAdmin/></main></div></div>;
     if (!data)
         return <div className="boot-screen"><div className="boot-brand"><Radar size={36}/><strong>Razp<span>Izi</span></strong></div>{error ? <><h2>Povezava še ni pripravljena</h2><p>{error}</p><p className="muted">Preverite, ali Django strežnik deluje na vratih 8001.</p><button className="button primary" onClick={() => refresh().catch(e => setError(e.message))}><RefreshCw size={16}/>Poskusi ponovno</button></> : <><Spinner /><p>Pripravljamo vaše priložnosti …</p></>}</div>;
     const unread = data.notifications.filter(n => !n.read).length;
@@ -160,6 +163,7 @@ export default function App() {
         <a href="#/svetovalec" aria-current={section === 'AI pomočnik' ? 'page' : undefined} className={section === 'AI pomočnik' ? 'active' : ''}>Pomočnik</a>
         <a href="#/obvestila" aria-current={section === 'Obvestila' ? 'page' : undefined} className={section === 'Obvestila' ? 'active' : ''}>Obvestila{unread > 0 && <span className="nav-count notification-count">{unread}</span>}</a>
         <a href="#/profil" aria-current={section === 'Profil podjetja' ? 'page' : undefined} className={section === 'Profil podjetja' ? 'active' : ''}>Podjetje</a>
+        <a href="#/administracija">Administracija</a>
       </nav>
       <div className="topbar-actions"><button className="button sync-button" onClick={() => setImportOpen(true)} aria-label="Osveži razpise"><RefreshCw size={17}/><span>Osveži</span></button><div className="demo-dropdown"><button className={`button ghost small ${demoOpen ? 'selected' : ''}`} aria-expanded={demoOpen} onClick={() => setDemoOpen(!demoOpen)}><FlaskConical size={15}/>Demo<ChevronDown size={14}/></button>{demoOpen && <div className="dropdown-menu"><button onClick={() => { setImportOpen(true); setDemoOpen(false); }}><RefreshCw size={16}/>Osveži razpise iz e-Naročanja</button><div className="dropdown-divider"/><div className="dropdown-label">DEMO DOGODKI</div>{[['new', 'Nova priložnost', <Plus size={16}/>], ['correction', 'Popravek referenčnega pogoja', <FileText size={16}/>], ['deadline', 'Podaljšanje roka', <CalendarDays size={16}/>]].map(([type, label, icon]) => <button key={String(type)} disabled={!!demoBusy} onClick={() => event(String(type))}>{demoBusy === type ? <Spinner small/> : icon}{label}</button>)}<div className="dropdown-divider"/><button onClick={() => { setResetConfirm(true); setDemoOpen(false); }}><RefreshCw size={16}/>Ponastavi demo</button></div>}</div><a className="avatar topbar-company" href="#/profil" title={data.profile.name} aria-label={`Profil podjetja ${data.profile.name}`}>{data.profile.name.slice(0, 2).toUpperCase()}</a><button className="icon-button mobile-menu" aria-controls="main-navigation" aria-expanded={mobileNav} onClick={() => setMobileNav(!mobileNav)} aria-label={mobileNav ? 'Zapri navigacijo' : 'Odpri navigacijo'}>{mobileNav ? <X size={24}/> : <Menu size={24}/>}</button></div>
     </header>

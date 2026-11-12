@@ -292,6 +292,16 @@ def document_upload_view(request, tender_id):
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / (doc_id + ('.pdf' if supported else '.bin'))
     target.write_bytes(payload)
+    if settings.PIPELINE_REMOTE:
+        from .pipeline_storage import store
+        from .pipeline_jobs import enqueue_index
+        reference = store(target, digest)
+        doc = Document.objects.create(id=doc_id, tender=tender, title=Path(uploaded.name).name[:300],
+            path=reference, version=tender.data.get('version', 1), sha256=digest,
+            extraction={'mode': 'unprocessed', 'requirements': [], 'criteria': []})
+        enqueue_index(tender)
+        return Response({**serialize_document(doc), 'analysis': {'mode': 'queued',
+            'message': 'Dokument je v vrsti za indeksiranje na strežniku.'}}, status=201)
     pages, error = [], ''
     if supported:
         try:
@@ -314,6 +324,15 @@ def document_upload_view(request, tender_id):
 def document_view(request, document_id):
     ensure_seed()
     doc = get_object_or_404(Document, pk=document_id)
+    if doc.path.startswith('s3://'):
+        from .pipeline_storage import stream
+        content_type = 'application/pdf' if doc.title.lower().endswith('.pdf') or doc.extraction.get('format') == 'pdf' else 'application/octet-stream'
+        filename = doc.title + ('.pdf' if content_type == 'application/pdf' and not doc.title.lower().endswith('.pdf') else '')
+        response = FileResponse(stream(doc.path), filename=filename, content_type=content_type,
+                                as_attachment=content_type != 'application/pdf')
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'self'"
+        return response
     path = Path(doc.path)
     roots = [settings.DEMO_DOCUMENTS_ROOT.resolve(), settings.MEDIA_ROOT.resolve()]
     if not any(path.resolve().is_relative_to(root) for root in roots) or not path.is_file():

@@ -1,0 +1,122 @@
+"""Audited collection requests consumed by the scheduler, never by the web request."""
+import socket
+import time
+import uuid
+from datetime import timedelta
+
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
+
+from .models import PipelineAgent, PipelineControl, PipelineRun, PipelineRunItem, Tender
+from .monthly_pipeline import grid_rows, month_dates
+from .pipeline_jobs import enqueue_index, index_identity
+from .pjn_sync import collect_notice
+
+
+def register_agent(role):
+    return PipelineAgent.objects.create(role=role, hostname=socket.gethostname()[:160])
+
+
+def beat_agent(agent, state='idle', job_id=None, run_id=None):
+    PipelineAgent.objects.filter(pk=agent.pk).update(last_seen=timezone.now(), state=state,
+        job_id=job_id, run_id=run_id)
+
+
+def create_run(*, source, mode='monthly', period='', max_notices=None, requested_by=None, request_key=None):
+    if mode not in ('monthly', 'existing'):
+        raise ValueError('Izberite zajem meseca ali obstoječe razpise.')
+    if mode == 'monthly':
+        period = period or timezone.localdate().strftime('%Y-%m')
+        month_dates(period)
+    else:
+        period = ''
+    if max_notices is not None and (isinstance(max_notices, bool) or not isinstance(max_notices, int) or not 1 <= max_notices <= 5000):
+        raise ValueError('Omejitev mora biti celo število od 1 do 5000 ali prazna.')
+    defaults = dict(source=source, mode=mode, period=period, max_notices=max_notices, requested_by=requested_by)
+    if request_key:
+        run, created = PipelineRun.objects.get_or_create(request_key=request_key, defaults=defaults)
+        if not created and (run.mode, run.period, run.max_notices, run.requested_by_id) != (
+                mode, period, max_notices, requested_by.pk if requested_by else None):
+            raise ValueError('Identifikator zahteve je že uporabljen za drug zagon.')
+        return run
+    return PipelineRun.objects.create(**defaults)
+
+
+def claim_run(schedule=False):
+    now = timezone.now()
+    with transaction.atomic():
+        control, _ = PipelineControl.objects.get_or_create(pk=1)
+        control = PipelineControl.objects.select_for_update().get(pk=control.pk)
+        if PipelineRun.objects.filter(state='collecting', lease_until__gt=now).exists():
+            return None
+        run = PipelineRun.objects.filter(Q(state='queued') |
+            Q(state='collecting', lease_until__lte=now)).order_by('created_at').first()
+        if run is None and schedule and control.schedule_enabled and control.next_run_at <= now:
+            run = create_run(source='scheduled')
+            control.next_run_at = now + timedelta(days=1)
+            control.save(update_fields=['next_run_at'])
+        if run:
+            run.state, run.lease = 'collecting', uuid.uuid4()
+            run.lease_until = now + timedelta(minutes=5)
+            run.started_at = run.started_at or now
+            run.save(update_fields=['state', 'lease', 'lease_until', 'started_at'])
+        return run
+
+
+def collect_run(run, agent=None):
+    """Replays safely after interruption; a run links each shared job only once."""
+    listed, errors, log = 0, 0, []
+    owned = lambda: PipelineRun.objects.filter(pk=run.pk, lease=run.lease, state='collecting')
+
+    def progress():
+        updated = owned().update(listed_count=listed, error_count=errors, error_log=log[-20:],
+            lease_until=timezone.now() + timedelta(minutes=5))
+        if agent:
+            beat_agent(agent, 'working', run_id=run.pk)
+        if not updated:
+            raise RuntimeError('Zagon je prevzel drug scheduler.')
+
+    try:
+        if run.mode == 'existing':
+            records = Tender.objects.order_by('pk')
+            if run.max_notices:
+                records = records[:run.max_notices]
+            iterable = records.iterator()
+        else:
+            iterable = grid_rows(run.period)
+        progress()
+        for value in iterable:
+            if run.max_notices is not None and listed >= run.max_notices:
+                break
+            listed += 1
+            if run.mode == 'existing':
+                tender = value
+            else:
+                tender = Tender.objects.filter(data__source_metadata__notice_id=value).first()
+                if tender is None:
+                    result = collect_notice(value, download=False)
+                    if result.get('mode') != 'live':
+                        errors += 1
+                        log.append({'notice_id': value, 'message': 'Metapodatkov objave ni bilo mogoče pridobiti.'})
+                        progress()
+                        continue
+                    tender = result['tender']
+            from .models import PipelineJob
+            reused = PipelineJob.objects.filter(key=index_identity(tender)).exists()
+            job = enqueue_index(tender, retry=True)
+            PipelineRunItem.objects.get_or_create(run=run, job=job, defaults={'reused': reused})
+            progress()
+            if run.mode == 'monthly':
+                time.sleep(0.5)
+        owned().update(state='partial' if errors else 'collected', finished_at=timezone.now(),
+                       lease=None, lease_until=None, listed_count=listed, error_count=errors, error_log=log[-20:], error='')
+    except Exception as exc:
+        owned().update(state='failed', finished_at=timezone.now(), lease=None, lease_until=None,
+            listed_count=listed, error_count=errors, error_log=log[-20:],
+            error=f'Zajem se ni zaključil ({type(exc).__name__}).')
+    finally:
+        if agent:
+            beat_agent(agent)
+    run.refresh_from_db()
+    return run

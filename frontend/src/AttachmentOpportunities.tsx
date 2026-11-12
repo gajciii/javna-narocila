@@ -15,6 +15,8 @@ type Finding = {
 };
 
 type OpportunityResult = {
+    pending?: boolean;
+    can_request?: boolean;
     analysed: boolean;
     document_count: number;
     unreadable_count: number;
@@ -72,6 +74,17 @@ export default function AttachmentOpportunities({ tenderId }: { tenderId: string
         return () => controller.abort();
     }, [path]);
 
+    useEffect(() => {
+        if (!result?.pending) return;
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+            api<OpportunityResult>(path, { signal: controller.signal }).then(setResult).catch(err => {
+                if (!controller.signal.aborted) setError((err as Error).message);
+            });
+        }, 4000);
+        return () => { clearTimeout(timer); controller.abort(); };
+    }, [path, result]);
+
     async function checkAttachments() {
         setBusy(true);
         setError('');
@@ -87,12 +100,13 @@ export default function AttachmentOpportunities({ tenderId }: { tenderId: string
     return <section className="surface detail-section">
         <div className="section-heading">
             <h2><Search size={19}/>Priložnost za dobavo ali podizvajanje</h2>
-            {result && result.document_count > 0 && (!result.analysed || result.warning) &&
-                <button className="button small" disabled={busy} onClick={checkAttachments}>{busy ? 'Pregledujem …' : 'Preveri priloge'}</button>}
+            {result && (result.document_count > 0 || result.can_request) && (!result.analysed || result.warning) &&
+                <button className="button small" disabled={busy || result.pending} onClick={checkAttachments}>{busy || result.pending ? 'Obdelava poteka …' : 'Preveri priloge'}</button>}
         </div>
         {error && <p className="error-banner" role="alert">{error}</p>}
         {!result && !error && <p className="section-help">Nalagamo pregled prilog …</p>}
-        {result && !result.document_count && <p className="section-help">Najprej uvozite razpisno dokumentacijo ali dodajte prilogo na zavihku Dokumenti.</p>}
+        {result?.pending && <p className="section-help" role="status">Dokumentacija je v vrsti ali se že obdeluje na strežniku. Rezultati se bodo prikazali samodejno.</p>}
+        {result && !result.document_count && !result.can_request && <p className="section-help">Najprej uvozite razpisno dokumentacijo ali dodajte prilogo na zavihku Dokumenti.</p>}
         {result && result.document_count > 0 && !result.analysed && <p className="section-help">Preverite, ali dokumentacija vsebuje postavke, ki ustrezajo trenutnemu profilu podjetja.</p>}
         {result?.warning && <p className="section-help" role="status">{result.warning}</p>}
         {result?.unreadable_count ? <p className="section-help">Neberljive priloge: {result.unreadable_count}.</p> : null}

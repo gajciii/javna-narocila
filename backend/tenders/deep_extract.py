@@ -5,6 +5,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from .documents import extract_pages
+from django.conf import settings
 
 MAX_DOCUMENT = 50 * 1024 * 1024
 MAX_XML = 15 * 1024 * 1024
@@ -96,13 +97,15 @@ def extract_office(path, suffix):
 
 def extract_document(path, title):
     path = Path(path)
-    if path.stat().st_size > MAX_DOCUMENT:
+    max_document = settings.PIPELINE_MAX_DOCUMENT if settings.PIPELINE_REMOTE else MAX_DOCUMENT
+    if path.stat().st_size > max_document:
         raise ValueError('Priloga presega omejitev 50 MB.')
     suffix = Path(title).suffix.lower()
     with path.open('rb') as handle:
         pdf = handle.read(5) == b'%PDF-'
     if pdf:
-        pages = extract_pages(path, max_bytes=MAX_DOCUMENT, max_pages=500)
+        pages = extract_pages(path, max_bytes=max_document,
+            max_pages=settings.PIPELINE_MAX_PAGES if settings.PIPELINE_REMOTE else 500)
         return pages, 'pdf'
     if suffix in ('.docx', '.xlsx', '.pptx', '.odt', '.ods'):
         return extract_office(path, suffix), suffix[1:]

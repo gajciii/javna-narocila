@@ -1,0 +1,74 @@
+# Coolify: Git repository / Docker Compose, Base Directory /,
+# Compose Location /compose.coolify.yaml. Domain belongs to frontend, port 80.
+# PostgreSQL, object storage and pipeline workers stay on it-server-pc.
+services:
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set a unique signing key in Coolify}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:?Set the public HTTPS origin}
+      HOSTED_REQUIRE_LOGIN: "1"
+      DJANGO_TRUST_PROXY_SSL: "1"
+      DJANGO_SECURE_SSL_REDIRECT: "1"
+      SESSION_COOKIE_SECURE: "1"
+      DATABASE_URL: ${DATABASE_URL:?Set the private PostgreSQL URL}
+      PIPELINE_REMOTE: "1"
+      PIPELINE_S3_ENDPOINT: ${PIPELINE_S3_ENDPOINT:?Set the private S3 endpoint}
+      PIPELINE_S3_BUCKET: ${PIPELINE_S3_BUCKET:-razpizi-documents}
+      PIPELINE_S3_ACCESS_KEY: ${PIPELINE_S3_ACCESS_KEY:?Set the S3 access key}
+      PIPELINE_S3_SECRET_KEY: ${PIPELINE_S3_SECRET_KEY:?Set the S3 secret key}
+      MEDIA_ROOT: /data/media
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openai/gpt-6-luna}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_DECISION_MODEL: ${GEMINI_DECISION_MODEL:-gemini-decision-1}
+    command:
+      - sh
+      - -c
+      - >-
+        python manage.py migrate --noinput &&
+        exec gunicorn radar.wsgi:application --bind 0.0.0.0:8000
+        --workers 1 --threads 4 --timeout 120 --access-logfile - --error-logfile -
+    expose:
+      - "8000"
+    volumes:
+      - web-media:/data/media
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NGINX_CONFIG: nginx.coolify.conf
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/healthz]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  web-media:

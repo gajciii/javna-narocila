@@ -1,4 +1,8 @@
 from django.db import models
+from django.contrib.postgres.search import SearchVectorField
+from django.conf import settings
+from django.utils import timezone
+import uuid
 
 
 class CompanyProfile(models.Model):
@@ -31,6 +35,110 @@ class Document(models.Model):
     extraction = models.JSONField(default=dict)
     sha256 = models.CharField(max_length=64, blank=True)
     error = models.TextField(blank=True)
+    indexed_content = models.ForeignKey('IndexedContent', null=True, blank=True, on_delete=models.SET_NULL)
+
+
+class IndexedContent(models.Model):
+    """Profile-independent extraction shared by identical document bytes."""
+    id = models.CharField(primary_key=True, max_length=64)
+    sha256 = models.CharField(max_length=64, db_index=True)
+    extractor_version = models.CharField(max_length=30)
+    pages = models.JSONField(default=list)
+    format = models.CharField(max_length=12)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class DocumentChunk(models.Model):
+    content = models.ForeignKey(IndexedContent, on_delete=models.CASCADE, related_name='chunks')
+    ordinal = models.PositiveIntegerField()
+    page = models.PositiveIntegerField()
+    locator = models.TextField()
+    text = models.TextField()
+    normalized_text = models.TextField()
+    search_vector = SearchVectorField(null=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['content', 'ordinal'], name='unique_content_chunk')]
+
+
+class PipelineJob(models.Model):
+    """Durable PostgreSQL queue; leases recover work after a worker disconnect."""
+    key = models.CharField(max_length=64, unique=True)
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE)
+    version = models.PositiveIntegerField()
+    kind = models.CharField(max_length=12)  # index or assess
+    payload = models.JSONField(default=dict)
+    result = models.JSONField(default=dict)
+    state = models.CharField(max_length=12, default='pending')
+    attempts = models.PositiveIntegerField(default=0)
+    lease = models.UUIDField(null=True)
+    lease_until = models.DateTimeField(null=True)
+    available_at = models.DateTimeField()
+    error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['state', 'available_at'], name='pipeline_pending_idx')]
+
+
+class PipelineControl(models.Model):
+    """Singleton row serializes collectors and controls the daily schedule."""
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1)
+    schedule_enabled = models.BooleanField(default=True)
+    next_run_at = models.DateTimeField(default=timezone.now)
+
+
+class PipelineRun(models.Model):
+    source = models.CharField(max_length=12)  # manual, scheduled, cli, imported
+    mode = models.CharField(max_length=12, default='monthly')
+    period = models.CharField(max_length=7, blank=True)
+    max_notices = models.PositiveIntegerField(null=True, blank=True)
+    state = models.CharField(max_length=12, default='queued')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    request_key = models.UUIDField(null=True, blank=True, unique=True)
+    listed_count = models.PositiveIntegerField(default=0)
+    error_count = models.PositiveIntegerField(default=0)
+    error = models.TextField(blank=True)
+    error_log = models.JSONField(default=list)
+    lease = models.UUIDField(null=True)
+    lease_until = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True)
+    finished_at = models.DateTimeField(null=True)
+    jobs = models.ManyToManyField(PipelineJob, through='PipelineRunItem', related_name='pipeline_runs')
+
+
+class PipelineRunItem(models.Model):
+    run = models.ForeignKey(PipelineRun, on_delete=models.CASCADE, related_name='items')
+    job = models.ForeignKey(PipelineJob, on_delete=models.CASCADE)
+    reused = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['run', 'job'], name='unique_pipeline_run_job')]
+
+
+class PipelineAttempt(models.Model):
+    job = models.ForeignKey(PipelineJob, on_delete=models.CASCADE, related_name='execution_history')
+    lease = models.UUIDField(unique=True)
+    number = models.PositiveIntegerField()
+    worker = models.CharField(max_length=160, blank=True)
+    state = models.CharField(max_length=12, default='running')
+    started_at = models.DateTimeField(default=timezone.now)
+    finished_at = models.DateTimeField(null=True)
+    error = models.TextField(blank=True)
+    summary = models.JSONField(default=dict)
+
+
+class PipelineAgent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    role = models.CharField(max_length=12)
+    hostname = models.CharField(max_length=160)
+    started_at = models.DateTimeField(default=timezone.now)
+    last_seen = models.DateTimeField(default=timezone.now)
+    state = models.CharField(max_length=12, default='idle')
+    job_id = models.BigIntegerField(null=True)
+    run_id = models.BigIntegerField(null=True)
 
 
 class TenderVersion(models.Model):

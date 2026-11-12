@@ -4,6 +4,8 @@ import re
 import math
 from pathlib import Path
 from django.conf import settings
+from django.db import connection
+from django.db.models import Func, IntegerField
 from pypdf import PdfReader
 from .models import Document, Tender
 
@@ -101,14 +103,25 @@ def load_demo_documents():
             continue
 
 
-def active_documents(tender):
-    records = list(tender.document_records.filter(version__lte=tender.data.get('version', 1)).order_by('id'))
+def document_metadata():
+    function = 'jsonb_array_length' if connection.vendor == 'postgresql' else 'json_array_length'
+    return Document.objects.defer('pages').annotate(
+        _page_count=Func('pages', function=function, output_field=IntegerField()))
+
+
+def active_documents(tender, metadata_only=False):
+    version = tender.data.get('version', 1)
+    if metadata_only and hasattr(tender, '_document_metadata'):
+        records = [doc for doc in tender._document_metadata if doc.version <= version]
+    else:
+        query = document_metadata().filter(tender=tender) if metadata_only else tender.document_records.all()
+        records = list(query.filter(version__lte=version).order_by('id'))
     if not records:
         return []
     # Demo versions replace the same document family, while uploaded attachments remain additive.
     by_family = {}
     for doc in records:
-        if doc.id.startswith('pjn-doc-') and doc.version != tender.data.get('version', 1):
+        if doc.id.startswith(('pjn-doc-', 'index-doc-')) and doc.version != tender.data.get('version', 1):
             continue  # An older source PDF must not validate a corrected notice.
         family = re.sub(r'-v\d+$', '', doc.id)
         if family not in by_family or doc.version > by_family[family].version:
@@ -117,6 +130,7 @@ def active_documents(tender):
 
 
 def serialize_document(doc):
-    return {'id': doc.id, 'title': doc.title, 'url': f'/api/documents/{doc.id}', 'pages': len(doc.pages),
+    page_count = doc._page_count if hasattr(doc, '_page_count') else len(doc.pages)
+    return {'id': doc.id, 'title': doc.title, 'url': f'/api/documents/{doc.id}', 'pages': page_count,
             'status': doc.status, 'version': doc.version, 'error': doc.error,
             'analysis_mode': doc.extraction.get('mode', 'unprocessed')}

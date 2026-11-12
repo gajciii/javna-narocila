@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from django.db import transaction
+from django.db.models import Prefetch
 from .models import Tender, CompanyProfile, Notification, DemoEvent, TenderVersion, SavedSearch, SyncAttempt
 from .seed import get_profile, today
 from .matching import serialize_tender
@@ -21,7 +22,9 @@ def all_notifications():
 def all_tenders(profile=None):
     profile = profile or get_profile()
     from .relevance import resolve_matches
-    tenders = list(Tender.objects.all())
+    from .documents import document_metadata
+    tenders = list(Tender.objects.prefetch_related(Prefetch('document_records',
+        queryset=document_metadata().order_by('id'), to_attr='_document_metadata')))
     matches = resolve_matches(tenders, profile)
     return [serialize_tender(t, profile, content_result=matches[t.pk]) for t in tenders]
 

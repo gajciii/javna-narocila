@@ -1,0 +1,180 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="24.7.17" type="device">
+  <diagram id="architecture-1" name="01 · Arhitektura namestitve">
+    <mxGraphModel dx="1500" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="local" value="&lt;b&gt;LOKALNA APLIKACIJA&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf2ff;strokeColor=#3b6bd6;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;verticalAlign=top;align=left;spacingTop=16;spacingLeft=16;fontSize=21;dashed=1;fillOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="35" y="90" width="365" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="server" value="&lt;b&gt;it-server-pc · Docker&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;verticalAlign=top;align=left;spacingTop=16;spacingLeft=16;fontSize=21;dashed=1;fillOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="445" y="90" width="710" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="browser" value="&lt;b&gt;Uporabnik / brskalnik&lt;/b&gt;&lt;br&gt;&lt;br&gt;Profil podjetja, razpisi, ugotovitve" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf2ff;strokeColor=#3b6bd6;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="170" width="275" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend" value="&lt;b&gt;React + Vite&lt;/b&gt;&lt;br&gt;&lt;br&gt;localhost:5174" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf2ff;strokeColor=#3b6bd6;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="330" width="275" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="api" value="&lt;b&gt;Django API&lt;/b&gt;&lt;br&gt;&lt;br&gt;Odda opravilo → HTTP 202&lt;br&gt;Bere stanje in rezultate&lt;br&gt;Posreduje izvorne dokumente" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf2ff;strokeColor=#3b6bd6;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="275" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="scheduler" value="&lt;b&gt;Dnevni scheduler&lt;/b&gt;&lt;br&gt;&lt;br&gt;Metapodatki s PJN&lt;br&gt;Nova / spremenjena obvestila" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="485" y="175" width="265" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="database" value="&lt;b&gt;PostgreSQL 17&lt;/b&gt;&lt;br&gt;&lt;br&gt;Razpisi in profili&lt;br&gt;PipelineJob · trajna vrsta&lt;br&gt;IndexedContent + DocumentChunk&lt;br&gt;tsvector + GIN · skupni indeks&lt;br&gt;Ocene in stanje obdelave" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=16;" vertex="1" parent="1">
+          <mxGeometry x="485" y="520" width="265" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="worker" value="&lt;b&gt;Pipeline delavec&lt;/b&gt;&lt;br&gt;&lt;br&gt;Prenos in izluščenje besedila&lt;br&gt;Indeksiranje / presoja odlomkov" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="850" y="335" width="265" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="storage" value="&lt;b&gt;Zasebna S3 shramba&lt;/b&gt;&lt;br&gt;&lt;br&gt;Versity Gateway&lt;br&gt;Izvirniki po SHA-256&lt;br&gt;Trajni disk strežnika" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=16;" vertex="1" parent="1">
+          <mxGeometry x="850" y="550" width="265" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="pjn" value="&lt;b&gt;Portal javnih naročil&lt;/b&gt;&lt;br&gt;&lt;br&gt;Javni metapodatki&lt;br&gt;PDF, Office, ZIP priloge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e3;strokeColor=#c77b16;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="175" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="gemini" value="&lt;b&gt;Gemini Decision 1&lt;/b&gt;&lt;br&gt;&lt;br&gt;Profil sposobnosti + odlomki&lt;br&gt;Verjetnosti primernosti" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1eaff;strokeColor=#8053ba;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="475" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="network_note" value="&lt;b&gt;Povezava aplikacija ↔ strežnik: zasebni Tailscale&lt;/b&gt;&lt;br&gt;&lt;br&gt;PostgreSQL: 55432 · S3: 9002 · brskalnik dostopa do datotek prek Django API-ja.&lt;br&gt;Skupni indeks je neodvisen od podjetja. Presoja prilog se sproži na zahtevo." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f9;strokeColor=#708197;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;align=left;fontSize=17;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="855" width="1070" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="scope_note" value="&lt;b&gt;Obseg skice&lt;/b&gt;&lt;br&gt;&lt;br&gt;Prikazan je pipeline prilog.&lt;br&gt;Presoja naslova in opisa ter&lt;br&gt;AI pomočnik imata dodatne&lt;br&gt;povezave do ponudnikov AI." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f9;strokeColor=#708197;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;align=left;fontSize=17;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="670" width="280" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="ui" value="Uporaba aplikacije" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#3b6bd6;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5018181818181818;exitY=1;entryX=0.5018181818181818;entryY=0;" edge="1" parent="1" source="browser" target="frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="http" value="REST · preverjanje stanja" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#3b6bd6;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5018181818181818;exitY=1;entryX=0.5018181818181818;entryY=0;startArrow=block;startFill=1;" edge="1" parent="1" source="frontend" target="api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="app_db" value="Opravila / rezultati" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#3b6bd6;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.41935483870967744;entryX=0;entryY=0.20454545454545456;startArrow=block;startFill=1;" edge="1" parent="1" source="api" target="database">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="app_s3" value="Dokumenti prek API-ja" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#3b6bd6;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.8064516129032258;entryX=0.4981132075471698;entryY=1;startArrow=block;startFill=1;dashed=1;" edge="1" parent="1" source="api" target="storage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="415" y="625" />
+              <mxPoint x="415" y="775" />
+              <mxPoint x="982" y="775" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="daily_pjn" value="Dnevni zajem metapodatkov" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#c77b16;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.43478260869565216;entryX=0;entryY=0.4166666666666667;startArrow=block;startFill=1;" edge="1" parent="1" source="scheduler" target="pjn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="daily_queue" value="Metapodatki + index opravila" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#28845c;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5018867924528302;exitY=1;entryX=0.5018867924528302;entryY=0;horizontal=0;" edge="1" parent="1" source="scheduler" target="database">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="worker_db" value="Prevzem opravil / indeks / ocene" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#28845c;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.6136363636363636;entryX=0;entryY=0.48;startArrow=block;startFill=1;horizontal=0;" edge="1" parent="1" source="database" target="worker">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="655" />
+              <mxPoint x="800" y="395" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="worker_pjn" value="Prenos prilog" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#c77b16;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.24;entryX=0;entryY=0.7916666666666666;startArrow=block;startFill=1;horizontal=0;" edge="1" parent="1" source="worker" target="pjn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1185" y="365" />
+              <mxPoint x="1185" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="worker_storage" value="Izvirniki" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#28845c;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.4981132075471698;exitY=1;entryX=0.4981132075471698;entryY=0;startArrow=block;startFill=1;horizontal=0;" edge="1" parent="1" source="worker" target="storage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="worker_ai" value="Izbrani odlomki" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#8053ba;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.72;entryX=0;entryY=0.5;startArrow=block;startFill=1;horizontal=0;" edge="1" parent="1" source="worker" target="gemini">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1195" y="425" />
+              <mxPoint x="1195" y="535" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="architecture-2" name="02 · Indeksiranje in presoja">
+    <mxGraphModel dx="1450" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1450" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="global" value="&lt;b&gt;A · SKUPNO INDEKSIRANJE&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;verticalAlign=top;align=left;spacingTop=16;spacingLeft=16;fontSize=21;dashed=1;fillOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="35" y="60" width="660" height="1010" as="geometry" />
+        </mxCell>
+        <mxCell id="company" value="&lt;b&gt;B · PRESOJA ZA PODJETJE&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1eaff;strokeColor=#8053ba;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;verticalAlign=top;align=left;spacingTop=16;spacingLeft=16;fontSize=21;dashed=1;fillOpacity=30;" vertex="1" parent="1">
+          <mxGeometry x="750" y="60" width="660" height="1010" as="geometry" />
+        </mxCell>
+        <mxCell id="g1" value="&lt;b&gt;1 · Novo obvestilo ali priloga&lt;/b&gt;&lt;br&gt;&lt;br&gt;Scheduler ali uvoz razpisa&lt;br&gt;Deduplikacija opravil po razpisu / različici" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="145" y="145" width="440" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="&lt;b&gt;2 · Delavec prevzame index opravilo&lt;/b&gt;&lt;br&gt;&lt;br&gt;PostgreSQL · SKIP LOCKED&lt;br&gt;Obnavljanje najema in ponavljanje napak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="145" y="310" width="440" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="&lt;b&gt;3 · Prenos na disk + SHA-256&lt;/b&gt;&lt;br&gt;&lt;br&gt;Pretakanje po 1 MiB · razpakiranje ZIP&lt;br&gt;Zasebna S3 shramba izvornih datotek" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="145" y="485" width="440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="g4" value="&lt;b&gt;4 · Besedilo in izvorni odlomki&lt;/b&gt;&lt;br&gt;&lt;br&gt;PDF / Office / besedilne datoteke&lt;br&gt;Ohranjen dokument, stran ali lokator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="145" y="675" width="440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="g5" value="&lt;b&gt;5 · Skupni iskalni indeks&lt;/b&gt;&lt;br&gt;&lt;br&gt;IndexedContent + DocumentChunk&lt;br&gt;tsvector + GIN · ponovna uporaba po vsebini" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7f6ee;strokeColor=#28845c;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=16;" vertex="1" parent="1">
+          <mxGeometry x="145" y="865" width="440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" value="&lt;b&gt;1 · »Preveri priloge«&lt;/b&gt;&lt;br&gt;&lt;br&gt;Posnetek shranjenega profila podjetja&lt;br&gt;API odda assess opravilo in vrne HTTP 202" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1eaff;strokeColor=#8053ba;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="145" width="440" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" value="&lt;b&gt;2 · Počaka na indeks dokumentov&lt;/b&gt;&lt;br&gt;&lt;br&gt;Obstoječi indeks se ponovno uporabi&lt;br&gt;Opravila uporabnika imajo prednost" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1eaff;strokeColor=#8053ba;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="310" width="440" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="&lt;b&gt;3 · Iskanje kandidatov v indeksu&lt;/b&gt;&lt;br&gt;&lt;br&gt;Dejavnost, opis, področja, ključne besede, tehnologije&lt;br&gt;Predpone izrazov · izbor do 40 odlomkov" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1eaff;strokeColor=#8053ba;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="485" width="440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" value="&lt;b&gt;4 · Presoja z Gemini Decision 1&lt;/b&gt;&lt;br&gt;&lt;br&gt;Nepovezano / dobava ali podizvajanje / samostojen sklop&lt;br&gt;Brez AI ostanejo kandidati za ročni pregled" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1eaff;strokeColor=#8053ba;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="675" width="440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" value="&lt;b&gt;5 · Shranjene ugotovitve&lt;/b&gt;&lt;br&gt;&lt;br&gt;Izvorni citat in povezava do dokumenta&lt;br&gt;Aplikacija preverja napredek vsake 4 sekunde" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1eaff;strokeColor=#8053ba;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="865" width="440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="limits" value="&lt;b&gt;Trenutne omejitve&lt;/b&gt;&lt;br&gt;&lt;br&gt;Prenos do 8 GiB · razpakirano do 32 GiB · posamezni dokument za izluščanje do 512 MiB · OCR še ni vključen." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f6f9;strokeColor=#708197;fontColor=#17243a;fontFamily=Helvetica;fontSize=17;spacing=12;arcSize=12;align=left;fontSize=17;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="1100" width="1315" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="g_flow_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#28845c;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="g1" target="g2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_flow_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#28845c;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="g2" target="g3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_flow_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#28845c;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="g3" target="g4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g_flow_4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#28845c;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="g4" target="g5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c_flow_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#8053ba;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="c1" target="c2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c_flow_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#8053ba;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="c2" target="c3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c_flow_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#8053ba;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="c3" target="c4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c_flow_4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#8053ba;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="c4" target="c5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="shared_index" value="Iskanje brez ponovnega branja prilog" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#28845c;fontColor=#334155;fontFamily=Helvetica;fontSize=15;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;horizontal=0;" edge="1" parent="1" source="g5" target="c3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="925" />
+              <mxPoint x="720" y="545" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

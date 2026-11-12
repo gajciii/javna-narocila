@@ -4,7 +4,12 @@ __pycache__/
 *.sqlite3
 *.sqlite3-*
 .env
+.env.pipeline
+.env.pipeline.*
 !.env.example
+.env.coolify
+.env.coolify.*
+!.env.coolify.example
 backend/reports/
 node_modules/
 dist/

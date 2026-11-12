@@ -163,6 +163,12 @@ Partnerji prispevajo samo podatke s podprtimi dokazili. Uporabniška potrditev n
 
 ## Struktura projekta
 
+Za spletno namestitev uporabite [`compose.coolify.yaml`](compose.coolify.yaml):
+[navodila za Coolify, domeno in zasebno povezavo do pipelinea](docs/coolify.md).
+
+Ločeni strežnik za prenos, skupno indeksiranje prilog in opravila v PostgreSQL:
+[namestitev in uporaba](docs/pipeline-server.md).
+
 | Pot | Vsebina |
 | --- | --- |
 | `frontend/src/App.tsx` | Navigacija, iskanje, podrobnosti, profil in pomočnik |
