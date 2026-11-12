@@ -221,6 +221,31 @@ function TendersPage({ data, refresh, notify, filters, setFilters }: Shared & {
     const [saveOpen, setSaveOpen] = useState(false);
     const [saveName, setSaveName] = useState('');
     const [saving, setSaving] = useState(false);
+    const [keywordBusy, setKeywordBusy] = useState(false);
+    const [keywordResult, setKeywordResult] = useState<{
+        query: string; message: string;
+        suggestions: { term: string; reason: string; evidence: { document_id: string; document_title: string; page: number | null; locator: string; quote: string } }[];
+    } | null>(null);
+    const keywordRequest = useRef(0);
+    useEffect(() => { setKeywordBusy(false); return () => { keywordRequest.current++; }; }, [filters.q]);
+    const expandKeywords = async () => {
+        const query = filters.q || '';
+        const request = ++keywordRequest.current;
+        setKeywordBusy(true);
+        setKeywordResult(null);
+        try {
+            const response = await post<{ suggestions: NonNullable<typeof keywordResult>['suggestions']; message: string }>('/searches/expand-keywords', { q: query });
+            if (request !== keywordRequest.current) return;
+            const expanded = [query.trim(), ...response.suggestions.map(item => item.term)].join(', ');
+            if (expanded.length > 2000) { notify('Iskanje je predolgo za dodajanje izrazov. Skrajšajte ključne besede.', true); return; }
+            setFilters(old => old.q === query ? { ...old, q: expanded } : old);
+            setKeywordResult({ ...response, query: expanded });
+        } catch (e) {
+            if (request === keywordRequest.current) notify((e as Error).message, true);
+        } finally {
+            if (request === keywordRequest.current) setKeywordBusy(false);
+        }
+    };
     const [aiText, setAiText] = useState('');
     const [aiOpen, setAiOpen] = useState(false);
     const [aiBusy, setAiBusy] = useState(false);
@@ -276,7 +301,8 @@ function TendersPage({ data, refresh, notify, filters, setFilters }: Shared & {
     <section className="page-intro image-intro tender-intro"><div className="page-heading opportunities-heading"><h1>Razpisi za vas</h1><a className="current-company" href="#/profil"><Building2 size={17}/>{data.profile.name}<ArrowUpRight size={15}/></a></div><img className="corporate-photo" src="/corporate-building.webp" alt="Velika poslovna stavba s stekleno fasado" width="660" height="220" fetchPriority="high"/></section>
     <div className="opportunities-columns"><div className="opportunities-main">
     <div className="list-navigation"><div className="tabs" aria-label="Pogled razpisov">{[['recommended', 'Za vas', suitable], ['all', 'Vsi razpisi', data.tenders.length], ['following', 'Spremljam', data.tenders.filter(t => t.following).length]].map(([view, label, count]) => <button className={(filters.view || 'recommended') === view ? 'active' : ''} key={view} aria-pressed={(filters.view || 'recommended') === view} onClick={() => set({ view: view as Filters['view'] })}>{label}<span>{count}</span></button>)}</div><span className="updated-at"><span />{data.meta.last_sync ? `Posodobljeno ${date(data.meta.last_sync, { day: 'numeric', month: 'short' })}` : 'Demo nabor je pripravljen'}</span></div>
-    <div className="search-toolbar"><div className="search-input"><Search size={19}/><input aria-label="Išči razpise" placeholder="Naslov, področje ali ključne besede" value={filters.q || ''} onChange={e => set({ q: e.target.value })}/>{filters.q && <button onClick={() => set({ q: '' })} aria-label="Počisti iskanje"><X size={16}/></button>}</div><button className={`button filter-toggle ${showFilters ? 'selected' : ''}`} aria-expanded={showFilters} aria-controls="tender-filters" onClick={() => setShowFilters(!showFilters)}><SlidersHorizontal size={17}/>Filtri{activeCount > 0 && <b>{activeCount}</b>}</button><button className="button" onClick={() => setSaveOpen(true)}><Bookmark size={16}/>Shrani iskanje</button></div>
+    <div className="search-toolbar"><div className="search-input"><Search size={19}/><input aria-label="Išči razpise" placeholder="Naslov, področje ali ključne besede" value={filters.q || ''} onChange={e => set({ q: e.target.value })}/>{filters.q && <button onClick={() => set({ q: '' })} aria-label="Počisti iskanje"><X size={16}/></button>}</div><button type="button" className="button keyword-expand" disabled={keywordBusy || (filters.q || '').trim().length < 2 || (filters.q || '').trim().length > 1000} onClick={expandKeywords} title="Dodaj sorodne izraze iz indeksirane dokumentacije">{keywordBusy ? <Spinner small/> : <Sparkles size={17}/>}samodejno dodaj ključne besede</button><button className={`button filter-toggle ${showFilters ? 'selected' : ''}`} aria-expanded={showFilters} aria-controls="tender-filters" onClick={() => setShowFilters(!showFilters)}><SlidersHorizontal size={17}/>Filtri{activeCount > 0 && <b>{activeCount}</b>}</button><button className="button" onClick={() => setSaveOpen(true)}><Bookmark size={16}/>Shrani iskanje</button></div>
+    {keywordResult && keywordResult.query === filters.q && <div className="keyword-expansion" role="status"><p>{keywordResult.message}</p>{keywordResult.suggestions.length > 0 && <details><summary>Dodane besede in viri ({keywordResult.suggestions.length})</summary><div className="keyword-evidence-list">{keywordResult.suggestions.map(item => <div key={item.term}><strong>{item.term}</strong><p>{item.reason}</p><blockquote>»{item.evidence.quote}«</blockquote><a href={`/api/documents/${encodeURIComponent(item.evidence.document_id)}${item.evidence.page ? `#page=${item.evidence.page}` : ''}`} target="_blank" rel="noreferrer">{item.evidence.document_title} · {item.evidence.page ? `str. ${item.evidence.page}` : item.evidence.locator}<ExternalLink size={12}/></a></div>)}</div></details>}</div>}
     <div className="search-secondary"><button className="text-link" aria-expanded={aiOpen} onClick={() => setAiOpen(!aiOpen)}><Sparkles size={14}/>Iskanje z opisom<ChevronDown size={13}/></button><details className="saved-search-disclosure"><summary><Bookmark size={14}/>Shranjena iskanja ({data.saved_searches.length})<ChevronDown size={13}/></summary><div className="saved-searches"><span><Bookmark size={14}/>Shranjena iskanja</span>{data.saved_searches.length ? data.saved_searches.map(saved => <div className="saved-search" key={saved.id}><button onClick={() => setFilters({ ...defaults, ...saved.filters })}>{saved.name}<ArrowUpRight size={12}/></button><button className="delete-search" aria-label={`Izbriši iskanje ${saved.name}`} onClick={async () => { try {
         await api(`/searches/${saved.id}`, { method: 'DELETE' });
         await refresh();

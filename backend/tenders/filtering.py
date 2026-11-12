@@ -65,6 +65,11 @@ def apply_filters(tenders, filters):
     include_unknown = filters.get('include_unknown', True)
     view = filters.get('view', 'recommended')
     output = []
+    words = [text_normalize(w.strip()) for w in filters.get('q', '').split(',') if w.strip()]
+    document_matches = set()
+    if words:
+        from .keyword_expansion import matching_tenders
+        document_matches = matching_tenders(words, [t['id'] for t in tenders])
     for tender in tenders:
         if view == 'recommended':
             partner_opportunity = filters.get('include_partner_opportunities') and any(c['status'] == 'unmet' for c in tender['match']['conditions'])
@@ -79,9 +84,8 @@ def apply_filters(tenders, filters):
         if filters.get('only_updates') and not tender['has_update']:
             continue
         haystack = text_normalize(' '.join([tender['title'], tender.get('summary', ''), tender['buyer']] + tender.get('topics', []) + tender.get('technologies', [])))
-        words = [text_normalize(w.strip()) for w in filters.get('q', '').split(',') if w.strip()]
         excluded = [text_normalize(w.strip()) for w in filters.get('exclude', '').split(',') if w.strip()]
-        if words and not any(word in haystack for word in words):
+        if words and tender['id'] not in document_matches and not any(word in haystack for word in words):
             continue
         if any(word in haystack for word in excluded):
             continue

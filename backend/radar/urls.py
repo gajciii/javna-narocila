@@ -33,6 +33,7 @@ urlpatterns = [
     path('api/tenders/<slug:tender_id>/documents', views.document_upload_view),
     path('api/searches', views.searches_view),
     path('api/searches/<int:search_id>', views.search_view),
+    path('api/searches/expand-keywords', views.keyword_expansion_view),
     path('api/filters/suggest', views.filter_suggestion_view),
     path('api/chat', views.chat_view),
     path('api/notifications', views.notifications_view),

@@ -95,6 +95,15 @@ def tenders_view(request):
     return Response({'results': results, 'count': len(results)})
 
 
+@api_view(['POST'])
+def keyword_expansion_view(request):
+    from .keyword_expansion import expand
+    query = request.data.get('q', '')
+    if not isinstance(query, str) or not 2 <= len(query.strip()) <= 1000:
+        raise ValidationError({'q': 'Vnesite ključne besede od 2 do 1.000 znakov.'})
+    return Response(expand(query.strip()))
+
+
 @api_view(['GET'])
 def tender_view(request, tender_id):
     ensure_seed()
