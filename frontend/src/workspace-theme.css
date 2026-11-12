@@ -433,8 +433,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
 .building-intro :is(button, a):focus-visible { outline-color: #fff; }
 
 /* Profile title, save action, and company identity share the main-page frame. */
-.profile-intro { margin-bottom: 36px; }
-.profile-intro .page-heading { margin: 0 0 24px; }
+.profile-intro { margin-bottom: 36px; align-content: center; }
+.profile-intro .page-heading { margin: 0 0 12px; }
 .profile-intro .profile-identity {
   margin: 0; padding: 0; gap: 12px;
   background: transparent; color: var(--ink);
@@ -453,7 +453,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
 .profile-intro.building-intro .button.primary:hover:not(:disabled) { color: #fff; background: var(--slate); border-color: #fff; }
 @media (max-width: 700px) {
   .profile-intro { margin-bottom: 25px; }
-  .profile-intro .page-heading { margin-bottom: 20px; }
+  .profile-intro .page-heading { margin-bottom: 12px; }
   .profile-intro .profile-identity { gap: 10px; }
   .profile-intro .profile-identity > strong { overflow-wrap: anywhere; }
   .profile-intro .profile-identity > span:last-child { margin-left: 0; }
