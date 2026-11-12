@@ -5,7 +5,6 @@
 # Migrations/config: migracije, .env spremenljivke, odvisnosti
 # Verified: kaj je bilo dejansko preverjeno
 # Not verified: kaj ni bilo preverjeno
-# Open: kar ostaja odprto (dodaj tudi v AGENTS.md -> Odprte točke)
+# Open: kar ostaja odprto
 #
 # Vrstice, ki ne veljajo, izpusti. Vrstice z # git ne shrani.
-# Podrobnosti: AGENTS.md
