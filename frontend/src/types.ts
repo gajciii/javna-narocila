@@ -102,6 +102,8 @@ export interface Tender {
     match: {
         level: MatchLevel;
         score: number;
+        mode: 'gemini' | 'rules';
+        warning?: string | null;
         recommendation: 'recommended' | 'review' | 'unsuitable' | 'closed';
         reasons: string[];
         open_question: string;

@@ -186,7 +186,8 @@ def partner_recommendations(tender, partner_id=None):
     company = get_profile()
     ensure_demo_partners(company)
     docs = active_documents(tender)
-    before = serialize_tender(tender, company, docs)
+    from .relevance import resolve_matches
+    before = serialize_tender(tender, company, docs, content_result=resolve_matches([tender], company, cached_only=True)[tender.pk])
     base = {'tender_id': tender.pk, 'source_type': before['source_type'],
             'missing_conditions': [c for c in before['match']['conditions'] if c['status'] != 'met'],
             'candidates': [], 'comparison': None, 'message': ''}
@@ -228,7 +229,7 @@ def certification_catalog():
         add(label)
     for tender in Tender.objects.all():
         docs = active_documents(tender)
-        rendered = serialize_tender(tender, profile, docs)
+        rendered = serialize_tender(tender, profile, docs, content_result={'mode': 'rules'})
         relevant = rendered['status'] == 'open' and rendered['match']['level'] != 'low'
         for doc in docs:
             if doc.status != 'processed' or doc.extraction.get('mode') == 'unprocessed':

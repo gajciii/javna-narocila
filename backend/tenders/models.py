@@ -134,3 +134,11 @@ class SimilarAwardsCache(models.Model):
     key = models.CharField(max_length=64)
     payload = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now=True)
+
+
+class RelevanceCache(models.Model):
+    """The current company's Gemini content assessment for one tender and input fingerprint."""
+    tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='relevance_cache')
+    key = models.CharField(max_length=64)
+    payload = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)

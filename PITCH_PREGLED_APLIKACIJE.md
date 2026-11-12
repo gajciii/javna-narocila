@@ -25,6 +25,7 @@ Navodila za zagon in demo so v [README.md](README.md).
 - Besedilo PDF po straneh ter preverjanje citata in strani pri analizi.
 - Osnovni podatki podjetja iz javnega nabora AJPES/OPSI.
 - Vsebinsko ujemanje in ločena presoja pogojev: izpolnjen, neizpolnjen, neznan.
+- Izbirna ocena vsebinske primernosti z Gemini Decision 1, shranjena za trenutni profil in razpis; ob manjkajočem ključu delujejo označena pravila.
 - Filtri, shranjena iskanja, spremljanje in obvestila brez podvajanja.
 - Izbirna povezava z jezikovnim modelom, partnerji in razvojni načrti.
 

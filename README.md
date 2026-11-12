@@ -9,6 +9,7 @@ Prototip za **hackathon, izziv št. 2: podatkovno inženirstvo in AI za javna na
 - **Pregled priložnosti:** priporočeni in spremljani razpisi, neprebrana obvestila ter prihajajoči roki.
 - **Iskanje:** ključne besede, CPV, naročnik, lokacija, vrednost, roki, izvor, stanje in prag ujemanja. Napredni filtri se odprejo po potrebi; iskanja lahko shranite.
 - **Razložljiva presoja:** vsebinsko ujemanje 0–100, ločen pregled obveznih pogojev in dokazi z navedbo dokumenta ter strani.
+- **Gemini Decision 1 (izbirno):** ob nastavljenem ključu oceni vsebinsko primernost predmeta razpisa za profil podjetja. Ocena se shrani glede na profil, razpis in model. Če ključ manjka ali storitev ni dosegljiva, je uporaba obstoječih pravil vidno označena. Končno priporočilo še vedno ločeno preveri pogoje in stanje razpisa.
 - **Profil podjetja:** osnovni podatki iz AJPES prek OPSI; reference, znanja, certifikati in ekipa so uporabniški vnosi. Dejavnost, opis, znanja in tehnologije lahko predlaga branje spletne strani podjetja, vsak predlog z dobesednim virom.
 - **AI pomočnik:** priporočila, preverjanje pogojev, primerjava razpisov in predlogi filtrov oziroma dopolnitve profila, ki jih uporabnik potrdi.
 - **Spremljanje:** spremembe pogojev, podaljšanja rokov in nove priložnosti brez podvajanja istega dogodka.
@@ -104,6 +105,10 @@ Vir: **Javne informacije Slovenije – portal javnih naročil**. [Dokumentacija 
 Podprti so besedilni PDF-ji in ZIP arhivi: največ 10 MB na datoteko, 30 članov oziroma 20 MB razpakirane vsebine in 150 strani na PDF. Skeni, zaščiteni dokumenti in nepodprti formati ostanejo označeni za dodaten pregled. Izluščeno besedilo še ne pomeni analize pogojev.
 
 Za živo analizo kopirajte `.env.example` v `.env` in nastavite `OPENROUTER_API_KEY` (privzeti model `openai/gpt-6-luna`, spremenljiv z `OPENROUTER_MODEL`) ali `OPENAI_API_KEY` in `OPENAI_MODEL`, nato znova zaženite backend. Če sta nastavljena oba, ima prednost OpenRouter; zahteve gredo samo k ponudnikom s strukturiranim izhodom, ki ne zbirajo podatkov za učenje. Citati v odgovorih se dobesedno preverijo proti strani dokumenta, sicer je prikazan demo odgovor. Ključ ostane na strežniku; `.env` ni v Gitu. Model prejme ustrezne podatke profila in dokumentacije. Brez ključa se uporabljajo pripravljene demo analize in označeni demo odgovori; pogojev resničnih dokumentov aplikacija ne izmišljuje.
+
+Za AI presojo, ali se **predmet** razpisa ujema s podjetjem, nastavite še `GEMINI_API_KEY` in znova zaženite backend. Gemini Decision 1 prejme dejavnost, opis, področja, ključne besede in tehnologije profila ter naslov, predmet, vrsto in CPV razpisa; ne prejme naziva podjetja, matične številke, naslova, referenc ali dokumentacije. Brez ključa ostanejo pravila. Vmesnik pri vsaki oceni pokaže uporabljeni način. AI ocena ne potrjuje obveznih pogojev in ni verjetnost uspeha. Pri brezplačni ravni Gemini API lahko Google poslano vsebino uporabi za izboljšave.
+
+Gemini ocene se izračunajo v paketih in shranijo; sprememba profila ali razpisa jih osveži. Ob nedosegljivosti se za 15 minut uporabi označena ocena po pravilih. Zajem objav ostane časovno omejen, zato obvestila o povsem novih objavah najprej uporabijo pravila; seznam razpisov ob odprtju izračuna AI ujemanje. Simulacije razvojnih načrtov ostanejo izračun po pravilih.
 
 ### Primerjava vsebinskega ujemanja
 

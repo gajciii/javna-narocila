@@ -86,7 +86,9 @@ def persist_notice(data):
             record.save(update_fields=['data', 'updated_at'])
         if changed:
             TenderVersion.objects.create(tender=record, version=record.data['version'], data=record.data)
-            evaluated = serialize_tender(record, get_profile())
+            # Keep bounded collection independent of external AI latency. The UI
+            # calculates cached Gemini fit in one batch when the refreshed list opens.
+            evaluated = serialize_tender(record, get_profile(), content_result={'mode': 'rules'})
             relevant = evaluated['status'] == 'open' and evaluated['match']['level'] != 'low' and evaluated['match']['recommendation'] != 'unsuitable'
             if (created and relevant) or (not created and record.following):
                 deadline_changed = not created and old.get('deadline') != data.get('deadline')

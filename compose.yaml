@@ -10,6 +10,8 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openai/gpt-6-luna}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_DECISION_MODEL: ${GEMINI_DECISION_MODEL:-gemini-decision-1}
     volumes:
       - radar-data:/data
     healthcheck:
