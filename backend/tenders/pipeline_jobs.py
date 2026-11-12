@@ -8,12 +8,12 @@ from pypdf.errors import PyPdfError
 from datetime import timedelta
 
 from django.db import connection, transaction
-from django.db.models import Q, Case, When, Value, IntegerField
+from django.db.models import Q, Case, When, Value, IntegerField, Exists, OuterRef
 from django.utils import timezone
 
 from .document_index import EXTRACTOR_VERSION, index_document, index_key, search_passages
 from .documents import active_documents
-from .models import PipelineJob, PipelineAttempt
+from .models import PipelineJob, PipelineAttempt, PipelineRun, PipelineRunItem
 from .relevance import profile_input, settings as gemini_settings
 
 LEASE_SECONDS = 300
@@ -98,6 +98,13 @@ def renew(job):
         lease_until=timezone.now() + timedelta(seconds=LEASE_SECONDS))
 
 
+def close_processed_runs(runs):
+    """Record when processing ended; later retries of the same jobs must not stretch it."""
+    waiting = PipelineRunItem.objects.filter(run=OuterRef('pk'), job__state__in=('pending', 'running'))
+    PipelineRun.objects.filter(pk__in=runs.values('pk'), processed_at__isnull=True).exclude(
+        state__in=('queued', 'collecting')).exclude(Exists(waiting)).update(processed_at=timezone.now())
+
+
 def finish(job, result, state='complete', error=''):
     now = timezone.now()
     with transaction.atomic():
@@ -109,6 +116,8 @@ def finish(job, result, state='complete', error=''):
             summary['findings_count'] = len(result.get('findings', []))
             PipelineAttempt.objects.filter(job=job, lease=job.lease, state='running').update(
                 state='retrying' if state == 'pending' else state, finished_at=now, error=error, summary=summary)
+            if state != 'pending':
+                close_processed_runs(PipelineRun.objects.filter(items__job=job))
         return updated
 
 

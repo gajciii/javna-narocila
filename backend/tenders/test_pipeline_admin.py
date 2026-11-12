@@ -6,7 +6,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, Client, override_settings
 from django.utils import timezone
 
-from .models import PipelineAgent, PipelineAttempt, PipelineControl, PipelineJob, PipelineRun, PipelineRunItem, Tender
+from .models import (Document, PipelineAgent, PipelineAttempt, PipelineControl, PipelineJob, PipelineRun,
+                     PipelineRunItem, Tender)
 from .pipeline_jobs import claim, enqueue_index, finish
 from .pipeline_runs import create_run, claim_run, collect_run
 
@@ -120,6 +121,33 @@ class AdminTests(TestCase):
         states = {agent['hostname']: agent['online'] for agent in result['agents']}
         self.assertTrue(states['worker-live'])
         self.assertFalse(states['scheduler-old'])
+
+    def test_run_reports_duration_and_volume_and_retry_keeps_original_end(self):
+        self.login()
+        job = enqueue_index(self.tender)
+        started = timezone.now() - timedelta(minutes=30)
+        run = PipelineRun.objects.create(source='cli', mode='existing', state='collected', started_at=started,
+                                         finished_at=started + timedelta(minutes=1))
+        PipelineRunItem.objects.create(run=run, job=job)
+        for pk, mode, size in (('archive', 'archive', 900), ('first', 'indexed', 1_500_000_000),
+                               ('second', 'indexed', 500_000_000), ('unknown', 'indexed', None)):
+            Document.objects.create(pk=f'doc-{pk}', tender=self.tender, version=1, title=pk, path='x',
+                                    size_bytes=size, extraction={'mode': mode})
+        Document.objects.create(pk='doc-old', tender=self.tender, version=2, title='old', path='x',
+                                size_bytes=7, extraction={'mode': 'indexed'})
+        self.assertIsNone(self.client.get(BASE + '/runs').json()['results'][0]['duration_seconds'])
+        finish(claim(worker='test-worker'), {}, 'complete')
+        row = self.client.get(BASE + '/runs').json()['results'][0]
+        self.assertAlmostEqual(row['duration_seconds'], 1800, delta=60)
+        self.assertEqual(row['data'], {'bytes': 2_000_000_000, 'files': 3, 'unmeasured_files': 1})
+        run.refresh_from_db()
+        ended = run.processed_at
+        PipelineJob.objects.filter(pk=job.pk).update(state='failed')  # only failed jobs can be retried
+        self.assertEqual(self.post(f'/jobs/{job.pk}').status_code, 200)
+        finish(claim(worker='test-worker'), {}, 'complete')
+        run.refresh_from_db()
+        self.assertEqual(run.processed_at, ended)
+        self.assertIsNotNone(PipelineRun.objects.get(mode='retry').processed_at)
 
 
 class CollectionTests(TestCase):

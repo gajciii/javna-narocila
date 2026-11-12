@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from .models import PipelineAgent, PipelineControl, PipelineRun, PipelineRunItem, Tender
 from .monthly_pipeline import grid_rows, month_dates
-from .pipeline_jobs import enqueue_index, index_identity
+from .pipeline_jobs import close_processed_runs, enqueue_index, index_identity
 from .pjn_sync import collect_notice
 
 
@@ -116,6 +116,8 @@ def collect_run(run, agent=None):
             listed_count=listed, error_count=errors, error_log=log[-20:],
             error=f'Zajem se ni zaključil ({type(exc).__name__}).')
     finally:
+        # Runs whose jobs were all indexed earlier never see a job finish.
+        close_processed_runs(PipelineRun.objects.filter(pk=run.pk))
         if agent:
             beat_agent(agent)
     run.refresh_from_db()

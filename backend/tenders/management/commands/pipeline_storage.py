@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from botocore.exceptions import ClientError
 from django.conf import settings
 from tenders.models import Document
-from tenders.pipeline_storage import client, store
+from tenders.pipeline_storage import client, object_key, store
 from pathlib import Path
 
 
@@ -12,6 +12,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--migrate-files', action='store_true')
+        parser.add_argument('--measure-sizes', action='store_true',
+            help='Dopolni velikosti dokumentov, shranjenih pred beleženjem velikosti.')
 
     def handle(self, *args, **options):
         s3 = client()
@@ -37,3 +39,18 @@ class Command(BaseCommand):
                 document.save(update_fields=['path', 'sha256'])
                 moved += 1
         self.stdout.write(f'Skupna shramba je pripravljena; prenesenih {moved} datotek.')
+        if options['measure_sizes']:
+            measured, missing = 0, 0
+            for document in Document.objects.filter(size_bytes__isnull=True).iterator():
+                try:
+                    if document.path.startswith('s3://'):
+                        size = s3.head_object(Bucket=settings.PIPELINE_S3_BUCKET,
+                                              Key=object_key(document.path))['ContentLength']
+                    else:
+                        size = Path(document.path).stat().st_size
+                except (ClientError, OSError, ValueError):
+                    missing += 1
+                    continue
+                Document.objects.filter(pk=document.pk).update(size_bytes=size)
+                measured += 1
+            self.stdout.write(f'Izmerjenih {measured} dokumentov; brez datoteke {missing}.')

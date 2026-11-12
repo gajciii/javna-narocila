@@ -6,7 +6,8 @@ type Session = { authenticated: boolean; username: string; csrf_token: string };
 type Counts = { total: number; reused: number; pending: number; running: number; complete: number; failed: number; superseded: number };
 type Run = { id: number; source: string; mode: string; period: string; max_notices: number | null; state: string;
     status: string; requested_by: string | null; listed_count: number; error_count: number; error: string;
-    created_at: string; started_at: string | null; collection_finished_at: string | null; jobs: Counts };
+    created_at: string; started_at: string | null; collection_finished_at: string | null; processed_at: string | null;
+    duration_seconds: number | null; data: { bytes: number; files: number; unmeasured_files: number }; jobs: Counts };
 type Job = { id: number; kind: string; state: string; tender_id: string; title: string; version: number; attempts: number;
     error: string; created_at: string; updated_at: string; available_at: string; lease_until: string | null;
     document_count: number | null; unreadable_count: number | null; findings_count: number };
@@ -35,6 +36,34 @@ async function request<T>(path: string, options: RequestInit = {}, csrf = ''): P
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new AdminError(data.error || data.detail || 'Zahteve ni bilo mogoče zaključiti.', response.status);
     return data as T;
+}
+const formatDuration = (seconds: number) => {
+    const minutes = Math.round(seconds / 60);
+    if (seconds < 60) return `${Math.max(0, Math.round(seconds))} s`;
+    if (minutes < 60) return `${minutes} min`;
+    return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+};
+const formatBytes = (bytes: number) => bytes >= 1e9
+    ? `${new Intl.NumberFormat('sl-SI', { maximumFractionDigits: 2 }).format(bytes / 1e9)} GB`
+    : `${new Intl.NumberFormat('sl-SI', { maximumFractionDigits: 1 }).format(bytes / 1e6)} MB`;
+function runDuration(run: Run) {
+    if (run.duration_seconds !== null) return formatDuration(run.duration_seconds);
+    if (run.started_at && ['collecting', 'processing'].includes(run.status)) return `teče ${formatDuration((Date.now() - Date.parse(run.started_at)) / 1000)}`;
+    return '—';
+}
+function runData(run: Run) {
+    const { bytes, files, unmeasured_files: unmeasured } = run.data;
+    if (!files) return <>—</>;
+    return <>{unmeasured === files ? '—' : formatBytes(bytes)}<small>{number(files)} datotek{unmeasured ? ` · ${number(unmeasured)} brez velikosti` : ''}</small></>;
+}
+function runJobsNote(run: Run) {
+    const { pending, running, superseded, reused } = run.jobs;
+    if (pending + running) return `${number(pending + running)} v vrsti ali obdelavi`;
+    const parts = [];
+    if (superseded) parts.push(`${number(superseded)} nadomeščenih z novejšo različico`);
+    // Imported legacy runs mark every job as reused, which carries no information.
+    if (reused && run.source !== 'imported') parts.push(`${number(reused)} ponovno uporabljenih`);
+    return parts.join(' · ');
 }
 function State({ value }: { value: string }) { return <span className={`pipeline-state ${value}`}>{names[value] || value}</span>; }
 function JobTable({ jobs, select }: { jobs: Job[]; select: (id: number) => void }) {
@@ -211,10 +240,10 @@ export default function PipelineAdmin() {
             </div>
             <section className="surface pipeline-panel"><div className="pipeline-list-tabs"><button className={`button small ${listing === 'runs' ? 'primary' : ''}`} onClick={() => setListing('runs')}>Zgodovina zagonov</button><button className={`button small ${listing === 'jobs' ? 'primary' : ''}`} onClick={() => setListing('jobs')}>Vsa opravila</button></div>
                 {listing === 'runs' ? <><div className="section-heading"><h2>Zgodovina zagonov</h2><label className="pipeline-inline-filter">Vir <select value={source} onChange={e => { setSource(e.target.value); setPage(1); }}><option value="">Vsi zagoni</option><option value="manual">Ročno</option><option value="scheduled">Dnevni urnik</option><option value="cli">Ukazna vrstica</option><option value="imported">Prejšnja opravila</option></select></label></div>
-                <p className="section-help">{overview.history_note}</p><div className="pipeline-table-wrap"><table className="pipeline-table"><thead><tr><th>Zagon</th><th>Obseg</th><th>Začetek zajema</th><th>Stanje</th><th>Opravila</th><th>Napake</th></tr></thead><tbody>
+                <p className="section-help">{overview.history_note}</p><div className="pipeline-table-wrap"><table className="pipeline-table"><thead><tr><th>Zagon</th><th>Obseg</th><th>Začetek zajema</th><th>Stanje</th><th>Trajanje</th><th>Podatki</th><th>Opravila</th><th>Napake</th></tr></thead><tbody>
                     {runs.results.map(run => <tr key={run.id} className={selected === run.id ? 'selected' : ''}><td><button className="pipeline-link" onClick={() => selectRun(run.id)}>#{run.id} · {names[run.source]}</button><small>{run.requested_by || (run.source === 'scheduled' ? 'Samodejno' : '')}</small></td>
-                        <td>{run.mode === 'existing' ? 'Shranjeni razpisi' : run.mode === 'retry' ? 'Ponovitev opravila' : run.period}<small>{run.max_notices ? `Do ${number(run.max_notices)} objav` : 'Celoten izbor'}</small></td><td>{formatDate(run.started_at)}</td><td><State value={run.status}/></td>
-                        <td>{number(run.jobs.complete)} / {number(run.jobs.total)}<small>{run.jobs.pending + run.jobs.running ? `${number(run.jobs.pending + run.jobs.running)} v vrsti ali obdelavi` : `${number(run.jobs.reused)} ponovno uporabljenih`}</small></td><td>{number(run.jobs.failed + run.error_count)}</td></tr>)}
+                        <td>{run.mode === 'existing' ? 'Shranjeni razpisi' : run.mode === 'retry' ? 'Ponovitev opravila' : run.period}<small>{run.max_notices ? `Do ${number(run.max_notices)} objav` : 'Celoten izbor'}</small></td><td>{formatDate(run.started_at)}</td><td><State value={run.status}/></td><td>{runDuration(run)}</td><td>{runData(run)}</td>
+                        <td>{number(run.jobs.complete)} / {number(run.jobs.total - run.jobs.superseded)}<small>{runJobsNote(run)}</small></td><td>{number(run.jobs.failed + run.error_count)}</td></tr>)}
                 </tbody></table>{!runs.results.length && <p className="pipeline-empty">Zagoni še niso zabeleženi.</p>}</div><Pagination page={page} count={runs.count} size={20} change={setPage}/></> : <>
                     <div className="section-heading"><h2>Vsa opravila</h2><div className="pipeline-actions"><label className="pipeline-inline-filter">Vrsta <select value={allJobKind} onChange={e => { setAllJobKind(e.target.value); setAllJobPage(1); }}><option value="">Vse vrste</option><option value="index">Indeksiranje</option><option value="assess">Presoja</option></select></label><label className="pipeline-inline-filter">Stanje <select value={allJobState} onChange={e => { setAllJobState(e.target.value); setAllJobPage(1); }}>{[['', 'Vsa stanja'], ['pending', 'V čakalni vrsti'], ['running', 'V obdelavi'], ['complete', 'Zaključeno'], ['failed', 'Napaka'], ['superseded', 'Novejša različica']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div></div>
                     <p className="section-help">Vključuje skupno indeksiranje in presoje prilog, sprožene iz aplikacije. Kliknite opravilo za časovnico poskusov.</p><JobTable jobs={allJobs.results} select={selectJob}/><Pagination page={allJobPage} count={allJobs.count} size={25} change={setAllJobPage}/>
@@ -223,7 +252,7 @@ export default function PipelineAdmin() {
         </>}
         {selected != null && <section className="surface pipeline-panel" aria-label={`Podrobnosti zagona ${selected}`}><div className="section-heading"><h2>Zagon #{selected}</h2><button className="button small" onClick={() => { setSelected(null); setDetail(null); setJobId(null); }}>Zapri podrobnosti</button></div>
             {!detail ? <p>Nalagam podrobnosti …</p> : <>
-                <div className="pipeline-run-summary"><State value={detail.run.status}/>{detail.run.source !== 'imported' && <><span>{number(detail.run.listed_count)} pregledanih objav</span><span>Zajem zaključen: {formatDate(detail.run.collection_finished_at)}</span></>}</div>
+                <div className="pipeline-run-summary"><State value={detail.run.status}/>{detail.run.source !== 'imported' && <><span>{number(detail.run.listed_count)} pregledanih objav</span><span>Zajem zaključen: {formatDate(detail.run.collection_finished_at)}</span></>}<span>Trajanje: {runDuration(detail.run)}</span>{detail.run.data.files > 0 && <span>Obdelano: {formatBytes(detail.run.data.bytes)} v {number(detail.run.data.files)} datotekah</span>}</div>
                 <p className="section-help">Spodaj so trenutna stanja povezanih opravil. Čas zaključka zajema pomeni zaključek zbiranja objav; obdelava prilog lahko še poteka.</p>
                 {detail.run.error && <p className="error-banner">{detail.run.error}</p>}{detail.errors.length > 0 && <details className="quiet-disclosure"><summary>Napake pri zajemu ({detail.run.error_count})</summary><ul>{detail.errors.map((e, i) => <li key={i}>{e.notice_id}: {e.message}</li>)}</ul></details>}
                 <label className="pipeline-inline-filter">Stanje opravila <select value={jobState} onChange={e => { setJobState(e.target.value); setJobPage(1); }}>{[['', 'Vsa stanja'], ['pending', 'V čakalni vrsti'], ['running', 'V obdelavi'], ['complete', 'Zaključeno'], ['failed', 'Napaka'], ['superseded', 'Novejša različica']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>

@@ -7,7 +7,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.db import transaction
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
@@ -21,7 +21,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from .models import (PipelineAgent, PipelineAttempt, PipelineControl, PipelineJob, PipelineRun, PipelineRunItem,
+from .models import (Document, PipelineAgent, PipelineAttempt, PipelineControl, PipelineJob, PipelineRun, PipelineRunItem,
                      IndexedContent, DocumentChunk)
 from .pipeline_runs import create_run
 
@@ -93,6 +93,15 @@ def run_rows(query):
         superseded_jobs=Count('items', filter=Q(items__job__state='superseded')))
 
 
+def run_data_volume(run):
+    """Bytes of the files behind the run's indexed tenders; archives count once, by their members."""
+    indexed = PipelineRunItem.objects.filter(run=run, job__kind='index', job__state='complete',
+        job__tender=OuterRef('tender'), job__version=OuterRef('version'))
+    totals = Document.objects.filter(Exists(indexed)).exclude(extraction__mode='archive').aggregate(
+        bytes=Sum('size_bytes'), files=Count('pk'), measured=Count('size_bytes'))
+    return {'bytes': totals['bytes'] or 0, 'files': totals['files'], 'unmeasured_files': totals['files'] - totals['measured']}
+
+
 def serialize_run(run):
     counts = {key: getattr(run, f'{key}_jobs') for key in
               ('total', 'reused', 'pending', 'running', 'complete', 'failed', 'superseded')}
@@ -109,7 +118,10 @@ def serialize_run(run):
         'requested_by': run.requested_by.username if run.requested_by else None,
         'listed_count': run.listed_count, 'error_count': run.error_count, 'error': run.error,
         'created_at': timestamp(run.created_at), 'started_at': timestamp(run.started_at),
-        'collection_finished_at': timestamp(run.finished_at), 'jobs': counts}
+        'collection_finished_at': timestamp(run.finished_at), 'processed_at': timestamp(run.processed_at),
+        'duration_seconds': round((run.processed_at - run.started_at).total_seconds())
+            if run.processed_at and run.started_at else None,
+        'data': run_data_volume(run), 'jobs': counts}
 
 
 def serialize_job(job):

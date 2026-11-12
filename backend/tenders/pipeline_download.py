@@ -58,6 +58,7 @@ def register(tender, path, title, digest, archive=False):
     reference = store(path, digest)
     return Document.objects.create(pk=f'index-doc-{identity}', tender=tender,
         version=tender.data.get('version', 1), title=title, sha256=digest, path=reference,
+        size_bytes=Path(path).stat().st_size,
         status='processed' if archive else 'unprocessed', extraction={'mode': 'archive' if archive else 'unprocessed'})
 
 

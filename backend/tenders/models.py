@@ -34,6 +34,7 @@ class Document(models.Model):
     pages = models.JSONField(default=list)
     extraction = models.JSONField(default=dict)
     sha256 = models.CharField(max_length=64, blank=True)
+    size_bytes = models.BigIntegerField(null=True, blank=True)
     error = models.TextField(blank=True)
     indexed_content = models.ForeignKey('IndexedContent', null=True, blank=True, on_delete=models.SET_NULL)
 
@@ -106,6 +107,8 @@ class PipelineRun(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
+    # Set once, when collection has ended and none of the run's jobs is waiting or running.
+    processed_at = models.DateTimeField(null=True)
     jobs = models.ManyToManyField(PipelineJob, through='PipelineRunItem', related_name='pipeline_runs')
 
 

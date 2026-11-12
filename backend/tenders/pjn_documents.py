@@ -40,7 +40,7 @@ def store_file(tender, title, payload, container=False):
     elif not container:
         error = 'Format priloge še ni podprt. Dokument je shranjen za ročni pregled.'
     return Document.objects.create(id='pjn-doc-' + identity, tender=tender, version=tender.data['version'],
-        title=title, path=str(path), pages=pages, sha256=digest, error=error,
+        title=title, path=str(path), pages=pages, sha256=digest, size_bytes=len(payload), error=error,
         status='unprocessed' if error else 'processed',
         extraction={'mode': 'archive' if container else 'unprocessed', 'requirements': [], 'criteria': [], 'summary': ''})
 
