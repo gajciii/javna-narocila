@@ -39,6 +39,21 @@ class Document(models.Model):
     indexed_content = models.ForeignKey('IndexedContent', null=True, blank=True, on_delete=models.SET_NULL)
 
 
+class TenderQuestion(models.Model):
+    """A question, answer or clarification published on the PJN dossier of a tender."""
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name='questions')
+    source_id = models.BigIntegerField()
+    notice_id = models.CharField(max_length=20)
+    kind = models.CharField(max_length=20)  # question, clarification
+    question = models.TextField()
+    answer = models.TextField(blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['tender', 'source_id'], name='unique_tender_question')]
+
+
 class TenderConditions(models.Model):
     """All participation conditions of a tender, extracted from its current indexed documents."""
     tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='condition_list')

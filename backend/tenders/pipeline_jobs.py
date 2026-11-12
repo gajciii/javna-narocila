@@ -29,8 +29,12 @@ def digest(value):
 def index_identity(tender):
     uploaded = list(tender.document_records.filter(version__lte=tender.data.get('version', 1),
         id__startswith='upload-').order_by('pk').values_list('pk', 'sha256'))
-    return digest(['index', tender.pk, tender.data.get('version', 1),
-        tender.data.get('source_metadata', {}).get('attachment_url'), EXTRACTOR_VERSION, uploaded])
+    meta = tender.data.get('source_metadata', {})
+    parts = ['index', tender.pk, tender.data.get('version', 1), meta.get('attachment_url'), EXTRACTOR_VERSION, uploaded]
+    if meta.get('faq_digest'):
+        # New portal answers re-run indexing and condition extraction without a new notice version.
+        parts.append(['faq', meta['faq_digest']])
+    return digest(parts)
 
 
 def enqueue_index(tender, retry=False):
@@ -136,6 +140,10 @@ def execute(job):
     try:
         if job.kind == 'index':
             download(tender)
+            if not tender.data.get('source_metadata', {}).get('faq_synced_at'):
+                from .pjn_faq import try_sync
+                try_sync(tender)
+                tender.refresh_from_db()
             documents = active_documents(tender, metadata_only=True)
             errors = []
             for document in documents:

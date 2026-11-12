@@ -130,6 +130,12 @@ def collect_run(run, agent=None):
                 skipped += 1
                 progress()
                 continue
+            # Buyers keep answering questions until the deadline; a changed answer set re-indexes the tender.
+            from .pjn_faq import supported, try_sync
+            if supported(tender) and (deadline_ahead(tender.data) or 'faq_synced_at' not in tender.data.get('source_metadata', {})):
+                if try_sync(tender).get('changed'):
+                    tender.refresh_from_db()
+                time.sleep(0.3)
             from .models import PipelineJob
             reused = PipelineJob.objects.filter(key=index_identity(tender)).exists()
             job = enqueue_index(tender, retry=True)

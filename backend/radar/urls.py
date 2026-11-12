@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/tenders/<slug:tender_id>/partners', partner_views.tender_partners_view),
     path('api/tenders/<slug:tender_id>/espd', espd_views.tender_espd_view),
     path('api/tenders/<slug:tender_id>/buyer-history', views.buyer_history_view),
+    path('api/tenders/<slug:tender_id>/faq', views.tender_faq_view),
     path('api/tenders/<slug:tender_id>/similar-awards', views.similar_awards_view),
     path('api/tenders/<slug:tender_id>/attachment-opportunities', opportunities.attachment_opportunities_view),
     path('api/certifications', partner_views.certifications_view),

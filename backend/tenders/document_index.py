@@ -34,7 +34,8 @@ def chunks(pages):
             start = max(start + 1, end - 180)
 
 
-def index_document(document):
+def index_document(document, pages=None):
+    """``pages`` lets generated text (e.g. portal Q&A) keep its own locators instead of file parsing."""
     if document.extraction.get('mode') == 'archive':
         return None
     digest = document.sha256
@@ -48,8 +49,11 @@ def index_document(document):
     identity = hashlib.sha256(f'{digest}:{EXTRACTOR_VERSION}'.encode()).hexdigest()
     content = IndexedContent.objects.filter(pk=identity).first()
     if content is None:
-        with local_file(document.path) as path:
-            pages, kind = extract_document(path, document.title)
+        if pages is not None:
+            kind = 'txt'
+        else:
+            with local_file(document.path) as path:
+                pages, kind = extract_document(path, document.title)
         if sum(len(p.get('text', '').strip()) for p in pages) < 20:
             raise ValueError('Dokument nima berljivega besedila; potreben je OCR ali ročni pregled.')
         with transaction.atomic():

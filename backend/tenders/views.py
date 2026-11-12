@@ -350,10 +350,11 @@ def document_view(request, document_id):
     doc = get_object_or_404(Document, pk=document_id)
     if doc.path.startswith('s3://'):
         from .pipeline_storage import stream
-        content_type = 'application/pdf' if doc.title.lower().endswith('.pdf') or doc.extraction.get('format') == 'pdf' else 'application/octet-stream'
+        content_type = ('application/pdf' if doc.title.lower().endswith('.pdf') or doc.extraction.get('format') == 'pdf'
+                        else 'text/plain; charset=utf-8' if doc.extraction.get('source') == 'pjn-faq' else 'application/octet-stream')
         filename = doc.title + ('.pdf' if content_type == 'application/pdf' and not doc.title.lower().endswith('.pdf') else '')
         response = FileResponse(stream(doc.path), filename=filename, content_type=content_type,
-                                as_attachment=content_type != 'application/pdf')
+                                as_attachment=content_type == 'application/octet-stream')
         response['X-Content-Type-Options'] = 'nosniff'
         response['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'self'"
         return response
@@ -361,9 +362,9 @@ def document_view(request, document_id):
     roots = [settings.DEMO_DOCUMENTS_ROOT.resolve(), settings.MEDIA_ROOT.resolve()]
     if not any(path.resolve().is_relative_to(root) for root in roots) or not path.is_file():
         return Response({'error': 'Dokument ni na voljo.'}, status=404)
-    content_type = 'application/pdf' if path.suffix == '.pdf' else 'application/octet-stream'
+    content_type = 'application/pdf' if path.suffix == '.pdf' else 'text/plain; charset=utf-8' if doc.extraction.get('source') == 'pjn-faq' else 'application/octet-stream'
     filename = doc.title + ('.pdf' if content_type == 'application/pdf' and not doc.title.lower().endswith('.pdf') else '')
-    response = FileResponse(path.open('rb'), content_type=content_type, as_attachment=content_type != 'application/pdf', filename=filename)
+    response = FileResponse(path.open('rb'), content_type=content_type, as_attachment=content_type == 'application/octet-stream', filename=filename)
     response['X-Content-Type-Options'] = 'nosniff'
     # CSP sandbox disables Chrome's PDF viewer. Keep resource restrictions while
     # allowing the browser's built-in isolated viewer to display PDF evidence.
@@ -377,6 +378,12 @@ def similar_awards_view(request, tender_id):
     ensure_seed()
     ensure_past_awards()
     return Response(similar_awards(get_object_or_404(Tender, pk=tender_id)))
+
+
+@api_view(['GET'])
+def tender_faq_view(request, tender_id):
+    from .pjn_faq import tender_faq
+    return Response(tender_faq(get_object_or_404(Tender, pk=tender_id)))
 
 
 @api_view(['GET'])

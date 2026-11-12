@@ -123,6 +123,12 @@ def collect_notice(notice_id, download=True, accept=None):
         record, created, changed = persist_notice(normalized)
         result = {'mode': 'live', 'tender': record, 'created': created, 'changed': changed,
                   'message': 'Pridobljeni so dejanski metapodatki iz e-Naročanja.'}
+        if download or record.following:
+            # Before downloading, so the queued index job already includes the portal Q&A.
+            from .pjn_faq import try_sync
+            faq = try_sync(record, requeue=not download)
+            record.refresh_from_db()
+            result['questions'] = faq['count']
         if download and (changed or not record.document_records.filter(version=record.data['version']).exists()):
             documents = download_documents(record)
             result.update(documents)

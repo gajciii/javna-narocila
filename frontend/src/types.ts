@@ -399,3 +399,21 @@ export interface BuyerHistory {
     signals: { kind: string; text: string }[];
     results: Omit<PastAward, 'similarity'>[]; history_count: number; page: number; page_size: number;
 }
+
+export interface TenderFaqItem {
+    id: number;
+    kind: 'question' | 'clarification';
+    question: string;
+    answer: string;
+    published_at: string | null;
+}
+export interface TenderFaq {
+    available: boolean;
+    items: TenderFaqItem[];
+    source_url?: string;
+    message?: string;
+    error?: string;
+    warning?: string;
+    synced_at?: string | null;
+    document_id?: string | null;
+}
