@@ -446,6 +446,11 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
 }
 .profile-intro .profile-identity > strong { color: var(--ink); font-size: 18px; }
 .profile-intro .profile-identity > span:last-child { color: var(--muted); font-size: 14px; }
+.profile-intro.building-intro .profile-identity { position: relative; z-index: 1; color: #fff; }
+.profile-intro.building-intro .profile-identity > strong,
+.profile-intro.building-intro .profile-identity > span:last-child { color: #fff; }
+.profile-intro.building-intro .button.primary { color: var(--slate); background: #fff; border-color: #fff; }
+.profile-intro.building-intro .button.primary:hover:not(:disabled) { color: #fff; background: var(--slate); border-color: #fff; }
 @media (max-width: 700px) {
   .profile-intro { margin-bottom: 25px; }
   .profile-intro .page-heading { margin-bottom: 20px; }
