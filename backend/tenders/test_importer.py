@@ -123,7 +123,7 @@ class ImporterTests(TestCase):
         self.assertEqual(first['mode'], 'live')
         self.assertEqual(first['tender'].id, 'pjn-dosje-999999')
         self.assertEqual(TenderVersion.objects.filter(tender=second['tender']).count(), 1)
-        self.assertEqual(get.call_args.kwargs['headers']['User-Agent'], 'RazpisniRadar/0.2')
+        self.assertEqual(get.call_args.kwargs['headers']['User-Agent'], 'RazpIzi/0.2')
         self.assertFalse(get.call_args.kwargs['allow_redirects'])
 
     def test_unconfirmed_or_result_not_open(self):

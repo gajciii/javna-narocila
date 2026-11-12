@@ -1,6 +1,6 @@
-# Razpisni radar
+# RazpIzi
 
-**Je ta javni razpis za nas?** Razpisni radar poveže javna naročila s profilom podjetja in pokaže, zakaj je priložnost zanimiva, kateri pogoji so izpolnjeni in kaj je treba še preveriti.
+**Je ta javni razpis za nas?** RazpIzi poveže javna naročila s profilom podjetja in pokaže, zakaj je priložnost zanimiva, kateri pogoji so izpolnjeni in kaj je treba še preveriti.
 
 Prototip za **hackathon, izziv št. 2: podatkovno inženirstvo in AI za javna naročila**. React, TypeScript, Django REST Framework in SQLite. Za predstavitev deluje tudi brez API ključev.
 

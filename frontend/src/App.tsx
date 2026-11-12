@@ -143,7 +143,7 @@ export default function App() {
         setDemoBusy('');
     } };
     if (!data)
-        return <div className="boot-screen"><div className="boot-brand"><Radar size={36}/><strong>razpisni<span>radar</span></strong></div>{error ? <><h2>Povezava še ni pripravljena</h2><p>{error}</p><p className="muted">Preverite, ali Django strežnik deluje na vratih 8001.</p><button className="button primary" onClick={() => refresh().catch(e => setError(e.message))}><RefreshCw size={16}/>Poskusi ponovno</button></> : <><Spinner /><p>Pripravljamo vaše priložnosti …</p></>}</div>;
+        return <div className="boot-screen"><div className="boot-brand"><Radar size={36}/><strong>Razp<span>Izi</span></strong></div>{error ? <><h2>Povezava še ni pripravljena</h2><p>{error}</p><p className="muted">Preverite, ali Django strežnik deluje na vratih 8001.</p><button className="button primary" onClick={() => refresh().catch(e => setError(e.message))}><RefreshCw size={16}/>Poskusi ponovno</button></> : <><Spinner /><p>Pripravljamo vaše priložnosti …</p></>}</div>;
     const unread = data.notifications.filter(n => !n.read).length;
     const shared: Shared = { data, refresh, notify };
     const section = route.startsWith('/profil') ? 'Profil podjetja' : route.startsWith('/svetovalec') ? 'AI pomočnik' : route.startsWith('/obvestila') ? 'Obvestila' : 'Razpisi';
@@ -152,7 +152,7 @@ export default function App() {
     <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); document.getElementById('main-content')?.focus(); }}>Preskoči na vsebino</a>
     {mobileNav && <div className="nav-scrim" onClick={() => setMobileNav(false)}/>}
     <header className="topbar">
-      <a className="brand topbar-brand" href="#/razpisi" aria-label="Razpisni radar, začetna stran"><Radar size={28} strokeWidth={1.8}/><span>razpisni radar<span>.</span></span></a>
+      <a className="brand topbar-brand" href="#/razpisi" aria-label="RazpIzi, začetna stran"><Radar size={28} strokeWidth={1.8}/><span>Razp<span>Izi</span></span></a>
       <nav id="main-navigation" className={`main-nav ${mobileNav ? 'open' : ''}`} aria-label="Glavna navigacija">
         <a href="#/razpisi" aria-current={section === 'Razpisi' ? 'page' : undefined} className={section === 'Razpisi' ? 'active' : ''} onClick={() => setFilters(f => ({ ...f, view: 'recommended' }))}>Razpisi</a>
         <a href="#/svetovalec" aria-current={section === 'AI pomočnik' ? 'page' : undefined} className={section === 'AI pomočnik' ? 'active' : ''}>Pomočnik</a>

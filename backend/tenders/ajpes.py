@@ -27,7 +27,7 @@ class RegistryUnavailable(Exception):
 def request_json(action, params):
     try:
         with requests.get(API + action, params=params, timeout=(5, 15), stream=True,
-                          allow_redirects=False, headers={'User-Agent': 'RazpisniRadar/0.3', 'Accept': 'application/json'}) as response:
+                          allow_redirects=False, headers={'User-Agent': 'RazpIzi/0.3', 'Accept': 'application/json'}) as response:
             if response.status_code != 200:
                 raise RegistryUnavailable(f'OPSI je vrnil HTTP {response.status_code}.')
             chunks, size = [], 0
