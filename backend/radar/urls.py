@@ -1,6 +1,7 @@
 from django.urls import path
 from tenders import views, partner_views, espd_views, opportunities, pipeline_admin, auth_views
 from tenders.health import health_view
+from tenders.overview_views import overview_view
 from tenders.submission_views import submission_review_view
 
 urlpatterns = [
@@ -22,6 +23,7 @@ urlpatterns = [
     path('api/partners', partner_views.partners_view),
     path('api/partners/<int:partner_id>', partner_views.partner_view),
     path('api/tenders/<slug:tender_id>/partners', partner_views.tender_partners_view),
+    path('api/tenders/<slug:tender_id>/overview', overview_view),
     path('api/tenders/<slug:tender_id>/espd', espd_views.tender_espd_view),
     path('api/tenders/<slug:tender_id>/submission-review', submission_review_view),
     path('api/tenders/<slug:tender_id>/buyer-history', views.buyer_history_view),
@@ -51,7 +53,6 @@ urlpatterns = [
     path('api/searches/<int:search_id>', views.search_view),
     path('api/searches/expand-keywords', views.keyword_expansion_view),
     path('api/filters/suggest', views.filter_suggestion_view),
-    path('api/chat', views.chat_view),
     path('api/notifications/email-settings', views.notification_email_settings_view),
     path('api/notifications/email-test', views.notification_email_test_view),
     path('api/notifications', views.notifications_view),
@@ -64,4 +65,5 @@ urlpatterns = [
     path('api/import', views.import_view),
     path('api/sources/pjn/sync', views.sync_view),
     path('api/documents/<slug:document_id>', views.document_view),
+    path('api/documents/<slug:document_id>/text', views.document_text_view),
 ]

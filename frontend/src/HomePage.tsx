@@ -6,13 +6,12 @@ const navigation = [
     { label: 'Prijava', href: '#/prijava' },
     { label: 'Registracija', href: '#/registracija' },
     { label: 'Razpisi', href: '#/razpisi' },
-    { label: 'AI pomočnik', href: '#/svetovalec' },
     { label: 'Obvestila', href: '#/obvestila' },
     { label: 'Profil podjetja', href: '#/profil' },
 ];
 const steps = [
     { title: 'Najdite pravo priložnost.', description: 'Filtrirajte razpise glede na dejavnost in potrebe svojega podjetja.', href: '#/razpisi', action: 'Razišči razpise' },
-    { title: 'Preverite pogoje.', description: 'Poglejte, kaj izpolnjujete, kaj manjka in kje je dokaz v dokumentaciji.', href: '#/svetovalec', action: 'Vprašaj pomočnika' },
+    { title: 'Preverite pogoje.', description: 'Poglejte, kaj izpolnjujete, kaj manjka in kje je dokaz v dokumentaciji.', href: '#/razpisi', action: 'Poglej pogoje razpisov' },
     { title: 'Bodite na tekočem.', description: 'Spremljajte nove objave, popravke in spremembe rokov na enem mestu.', href: '#/obvestila', action: 'Poglej obvestila' },
 ];
 
@@ -57,7 +56,7 @@ export default function HomePage() {
         <nav className="home-navigation" aria-label="Raziščite aplikacijo">{navigation.map((item, index) => <a key={item.href} href={item.href}><span className="home-nav-number">0{index + 1}</span><span>{item.label}</span><ArrowUpRight size={18}/></a>)}</nav>
         <section ref={how} className="home-how" aria-labelledby="home-how-title">
             <div className="home-section-heading"><span className="home-section-label">Kako deluje</span><h2 id="home-how-title">Od objave<br/>do odločitve.</h2></div>
-            <div className="home-steps">{steps.map((step, index) => <article className="home-step" key={step.href}>
+            <div className="home-steps">{steps.map((step, index) => <article className="home-step" key={step.title}>
                 <span className="home-step-number">0{index + 1}</span>
                 <div><h3>{step.title}</h3><p>{step.description}</p><a href={step.href}>{step.action}<ArrowUpRight size={16}/></a></div>
             </article>)}</div>

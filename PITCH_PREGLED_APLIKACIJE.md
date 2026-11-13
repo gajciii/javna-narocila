@@ -15,7 +15,7 @@ Podjetje najde zanimiv razpis, vendar mora pred odločitvijo pregledati dokument
 | 1:15–2:15 | Energetski razpis, pogoji in dokaz v PDF-ju | Preverljiva ugotovitev ima izvor. |
 | 2:15–3:00 | Športna referenca brez vrednosti in datuma | Manjkajoč podatek ne potrjuje izpolnitve pogoja. |
 | 3:00–4:00 | Demo popravek satelitskega razpisa in obvestilo | Sprememba zahteve spremeni presojo. |
-| 4:00–5:00 | Primerjava razpisov v pomočniku ali partnerji | Uporabnik dobi jasen naslednji korak. |
+| 4:00–5:00 | Pregled pripravljene prijave ali partnerji | Uporabnik dobi jasen naslednji korak. |
 
 Navodila za zagon in demo so v [README.md](README.md).
 
@@ -31,7 +31,7 @@ Navodila za zagon in demo so v [README.md](README.md).
 
 ## Kaj mora biti jasno
 
-Demo podjetje, njegove reference in demo razpisi so izmišljeni in označeni. Resnični arhivski zapis ni aktualna priložnost. Brez API ključa pomočnik uporablja demo odgovore; nova analiza resnične dokumentacije potrebuje ključ. Ujemanje je hevristika, ne napoved uspeha. Partnerski potencial je predlog za pregled, ne potrditev upravičenosti.
+Demo podjetje, njegove reference in demo razpisi so izmišljeni in označeni. Resnični arhivski zapis ni aktualna priložnost. Nova analiza razpisne dokumentacije in pregled prijave uporabljata strežniško povezavo z jezikovnim modelom. Ujemanje je hevristika, ne napoved uspeha. Partnerski potencial je predlog za pregled, ne potrditev upravičenosti.
 
 ## Nadaljnji razvoj
 

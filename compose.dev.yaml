@@ -1,4 +1,4 @@
-# Only PostgreSQL; Django and Vite run on the host.
+# Local PostgreSQL and private S3; Django, Vite and pipeline processes run on the host.
 # Fixed development credentials deliberately ignore production variables in .env.
 name: razpizi-local
 services:
@@ -19,5 +19,17 @@ services:
       retries: 20
       start_period: 5s
 
+  storage:
+    image: ghcr.io/versity/versitygw:v1.11.0@sha256:8319a530d08d537426e2f855bae5280709795dc73a3f0c347973ef915d6343c5
+    command: [--port, ":9000", posix, /data]
+    environment:
+      ROOT_ACCESS_KEY: razpizi-local
+      ROOT_SECRET_KEY: razpizi-local-storage-only
+    ports:
+      - "127.0.0.1:9003:9000"
+    volumes:
+      - objects:/data
+
 volumes:
   database:
+  objects:
