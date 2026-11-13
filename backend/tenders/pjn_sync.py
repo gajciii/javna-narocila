@@ -68,13 +68,13 @@ def persist_notice(data):
         # Importing an older URL must not roll back a correction or reopen an award.
         if old_time and new_time and new_time < old_time:
             return record, False, False
-        compare_keys = ('title', 'buyer', 'region', 'kind', 'cpv', 'value', 'deadline', 'status', 'summary', 'criteria', 'lots')
+        compare_keys = ('title', 'buyer', 'region', 'kind', 'cpv', 'value', 'awarded_value', 'deadline', 'status', 'summary', 'criteria', 'lots')
         changed = created or any(data.get(k) != old.get(k) for k in compare_keys) or meta.get('notice_id') != old_meta.get('notice_id') or meta.get('attachment_url') != old_meta.get('attachment_url')
         if created:
             data['is_new'] = True
             record = Tender.objects.create(id=data['id'], data=data)
         elif changed:
-            labels = {'title': 'Naslov', 'buyer': 'Naročnik', 'deadline': 'Rok za oddajo', 'status': 'Stanje', 'value': 'Vrednost', 'summary': 'Predmet', 'criteria': 'Merila', 'lots': 'Sklopi'}
+            labels = {'title': 'Naslov', 'buyer': 'Naročnik', 'deadline': 'Rok za oddajo', 'status': 'Stanje', 'value': 'Ocenjena vrednost', 'awarded_value': 'Pogodbena vrednost', 'summary': 'Predmet', 'criteria': 'Merila', 'lots': 'Sklopi'}
             changes = [{'field': labels.get(k, k), 'before': str(old.get(k) if old.get(k) is not None else 'Ni podatka'),
                         'after': str(data.get(k) if data.get(k) is not None else 'Ni podatka'),
                         'impact': 'Preverite vpliv spremembe na pripravo prijave.'}

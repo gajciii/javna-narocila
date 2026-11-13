@@ -107,6 +107,8 @@ main.account-page { padding-inline: var(--page-gutter); }
 .app-shell .tender-facts { max-width: 650px; margin: 23px 0 27px; }
 .app-shell .detail-main > .tender-facts { max-width: none; margin-top: 0; }
 .app-shell .tender-facts .detail-metrics { max-width: none; margin: 0; }
+.app-shell .tender-facts .detail-metrics:not(.detail-metadata) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); row-gap: 16px; }
+.app-shell .tender-facts .detail-metrics > div > span > small { display: block; margin-top: 6px; font-size: 12px; color: var(--muted); }
 .app-shell .tender-facts .detail-metrics:not(.detail-metadata) > div > span { font-size: 16px; }
 .app-shell .tender-facts .detail-metrics:not(.detail-metadata) strong { font-size: clamp(24px, 2.5vw, 30px); font-weight: 600; line-height: 1.25; }
 .app-shell .tender-facts .detail-metrics:not(.detail-metadata) strong small { display: block; margin: 5px 0 0; font-size: 13px; line-height: 1.4; }
@@ -273,3 +275,8 @@ main.account-page { padding-inline: var(--page-gutter); }
 .app-shell .keyword-steps li.done { color: var(--accent); }
 .app-shell .keyword-steps .step-dot { width: 13px; height: 13px; border: 1.5px solid currentColor; border-radius: 50%; }
 @media (prefers-reduced-motion: reduce) { .app-shell .results-progress > span { animation: none; left: 0; width: 100%; opacity: .5; } }
+
+.app-shell .erar-payment-summary { display: grid; gap: 6px; padding: 18px 20px; border-top: 1px solid var(--line); }
+.app-shell .erar-payment-summary > span { font-size: 13px; }
+.app-shell .erar-payment-summary > strong { font-size: 22px; font-weight: 600; }
+.app-shell .erar-payment-summary > small { color: var(--muted); font-size: 12px; }

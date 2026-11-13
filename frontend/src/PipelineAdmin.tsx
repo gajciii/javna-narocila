@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { Activity, ArrowLeft, CheckCircle2, Clock3, Database, Download, HardDrive, LockKeyhole, LogOut, Play, RefreshCw, Server, ShieldCheck, XCircle } from 'lucide-react';
 import './pipeline-admin.css';
 import { track } from './analytics';
+import { AdminError, request } from './pipelineAdminApi';
+import PipelineDataSources, { type DataSourceStats } from './PipelineDataSources';
 
 type Session = { authenticated: boolean; username: string; csrf_token: string };
 type Counts = { total: number; reused: number; pending: number; running: number; complete: number; failed: number; superseded: number };
@@ -22,7 +24,7 @@ type SemanticIndex = { enabled: boolean; extension: boolean; model: string; dime
 type SizeMeasure = { bytes: number; objects?: number; location?: string } | { error: string } | null;
 type StorageUsage = { measuring: boolean; measured_at: string | null; next_refresh_at: string | null;
     database: SizeMeasure; storage: SizeMeasure };
-type Overview = { remote_enabled: boolean; server_time: string; queue: Record<string, number>;
+type Overview = DataSourceStats & { remote_enabled: boolean; server_time: string; queue: Record<string, number>;
     index: { documents: number; chunks: number }; schedule: { enabled: boolean; next_run_at: string };
     past_awards: AwardStats; semantic_index?: SemanticIndex; storage_usage: StorageUsage;
     agents: { id: string; role: string; hostname: string; online: boolean; state: string; last_seen: string; job_id: number | null; run_id: number | null }[];
@@ -40,14 +42,6 @@ const number = (value: number) => new Intl.NumberFormat('sl-SI').format(value);
 const publicationDate = (value: string | null) => value ? new Date(`${value}T12:00:00Z`).toLocaleDateString('sl-SI', { timeZone: 'Europe/Ljubljana' }) : '—';
 const month = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Ljubljana', year: 'numeric', month: '2-digit' }).format(new Date());
 
-class AdminError extends Error { constructor(message: string, public status: number) { super(message); } }
-async function request<T>(path: string, options: RequestInit = {}, csrf = ''): Promise<T> {
-    const response = await fetch(`/api/admin/pipeline${path}`, { ...options, credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRFToken': csrf } : {}), ...options.headers } });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new AdminError(data.error || data.detail || 'Zahteve ni bilo mogoče zaključiti.', response.status);
-    return data as T;
-}
 const formatDuration = (seconds: number) => {
     const minutes = Math.round(seconds / 60);
     if (seconds < 60) return `${Math.max(0, Math.round(seconds))} s`;
@@ -297,6 +291,7 @@ export default function PipelineAdmin() {
             <StorageUsageMetrics usage={overview.storage_usage}/>
             {overview.semantic_index && <SemanticIndexStats stats={overview.semantic_index}/>}
             <PastAwardStats stats={overview.past_awards}/>
+            <PipelineDataSources stats={overview} csrf={session.csrf_token} revision={revision} onChange={() => setRevision(v => v + 1)} onError={fail}/>
             <div className="pipeline-top-grid">
                 <section className="surface pipeline-panel"><div className="section-heading"><h2><Play size={18}/>Ročni zagon</h2></div><form onSubmit={startRun} className="pipeline-run-form">
                     <label className="field"><span>Obseg</span><select value={mode} onChange={e => { setMode(e.target.value); submissionKey.current = ''; }}><option value="monthly">Objave izbranega meseca</option><option value="existing">Že shranjeni razpisi</option></select></label>

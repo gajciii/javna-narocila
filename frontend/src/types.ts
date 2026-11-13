@@ -114,7 +114,14 @@ export interface KeywordMatch {
     fields: string[];
     evidence: { document_id: string; document_title: string; page: number | null; locator: string; quote: string; match_start: number | null; match_end: number | null } | null;
 }
+export interface ErarPaymentSummary {
+    amount: number;
+    count: number;
+    latest_export_on: string;
+    latest_payment_on: string;
+}
 export interface Tender {
+    erar_payments?: (ErarPaymentSummary & { award_id: string; lot_title: string })[];
     id: string;
     tender_conditions?: { mode: 'live' | 'empty' | 'unavailable' | 'pending'; message: string; current?: boolean; items: TenderCondition[] };
     title: string;
@@ -122,7 +129,10 @@ export interface Tender {
     region: string;
     kind: 'services' | 'goods' | 'works';
     cpv: string[];
+    /** Published estimate in EUR, excluding VAT. */
     value: number | null;
+    /** Published contract total in EUR; not the final cost of execution. */
+    awarded_value: number | null;
     published_at: string | null;
     deadline: string | null;
     status: 'open' | 'closed' | 'cancelled' | 'unconfirmed';
@@ -414,7 +424,7 @@ export interface PastAwardParticipant extends PastAwardWinner {
     provenance: 'award_notice' | 'imported_record';
 }
 export interface PastAward {
-    erar_payments?: { amount: number; count: number; latest_export_on: string; latest_payment_on: string } | null;
+    erar_payments?: ErarPaymentSummary | null;
     value_comparison?: { currency: string; estimated: number; contracted: number; difference: number; ratio: number } | null;
     estimate_currency?: string | null;
     award_currency?: string | null;
