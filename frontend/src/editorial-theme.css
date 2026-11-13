@@ -91,8 +91,10 @@ main.account-page { padding-inline: var(--page-gutter); }
 .app-shell .card-metadata > div { align-items: flex-end; }
 .app-shell .card-metadata > div > span { color: var(--muted); font-size: 12px; }
 .app-shell .card-metadata strong { color: var(--ink); font-size: 20px; font-weight: 500; }
-.app-shell .card-metadata > div:first-child strong { font-size: 25px; letter-spacing: -.5px; }
+.app-shell .card-metadata > .card-value strong { font-size: 25px; letter-spacing: -.5px; }
 .app-shell .card-metadata small { font-size: 11px; }
+.app-shell .card-metadata .card-days-left { font-size: 16px; font-weight: 700; line-height: 1.4; color: var(--slate); background: transparent; }
+.app-shell .card-metadata .card-days-left.urgent { color: var(--ochre); }
 .app-shell .card-detail-link { display: inline-flex; align-items: center; justify-content: center; gap: 14px; margin: auto 0 0; padding: 12px 18px; min-height: 44px; color: #fff; background: var(--slate); border: 1px solid var(--slate); border-radius: 4px; font-size: 14px; }
 .app-shell .card-detail-link:hover { color: #fff; background: var(--copper); border-color: var(--copper); }
 
@@ -216,7 +218,7 @@ main.account-page { padding-inline: var(--page-gutter); }
   .app-shell .card-footer { align-items: flex-start; gap: 20px; margin-top: 22px; }
   .app-shell .card-metadata { flex-direction: row; flex-wrap: wrap; gap: 24px; text-align: left; align-items: flex-start; }
   .app-shell .card-metadata > div { align-items: flex-start; }
-  .app-shell .card-metadata > div:first-child strong { font-size: 22px; }
+  .app-shell .card-metadata > .card-value strong { font-size: 22px; }
   .app-shell .card-metadata strong { font-size: 18px; }
   .app-shell .card-detail-link { margin: 0; }
   .app-shell .decision-card { padding: 25px 20px; border-left: 0; border-top: 1px solid var(--line); }
