@@ -6,6 +6,12 @@ from django.utils import timezone
 import uuid
 
 
+class WithoutVectorsManager(models.Manager):
+    """Vectors are large and only used by explicit vector queries, so normal loads skip them."""
+    def get_queryset(self):
+        return super().get_queryset().defer('embedding')
+
+
 class CompanyProfile(models.Model):
     data = models.JSONField(default=dict)
     updated_at = models.DateTimeField(auto_now=True)
@@ -24,6 +30,7 @@ class Tender(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     embedding = HalfVectorField(dimensions=1024, null=True, blank=True)
+    objects = WithoutVectorsManager()
     embedding_digest = models.CharField(max_length=32, blank=True)
 
     EMBEDDING_FIELDS = ('embedding', 'embedding_digest')
@@ -96,6 +103,7 @@ class DocumentChunk(models.Model):
     normalized_text = models.TextField()
     search_vector = SearchVectorField(null=True)
     embedding = HalfVectorField(dimensions=1024, null=True, blank=True)
+    objects = WithoutVectorsManager()
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['content', 'ordinal'], name='unique_content_chunk')]
@@ -280,6 +288,7 @@ class PastAward(models.Model):
     data = models.JSONField(default=dict)
     imported_at = models.DateTimeField(auto_now=True)
     embedding = HalfVectorField(dimensions=1024, null=True, blank=True)
+    objects = WithoutVectorsManager()
     embedding_digest = models.CharField(max_length=32, blank=True)
 
 
