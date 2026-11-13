@@ -91,6 +91,9 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', '')
 # Set to 0 only for an explicitly public, anonymous demo. Accounts are required by default.
 # Tests call the API anonymously unless they enable accounts with override_settings.
 ACCOUNT_REQUIRE_LOGIN = os.environ.get('ACCOUNT_REQUIRE_LOGIN', '0' if 'test' in sys.argv[1:2] else '1') == '1'
+# Slow follow-up work (AI relevance, improvement suggestions) runs after the response in a thread.
+# Tests run it inline so assertions see the finished result.
+BACKGROUND_TASKS_INLINE = os.environ.get('BACKGROUND_TASKS_INLINE', '1' if 'test' in sys.argv[1:2] else '0') == '1'
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},

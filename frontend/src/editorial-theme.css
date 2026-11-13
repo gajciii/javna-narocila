@@ -259,6 +259,7 @@ main.account-page { padding-inline: var(--page-gutter); }
 @keyframes results-progress { from { left: -35%; } to { left: 100%; } }
 .app-shell .results-count { display: inline-flex; align-items: center; gap: 8px; }
 .app-shell .is-pending .results-count { color: var(--accent); }
+.app-shell .relevance-pending { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; color: var(--muted); font-size: 12px; font-weight: 400; }
 .app-shell .tender-list.refreshing > .tender-card { opacity: .45; filter: grayscale(.4); pointer-events: none; }
 .app-shell .tender-list.refreshing { opacity: 1; }
 .app-shell .results-stale-note { position: sticky; top: 12px; z-index: 2; display: flex; align-items: center; gap: 8px; align-self: center; margin: 0 0 12px; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 999px; background: #fff; color: var(--accent); font-size: 13px; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }

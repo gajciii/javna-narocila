@@ -26,9 +26,10 @@ RUBRIC = [
     'Primeren: predmet naročila je jedrna dejavnost podjetja in ga podjetje vsebinsko lahko izvede samo.',
 ]
 CHUNK_SIZE = 40
-# A profile change re-scores every tender (~25 batches); sequential calls made saving take ~15 s.
+# A profile change re-scores every tender (~27 batches); it runs in the background (resolve_matches_nowait).
 PARALLEL_BATCHES = 8
 RETRY_AFTER = timedelta(minutes=15)
+CACHE_TTL = timedelta(days=60)
 
 
 def settings():
@@ -117,20 +118,9 @@ def resolve_matches(tenders, profile, cached_only=False):
     api_key, model = settings()
     if not api_key or not tenders:
         return {tender.pk: {'mode': 'rules'} for tender in tenders}
-    cached = {row.tender_id: row for row in RelevanceCache.objects.filter(tender_id__in=[t.pk for t in tenders])}
-    results, missing = {}, []
-    now = timezone.now()
-    for tender in tenders:
-        key = fingerprint(profile, tender.data, model)
-        row = cached.get(tender.pk)
-        if row and row.key == key and row.payload.get('mode') == 'gemini':
-            results[tender.pk] = row.payload
-        elif row and row.key == key and row.payload.get('mode') == 'rules' and now - row.updated_at < RETRY_AFTER:
-            results[tender.pk] = row.payload
-        elif cached_only:
-            results[tender.pk] = {'mode': 'rules'}
-        else:
-            missing.append((tender, key))
+    results, missing = lookup(tenders, profile, model)
+    if cached_only:
+        return {**results, **{tender.pk: {'mode': 'rules'} for tender, _ in missing}}
     batches = [missing[start:start + CHUNK_SIZE] for start in range(0, len(missing), CHUNK_SIZE)]
 
     def decide(batch):
@@ -148,11 +138,52 @@ def resolve_matches(tenders, profile, cached_only=False):
     else:
         decided_batches = [decide(batch) for batch in batches]
     rows = []
+    now = timezone.now()
     for batch, decided in zip(batches, decided_batches):
         for tender, key in batch:
             results[tender.pk] = decided[tender.pk]
             rows.append(RelevanceCache(tender=tender, key=key, payload=decided[tender.pk], updated_at=now))
     if rows:
-        RelevanceCache.objects.bulk_create(rows, batch_size=500, update_conflicts=True, unique_fields=['tender'],
-                                           update_fields=['key', 'payload', 'updated_at'])
+        RelevanceCache.objects.bulk_create(rows, batch_size=500, update_conflicts=True, unique_fields=['tender', 'key'],
+                                           update_fields=['payload', 'updated_at'])
+        # Rows of edited profiles and changed tenders are never read again.
+        RelevanceCache.objects.filter(updated_at__lt=now - CACHE_TTL).delete()
     return results
+
+
+def lookup(tenders, profile, model):
+    """Split tenders into usable cached assessments and (tender, fingerprint) pairs that need scoring."""
+    keys = {tender.pk: fingerprint(profile, tender.data, model) for tender in tenders}
+    cached = {(row.tender_id, row.key): row for row in RelevanceCache.objects.filter(
+        tender_id__in=list(keys), key__in=set(keys.values()))}
+    results, missing = {}, []
+    now = timezone.now()
+    for tender in tenders:
+        row = cached.get((tender.pk, keys[tender.pk]))
+        if row and (row.payload.get('mode') == 'gemini' or
+                    (row.payload.get('mode') == 'rules' and now - row.updated_at < RETRY_AFTER)):
+            results[tender.pk] = row.payload
+        else:
+            missing.append((tender, keys[tender.pk]))
+    return results, missing
+
+
+def resolve_matches_nowait(tenders, profile):
+    """Cached assessments now; uncached tenders get rules and are scored in the background.
+
+    Returns (results, pending). A profile edit changes every fingerprint, and scoring ~1000
+    tenders took tens of seconds, so list requests no longer wait for Gemini.
+    """
+    from django.conf import settings as django_settings
+    from .background import run_once
+    tenders = list(tenders)
+    api_key, model = settings()
+    if not api_key or not tenders or django_settings.BACKGROUND_TASKS_INLINE:
+        return resolve_matches(tenders, profile), False
+    results, missing = lookup(tenders, profile, model)
+    if not missing:
+        return results, False
+    todo = [tender for tender, _ in missing]
+    key = hashlib.sha256(json.dumps([profile_input(profile), model, RUBRIC], ensure_ascii=False).encode()).hexdigest()[:16]
+    run_once(f'relevance:{key}', lambda: resolve_matches(todo, profile))
+    return {**results, **{tender.pk: {'mode': 'rules'} for tender in todo}}, True

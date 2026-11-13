@@ -18,7 +18,7 @@ from .runtime_data import application_tenders, application_records, test_fixture
 from .matching import serialize_tender
 from .filtering import apply_filters, keyword_matches, search_terms, validate_filters
 from .validation import validate_profile
-from .services import bootstrap, all_tenders, all_notifications, serialize_search, trigger_event
+from .services import bootstrap, scored_tenders, all_notifications, schedule_suggestions, serialize_search, trigger_event
 from .documents import extract_pages, serialize_document, active_documents
 from .ai import suggest_filters, analyze_document
 
@@ -48,6 +48,7 @@ def profile_view(request):
             record.data = validate_profile(request.data, record.data)
             validate_unique_company(record.data, exclude=record.pk)
             record.save()
+        schedule_suggestions(force=True)
     return Response(get_profile())
 
 
@@ -83,6 +84,7 @@ def profiles_view(request):
         validate_unique_company(data)
         companies().filter(is_active=True).update(is_active=False)
         CompanyProfile.objects.create(owner_id=account_id(), data=data, is_active=True)
+    schedule_suggestions(force=True)
     return Response(get_profile(), status=201)
 
 
@@ -95,6 +97,7 @@ def activate_profile_view(request, profile_id):
         companies().filter(is_active=True).update(is_active=False)
         record.is_active = True
         record.save(update_fields=['is_active'])
+    schedule_suggestions(force=True)
     return Response(get_profile())
 
 
@@ -156,11 +159,27 @@ def tenders_view(request):
     ensure_seed()
     filters = {key: ','.join(request.query_params.getlist(key)) for key in request.query_params}
     hits = {}
-    results = apply_filters(all_tenders(), filters, keyword_hits=hits)
+    # Uncached AI relevance is scored in the background; the client refetches while pending.
+    tenders, pending = scored_tenders(wait=False)
+    results = apply_filters(tenders, filters, keyword_hits=hits)
     if filters.get('q', '').strip():
         results = [{**tender, 'keyword_matches': keyword_matches(tender, filters['q'], hits.get(tender['id'], {}))}
                    for tender in results]
-    return Response({'results': results, 'count': len(results)})
+    return Response({'results': results, 'count': len(results), 'counts': tab_counts(tenders, filters),
+                     'facets': {'regions': unique_values(tenders, 'region'), 'buyers': unique_values(tenders, 'buyer')},
+                     'relevance_pending': pending})
+
+
+def tab_counts(tenders, filters):
+    """Tab badges over all tenders, independent of the other list filters."""
+    visible = [t for t in tenders if not t.get('ignored')]
+    partner = {'include_partner_opportunities': filters['include_partner_opportunities']} if 'include_partner_opportunities' in filters else {}
+    return {'recommended': len(apply_filters(tenders, {'view': 'recommended', **partner})), 'all': len(visible),
+            'following': sum(1 for t in visible if t.get('following')), 'ignored': len(tenders) - len(visible)}
+
+
+def unique_values(tenders, key):
+    return list(dict.fromkeys(t[key] for t in tenders if t.get(key)))
 
 
 @api_view(['POST'])
@@ -321,6 +340,7 @@ def improvement_plans_view(request):
     ensure_seed()
     if request.method == 'POST':
         plan = ImprovementPlan.objects.create(company_key=company_key(), **plan_values(request.data))
+        schedule_suggestions(force=True)
         return Response(serialize_plan(plan), status=201)
     context = snapshot()
     return Response([serialize_plan(p, context) for p in application_records(ImprovementPlan.objects.filter(company_key=company_key(context[0]))).order_by('-updated_at')])
@@ -334,11 +354,13 @@ def improvement_plan_view(request, plan_id):
     plan = get_object_or_404(application_records(ImprovementPlan.objects.all()), pk=plan_id, company_key=company_key())
     if request.method == 'DELETE':
         plan.delete()
+        schedule_suggestions(force=True)
         return Response(status=204)
     if request.method == 'PUT':
         for key, value in plan_values(request.data, plan).items():
             setattr(plan, key, value)
         plan.save()
+        schedule_suggestions(force=True)
     return Response(serialize_plan(plan))
 
 
@@ -395,6 +417,7 @@ def analyze_view(request, tender_id):
         outcomes.append({'mode': 'live', 'message': f'Izluščenih pogojev razpisa: {len(record.conditions)}.'})
     elif record.message:
         outcomes.append({'mode': 'demo', 'message': record.message})
+    schedule_suggestions(force=True)
     result = tender_detail(tender, get_profile())
     result['analysis'] = outcomes or [{'mode': 'demo', 'message': 'Za analizo najprej dodajte besedilni PDF.'}]
     return Response(result)
@@ -446,6 +469,7 @@ def document_upload_view(request, tender_id):
         extraction={'mode': 'unprocessed', 'requirements': [], 'criteria': [], 'summary': ''})
     outcome = analyze_document(doc) if not error else {'mode': 'demo', 'message': error}
     doc.refresh_from_db()
+    schedule_suggestions(force=True)
     return Response({**serialize_document(doc), 'analysis': outcome}, status=201)
 
 

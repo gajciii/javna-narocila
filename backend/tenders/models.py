@@ -352,11 +352,19 @@ class SimilarAwardsCache(models.Model):
 
 
 class RelevanceCache(models.Model):
-    """The current company's Gemini content assessment for one tender and input fingerprint."""
-    tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='relevance_cache')
+    """Gemini content assessment of one tender for one company-input fingerprint.
+
+    One row per (tender, fingerprint), so companies and accounts no longer evict each other's
+    assessments and switching back to a company reuses its earlier scores.
+    """
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name='relevance_cache')
     key = models.CharField(max_length=64)
     payload = models.JSONField(default=dict)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['tender', 'key'], name='relevance_cache_tender_key')]
+        indexes = [models.Index(fields=['updated_at'], name='relevance_cache_updated')]
 
 
 class AttachmentOpportunityCache(models.Model):
