@@ -30,7 +30,7 @@ def index_identity(tender):
     uploaded = list(tender.document_records.filter(version__lte=tender.data.get('version', 1),
         id__startswith='upload-').order_by('pk').values_list('pk', 'sha256'))
     meta = tender.data.get('source_metadata', {})
-    parts = ['index', tender.pk, tender.data.get('version', 1), meta.get('attachment_url'), EXTRACTOR_VERSION, uploaded]
+    parts = ['index-contracts-v1', tender.pk, tender.data.get('version', 1), meta.get('attachment_url'), EXTRACTOR_VERSION, uploaded, meta.get('contracts_digest')]
     if meta.get('faq_digest'):
         # New portal answers re-run indexing and condition extraction without a new notice version.
         parts.append(['faq', meta['faq_digest']])

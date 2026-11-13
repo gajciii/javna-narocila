@@ -136,6 +136,8 @@ def collect_run(run, agent=None):
                 if try_sync(tender).get('changed'):
                     tender.refresh_from_db()
                 time.sleep(0.3)
+            from .pjn_contracts import sync_contracts
+            sync_contracts(tender)
             from .models import PipelineJob
             reused = PipelineJob.objects.filter(key=index_identity(tender)).exists()
             job = enqueue_index(tender, retry=True)

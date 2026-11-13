@@ -141,7 +141,10 @@ def active_documents(tender, metadata_only=False):
         return []
     # Demo versions replace the same document family, while uploaded attachments remain additive.
     by_family = {}
+    contract_urls = {item['url'] for item in tender.data.get('source_metadata', {}).get('contract_files', [])}
     for doc in records:
+        if doc.extraction.get('source') == 'pjn-contract' and doc.extraction.get('source_url') not in contract_urls:
+            continue  # A withdrawn contract must no longer be searchable.
         if doc.id.startswith(('pjn-doc-', 'index-doc-')) and doc.version != tender.data.get('version', 1):
             continue  # An older source PDF must not validate a corrected notice.
         family = re.sub(r'-v\d+$', '', doc.id)
