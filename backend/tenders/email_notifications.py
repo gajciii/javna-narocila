@@ -17,7 +17,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from .accounts import account_id
-from .models import EmailNotificationSettings, Notification, NotificationEmail, TenderFollow
+from .models import EMAIL_TYPES, EmailNotificationSettings, Notification, NotificationEmail, TenderFollow
 
 log = logging.getLogger(__name__)
 MAX_ATTEMPTS = 5
@@ -40,7 +40,9 @@ def status():
     config, _ = EmailNotificationSettings.objects.get_or_create(owner_id=account_id())
     deliveries = NotificationEmail.objects.filter(owner_id=account_id())
     last = deliveries.aggregate(sent=Max('sent_at'))['sent']
-    return {'enabled': config.enabled, 'email': config.email, 'transport_ready': transport_ready(),
+    account_email = getattr(getattr(config, 'owner', None), 'email', '') or ''
+    return {'enabled': config.enabled, 'email': config.email, 'account_email': account_email,
+            'types': [t for t in EMAIL_TYPES if t in config.types], 'transport_ready': transport_ready(),
             'provider': settings.EMAIL_PROVIDER if settings.EMAIL_PROVIDER in ('smtp', 'resend') else 'unavailable',
             'pending': deliveries.filter(state='pending').count(),
             'failed': deliveries.filter(state='failed').count(),
@@ -52,6 +54,12 @@ def save_settings(data):
     email, enabled = data.get('email', ''), data.get('enabled')
     if not isinstance(enabled, bool):
         raise ValidationError({'enabled': 'Izberite, ali želite e-poštna obvestila.'})
+    types = data.get('types', list(EMAIL_TYPES))
+    if not isinstance(types, list) or not all(isinstance(t, str) and t in EMAIL_TYPES for t in types):
+        raise ValidationError({'types': 'Izberite veljavne vrste obvestil.'})
+    types = [t for t in EMAIL_TYPES if t in types]
+    if enabled and not types:
+        raise ValidationError({'types': 'Izberite vsaj eno vrsto obvestil ali izklopite e-poštna obvestila.'})
     if not isinstance(email, str) or len(email) > 254:
         raise ValidationError({'email': 'Vnesite veljaven e-poštni naslov.'})
     email = email.strip()
@@ -67,7 +75,11 @@ def save_settings(data):
         # No old notifications are mailed after enabling or changing the recipient.
         config.enabled_since = timezone.now() if enabled else None
         NotificationEmail.objects.filter(owner_id=account_id(), state__in=['pending', 'failed']).update(state='cancelled')
-    config.email, config.enabled = email, enabled
+    elif removed := set(config.types) - set(types):
+        # Messages of a type the user no longer wants are not sent.
+        NotificationEmail.objects.filter(owner_id=account_id(), state__in=['pending', 'failed'],
+                                         notification__type__in=removed).update(state='cancelled')
+    config.email, config.enabled, config.types = email, enabled, types
     config.save()
     return status()
 
@@ -82,7 +94,7 @@ def message(notification):
             f'{notification.body}\n\nPreglejte spremembe in izvorne pogoje:\n{link}\n\n'
             f'Obvestilo je nastalo ob zajemu {timezone.localtime(notification.created_at):%d. %m. %Y ob %H:%M}.\n'
             f'Prejemate ga, ker spremljate ta razpis in imate vključena e-poštna obvestila. '
-            f'Naslov ali pošiljanje uredite v Obvestila:\n{settings.PUBLIC_APP_URL}/#/obvestila\n')
+            f'Naslov in vrste obvestil uredite v Moj račun:\n{settings.PUBLIC_APP_URL}/#/racun\n')
     return subject, body
 
 
@@ -101,7 +113,7 @@ def enqueue(limit=100):
             follow_filter = {'tender__following': True}
         delivered = NotificationEmail.objects.filter(owner_id=config.owner_id).values('notification_id')
         notifications = Notification.objects.select_related('tender').filter(
-            is_demo=False, active=True, type__in=['correction', 'deadline'],
+            is_demo=False, active=True, type__in=[t for t in config.types if t in EMAIL_TYPES],
             tender__data__source_type='real', created_at__gte=config.enabled_since,
             **follow_filter).exclude(pk__in=delivered).order_by('created_at', 'pk')[:max(0, limit - count)]
         for notification in notifications:

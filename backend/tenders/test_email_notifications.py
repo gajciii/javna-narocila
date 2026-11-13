@@ -54,7 +54,7 @@ class EmailNotificationTests(TestCase):
         message = mail.outbox[0]
         self.assertEqual(message.to, ['user@example.com'])
         self.assertIn('https://razpizi.example.com/#/razpisi/email-test?tab=changes', message.body)
-        self.assertIn('https://razpizi.example.com/#/obvestila', message.body)
+        self.assertIn('https://razpizi.example.com/#/racun', message.body)
         self.assertIn('Občina Primer', message.body)
         self.assertIn('Sprememba roka', mail.outbox[1].subject)
         self.assertEqual(status()['pending'], 0)
@@ -115,6 +115,29 @@ class EmailNotificationTests(TestCase):
         self.notification()
         self.assertEqual(process(), 1)
         self.assertEqual(mail.outbox[0].to, ['third@example.com'])
+
+    def test_only_chosen_types_are_sent_and_deselected_pending_is_cancelled(self):
+        self.assertEqual(status()['types'], ['correction', 'deadline'])
+        self.enable()
+        correction, deadline = self.notification(), self.notification(type='deadline')
+        enqueue()
+        save_settings({'enabled': True, 'email': 'user@example.com', 'types': ['deadline']})
+        states = dict(NotificationEmail.objects.values_list('notification_id', 'state'))
+        self.assertEqual(states, {correction.pk: 'cancelled', deadline.pk: 'pending'})
+        self.notification()
+        later = self.notification(type='deadline')
+        self.assertEqual(process(), 2)
+        self.assertEqual(set(NotificationEmail.objects.filter(state='sent').values_list('notification_id', flat=True)),
+                         {deadline.pk, later.pk})
+        self.assertEqual(status()['types'], ['deadline'])
+
+    def test_types_are_validated(self):
+        client, url = APIClient(), '/api/notifications/email-settings'
+        for types in [['new'], 'deadline', [1], []]:
+            response = client.put(url, {'email': 'a@example.com', 'enabled': True, 'types': types}, format='json')
+            self.assertEqual(response.status_code, 400, types)
+        response = client.put(url, {'email': 'a@example.com', 'enabled': False, 'types': []}, format='json')
+        self.assertEqual((response.status_code, response.data['types']), (200, []))
 
     def test_saving_unchanged_settings_keeps_pending_and_original_cutoff(self):
         self.enable()

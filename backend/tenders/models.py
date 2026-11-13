@@ -331,6 +331,13 @@ class MonthlyScanItem(models.Model):
         constraints = [models.UniqueConstraint(fields=['period', 'notice_id'], name='unique_monthly_scan_notice')]
 
 
+EMAIL_TYPES = ('correction', 'deadline')
+
+
+def default_email_types():
+    return list(EMAIL_TYPES)
+
+
 class EmailNotificationSettings(models.Model):
     """Email preferences for one account (null owner preserves legacy settings)."""
     owner = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
@@ -338,6 +345,7 @@ class EmailNotificationSettings(models.Model):
     enabled = models.BooleanField(default=False)
     email = models.EmailField(blank=True)
     enabled_since = models.DateTimeField(null=True, blank=True)
+    types = models.JSONField(default=default_email_types)
     updated_at = models.DateTimeField(auto_now=True)
 
 
