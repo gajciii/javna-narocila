@@ -76,6 +76,15 @@ class TenderQuestion(models.Model):
         constraints = [models.UniqueConstraint(fields=['tender', 'source_id'], name='unique_tender_question')]
 
 
+class TenderOverview(models.Model):
+    """A short, source-backed summary shared by all readers of a notice."""
+    tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='overview_cache')
+    fingerprint = models.CharField(max_length=64)
+    sentences = models.JSONField(default=list)
+    citations = models.JSONField(default=list)
+    generated_at = models.DateTimeField(auto_now=True)
+
+
 class TenderConditions(models.Model):
     """All participation conditions of a tender, extracted from its current indexed documents."""
     tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='condition_list')

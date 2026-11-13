@@ -20,7 +20,7 @@ from .filtering import apply_filters, keyword_matches, search_terms, validate_fi
 from .validation import validate_profile
 from .services import bootstrap, all_tenders, all_notifications, serialize_search, trigger_event
 from .documents import extract_pages, serialize_document, active_documents
-from .ai import chat, suggest_filters, analyze_document
+from .ai import suggest_filters, analyze_document
 
 
 def message_input(data):
@@ -265,24 +265,6 @@ def filter_suggestion_view(request):
     return Response(suggest_filters(message_input(request.data)))
 
 
-@api_view(['POST'])
-def chat_view(request):
-    ensure_seed()
-    message = message_input(request.data)
-    ids = request.data.get('tender_ids', [])
-    if not isinstance(ids, list) or len(ids) > 10 or not all(isinstance(i, str) for i in ids):
-        raise ValidationError({'tender_ids': 'Neveljaven seznam razpisov.'})
-    history = request.data.get('history', [])
-    if not isinstance(history, list) or len(history) > 40:
-        raise ValidationError({'history': 'Neveljavna zgodovina pogovora.'})
-    clean_history = []
-    for item in history[-6:]:
-        if not isinstance(item, dict) or item.get('role') not in ['user', 'assistant'] or not isinstance(item.get('content'), str):
-            raise ValidationError({'history': 'Neveljavno sporočilo zgodovine.'})
-        clean_history.append({'role': item['role'], 'content': item['content'][:8000]})
-    return Response(chat(message, all_tenders(), get_profile(), ids, clean_history))
-
-
 @api_view(['GET'])
 def notifications_view(request):
     ensure_seed()
@@ -468,15 +450,32 @@ def document_upload_view(request, tender_id):
 
 
 @api_view(['GET'])
+def document_text_view(request, document_id):
+    from .document_preview import preview
+    return preview(get_object_or_404(Document.objects.select_related('indexed_content').filter(tender__in=application_tenders()), pk=document_id), request)
+
+
+@api_view(['GET'])
 def document_view(request, document_id):
     ensure_seed()
-    doc = get_object_or_404(Document.objects.filter(tender__in=application_tenders()), pk=document_id)
+    doc = get_object_or_404(Document.objects.select_related('indexed_content').filter(tender__in=application_tenders()), pk=document_id)
+    def missing_original():
+        if request.query_params.get('download') == '1':
+            return Response({'error': 'Izvirna datoteka ni na voljo v lokalni shrambi. Na voljo je lahko izluščeno besedilo.',
+                             'text_url': f'/api/documents/{doc.pk}/text'}, status=404)
+        from .document_preview import preview
+        return preview(doc, request, original_missing=True)
     if doc.path.startswith('s3://'):
         from .pipeline_storage import stream
+        from botocore.exceptions import BotoCoreError, ClientError
+        try:
+            body = stream(doc.path)
+        except (BotoCoreError, ClientError, ValueError):
+            return missing_original()
         content_type = ('application/pdf' if doc.title.lower().endswith('.pdf') or doc.extraction.get('format') == 'pdf'
                         else 'text/plain; charset=utf-8' if doc.extraction.get('source') == 'pjn-faq' else 'application/octet-stream')
         filename = doc.title + ('.pdf' if content_type == 'application/pdf' and not doc.title.lower().endswith('.pdf') else '')
-        response = FileResponse(stream(doc.path), filename=filename, content_type=content_type,
+        response = FileResponse(body, filename=filename, content_type=content_type,
                                 as_attachment=content_type == 'application/octet-stream')
         response['X-Content-Type-Options'] = 'nosniff'
         response['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'self'"
@@ -484,7 +483,7 @@ def document_view(request, document_id):
     path = Path(doc.path)
     roots = [settings.DEMO_DOCUMENTS_ROOT.resolve(), settings.MEDIA_ROOT.resolve()]
     if not any(path.resolve().is_relative_to(root) for root in roots) or not path.is_file():
-        return Response({'error': 'Dokument ni na voljo.'}, status=404)
+        return missing_original()
     content_type = 'application/pdf' if path.suffix == '.pdf' else 'text/plain; charset=utf-8' if doc.extraction.get('source') == 'pjn-faq' else 'application/octet-stream'
     filename = doc.title + ('.pdf' if content_type == 'application/pdf' and not doc.title.lower().endswith('.pdf') else '')
     response = FileResponse(path.open('rb'), content_type=content_type, as_attachment=content_type == 'application/octet-stream', filename=filename)

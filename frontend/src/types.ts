@@ -251,28 +251,6 @@ export interface Bootstrap {
         integrations?: { pjn: { state: string; last_success: string | null; runs_remaining: number; real_count: number }; ajpes: { state: string; last_success: string | null; message: string; url: string } };
     };
 }
-export interface Citation {
-    tender_id: string;
-    title: string;
-    document_id?: string;
-    page?: number;
-    quote?: string;
-}
-export interface ChatResponse {
-    answer: string;
-    mode: 'rules' | 'live';
-    citations: Citation[];
-    profile_patch?: Partial<Profile>;
-    filters?: Filters;
-    warning?: string;
-}
-export interface ChatMessage extends Partial<ChatResponse> {
-    role: 'user' | 'assistant';
-    content: string;
-    id: string;
-    applied?: boolean;
-}
-
 export interface CapabilityEvidence { source: string; url: string; confirmed: boolean }
 export interface Partner {
     id: number;

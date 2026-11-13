@@ -20,7 +20,7 @@ export default function TenderFaqPanel({ tenderId }: { tenderId: string }) {
         {faq.isPending && <LoaderCircle className="spin"/>}
         {(faq.error || data?.error) && <div role="alert" className="error-banner">{data?.error || faq.error?.message}<button className="button small" onClick={() => faq.refetch()}>Poskusi znova</button></div>}
         {data?.warning && <div className="info-box amber"><p>{data.warning}</p></div>}
-        {data?.available && data.synced_at && <p className="tender-faq-synced">Shranjeno ob zajemu: {when(data.synced_at)}{data.document_id && <> · <a href={`/api/documents/${encodeURIComponent(data.document_id)}`} target="_blank" rel="noreferrer">Indeksirano besedilo</a> (uporabljeno pri pogojih in AI pomočniku)</>}</p>}
+        {data?.available && data.synced_at && <p className="tender-faq-synced">Shranjeno ob zajemu: {when(data.synced_at)}{data.document_id && <> · <a href={`/api/documents/${encodeURIComponent(data.document_id)}`} target="_blank" rel="noreferrer">Indeksirano besedilo</a> (uporabljeno pri analizi pogojev)</>}</p>}
         {data && !data.available && <p className="section-help">{data.message}</p>}
         {data?.available && !data.error && !data.items.length && <p className="tender-faq-empty">Naročnik še ni objavil nobenega vprašanja ali pojasnila.</p>}
         {!!data?.items.length && <>
