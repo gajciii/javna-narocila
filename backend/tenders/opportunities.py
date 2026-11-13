@@ -1,3 +1,4 @@
+from .runtime_data import application_tenders
 """Serve attachment evidence for the current profile and tender documents."""
 import hashlib
 import json
@@ -19,7 +20,7 @@ from .seed import ensure_seed, get_profile
 @api_view(['GET', 'POST'])
 def attachment_opportunities_view(request, tender_id):
     ensure_seed()
-    tender = get_object_or_404(Tender, pk=tender_id)
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
     profile = get_profile()
     if settings.PIPELINE_REMOTE:
         return remote_opportunities(request, tender, profile)

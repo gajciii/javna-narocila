@@ -1,3 +1,4 @@
+from .runtime_data import application_tenders
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -12,7 +13,7 @@ from .seed import ensure_seed, get_profile
 def tender_espd_view(request, tender_id):
     """One ESPD draft per company and tender. GET never writes; PUT saves validated answers."""
     ensure_seed()
-    tender = get_object_or_404(Tender, pk=tender_id)
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
     profile = get_profile()
     key = company_key(profile)
     draft = EspdDraft.objects.filter(company_key=key, tender=tender).first()

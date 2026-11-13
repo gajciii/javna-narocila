@@ -13,7 +13,8 @@ from rest_framework.exceptions import ValidationError
 from .accounts import account_id, companies, searches, lock_account
 from .analytics import capture
 from .models import CompanyProfile, Tender, SavedSearch, Notification, Document
-from .seed import ensure_seed, get_profile, demo_profile, get_active_company
+from .seed import ensure_seed, get_profile, demo_profile, get_active_company, empty_profile
+from .runtime_data import application_tenders, application_records, test_fixtures_enabled
 from .matching import serialize_tender
 from .filtering import apply_filters, keyword_matches, validate_filters
 from .validation import validate_profile
@@ -63,8 +64,7 @@ def profiles_view(request):
     with transaction.atomic():
         lock_account()
         # Start with empty fields; a new company must never inherit demo capabilities.
-        empty = {key: ([] if isinstance(value, list) else None if isinstance(value, (int, float)) or value is None else '')
-                 for key, value in demo_profile().items() if key not in ('id', 'registry_source')}
+        empty = empty_profile()
         data = validate_profile(request.data, empty)
         validate_unique_company(data)
         companies().filter(is_active=True).update(is_active=False)
@@ -109,8 +109,8 @@ def prefill_view(request):
             return Response({'message': str(exc)}, status=404)
         except RegistryUnavailable as exc:
             return Response({'code': 'ajpes_unavailable', 'message': str(exc)}, status=503)
-    if provider != 'demo':
-        raise ValidationError('Izberite vir ajpes ali demo.')
+    if provider != 'demo' or not test_fixtures_enabled():
+        raise ValidationError('Izberite vir AJPES.')
     profile = demo_profile()
     return Response({'profile': profile, 'source': 'demo', 'message': 'Prikazan je izmišljeni demo profil Lumina digital. To niso podatki iz AJPES. Podatke preverite in shranite izrecno.'})
 
@@ -171,13 +171,13 @@ def tender_detail(tender, profile):
 @api_view(['GET'])
 def tender_view(request, tender_id):
     ensure_seed()
-    return Response(tender_detail(get_object_or_404(Tender, pk=tender_id), get_profile()))
+    return Response(tender_detail(get_object_or_404(application_tenders(), pk=tender_id), get_profile()))
 
 
 @api_view(['POST'])
 def follow_view(request, tender_id):
     ensure_seed()
-    tender = get_object_or_404(Tender, pk=tender_id)
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
     following = request.data.get('following')
     if not isinstance(following, bool):
         raise ValidationError({'following': 'Pričakovana je logična vrednost.'})
@@ -278,6 +278,8 @@ def plan_values(data, current=None):
         raise ValidationError('Načrt poimenujte z največ 100 znaki.')
     if source not in ('real', 'demo'):
         raise ValidationError('Demo in resnične razpise shranite v ločena načrta.')
+    if source != 'real' and not test_fixtures_enabled():
+        raise ValidationError('Načrt lahko temelji samo na resničnih razpisih.')
     return {'name': name.strip(), 'source_type': source,
             'actions': clean_actions(data.get('actions', current.actions if current else None))}
 
@@ -291,7 +293,7 @@ def improvement_plans_view(request):
         plan = ImprovementPlan.objects.create(company_key=company_key(), **plan_values(request.data))
         return Response(serialize_plan(plan), status=201)
     context = snapshot()
-    return Response([serialize_plan(p, context) for p in ImprovementPlan.objects.filter(company_key=company_key(context[0])).order_by('-updated_at')])
+    return Response([serialize_plan(p, context) for p in application_records(ImprovementPlan.objects.filter(company_key=company_key(context[0]))).order_by('-updated_at')])
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -299,7 +301,7 @@ def improvement_plan_view(request, plan_id):
     from .models import ImprovementPlan
     from .improvements import company_key, serialize_plan
     ensure_seed()
-    plan = get_object_or_404(ImprovementPlan, pk=plan_id, company_key=company_key())
+    plan = get_object_or_404(application_records(ImprovementPlan.objects.all()), pk=plan_id, company_key=company_key())
     if request.method == 'DELETE':
         plan.delete()
         return Response(status=204)
@@ -312,6 +314,8 @@ def improvement_plan_view(request, plan_id):
 
 @api_view(['POST'])
 def event_view(request):
+    if not test_fixtures_enabled():
+        return Response({'message': 'Demo način ni več na voljo.'}, status=410)
     ensure_seed()
     try:
         return Response(trigger_event(request.data.get('type')))
@@ -321,6 +325,8 @@ def event_view(request):
 
 @api_view(['POST'])
 def reset_view(request):
+    if not test_fixtures_enabled():
+        return Response({'message': 'Demo način ni več na voljo.'}, status=410)
     ensure_seed(reset=True)
     return Response(bootstrap())
 
@@ -351,7 +357,7 @@ def sync_view(request):
 @api_view(['POST'])
 def analyze_view(request, tender_id):
     ensure_seed()
-    tender = get_object_or_404(Tender, pk=tender_id)
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
     from .tender_conditions import extract_conditions
     outcomes = [analyze_document(doc) for doc in active_documents(tender)]
     record = extract_conditions(tender, force=True)
@@ -368,7 +374,7 @@ def analyze_view(request, tender_id):
 @parser_classes([MultiPartParser, FormParser])
 def document_upload_view(request, tender_id):
     ensure_seed()
-    tender = get_object_or_404(Tender, pk=tender_id)
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
     uploaded = request.FILES.get('file')
     if not uploaded:
         raise ValidationError({'file': 'Izberite dokument.'})
@@ -416,7 +422,7 @@ def document_upload_view(request, tender_id):
 @api_view(['GET'])
 def document_view(request, document_id):
     ensure_seed()
-    doc = get_object_or_404(Document, pk=document_id)
+    doc = get_object_or_404(Document.objects.filter(tender__in=application_tenders()), pk=document_id)
     if doc.path.startswith('s3://'):
         from .pipeline_storage import stream
         content_type = ('application/pdf' if doc.title.lower().endswith('.pdf') or doc.extraction.get('format') == 'pdf'
@@ -447,7 +453,7 @@ def similar_awards_view(request, tender_id):
     ensure_seed()
     ensure_past_awards()
     started = time.monotonic()
-    result = similar_awards(get_object_or_404(Tender, pk=tender_id))
+    result = similar_awards(get_object_or_404(application_tenders(), pk=tender_id))
     capture('similar_awards', mode=result['mode'], matching=result.get('matching'), results=len(result['results']),
             warning=bool(result.get('warning')), duration_ms=round((time.monotonic() - started) * 1000))
     return Response(result)
@@ -456,7 +462,7 @@ def similar_awards_view(request, tender_id):
 @api_view(['GET'])
 def tender_faq_view(request, tender_id):
     from .pjn_faq import tender_faq
-    return Response(tender_faq(get_object_or_404(Tender, pk=tender_id)))
+    return Response(tender_faq(get_object_or_404(application_tenders(), pk=tender_id)))
 
 
 @api_view(['GET'])
@@ -464,7 +470,7 @@ def buyer_history_view(request, tender_id):
     from .buyer_history import history
     from .past_awards import ensure_past_awards
     ensure_past_awards()
-    return Response(history(get_object_or_404(Tender, pk=tender_id), request.query_params))
+    return Response(history(get_object_or_404(application_tenders(), pk=tender_id), request.query_params))
 
 
 @api_view(['POST'])

@@ -20,7 +20,13 @@ def account_scope(user_id):
 
 def companies():
     from .models import CompanyProfile
-    return CompanyProfile.objects.filter(owner_id=account_id())
+    from django.db.models import Q
+    from .runtime_data import test_fixtures_enabled
+    rows = CompanyProfile.objects.filter(owner_id=account_id())
+    if not test_fixtures_enabled():
+        rows = rows.exclude(Q(data__has_key='source', data__source='demo') |
+                            Q(data__has_key='registration_number', data__registration_number__startswith='DEMO'))
+    return rows
 
 
 def searches():

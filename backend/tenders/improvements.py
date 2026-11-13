@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from .models import Tender, Notification, ImprovementPlan
 from .seed import get_profile, today
+from .runtime_data import application_tenders, test_fixtures_enabled
 from .documents import active_documents, document_metadata
 from .matching import (serialize_tender, evaluate_requirement, text_normalize,
                        certification_key, certification_needs_review)
@@ -160,7 +161,7 @@ def snapshot(profile=None):
     profile = profile or get_profile()
     records = []
     # One prefetch without page text; per-tender queries loaded every PDF's text over the network.
-    tenders = Tender.objects.prefetch_related(Prefetch('document_records',
+    tenders = application_tenders().prefetch_related(Prefetch('document_records',
         queryset=document_metadata().order_by('id'), to_attr='_document_metadata'))
     for tender in tenders:
         docs = active_documents(tender, metadata_only=True)
@@ -180,6 +181,8 @@ def completion_applies(action, requirement):
 
 def evaluate(actions, source_type, context=None):
     actions = clean_actions(actions)
+    if source_type != 'real' and not test_fixtures_enabled():
+        raise ValidationError('Izboljšave ocenjujemo samo na resničnih razpisih.')
     if source_type not in ('demo', 'real'):
         raise ValidationError('Izberite demo ali resnične razpise.')
     profile, records = context or snapshot()

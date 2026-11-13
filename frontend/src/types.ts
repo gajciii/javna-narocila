@@ -242,7 +242,7 @@ export interface Bootstrap {
     saved_searches: SavedSearch[];
     meta: {
         demo: boolean;
-        ai_mode: 'demo' | 'live';
+        ai_mode: 'rules' | 'live';
         today: string;
         last_sync: string | null;
         integrations?: { pjn: { state: string; last_success: string | null; runs_remaining: number; real_count: number }; ajpes: { state: string; last_success: string | null; message: string; url: string } };
@@ -257,7 +257,7 @@ export interface Citation {
 }
 export interface ChatResponse {
     answer: string;
-    mode: 'demo' | 'live';
+    mode: 'rules' | 'live';
     citations: Citation[];
     profile_patch?: Partial<Profile>;
     filters?: Filters;

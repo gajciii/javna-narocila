@@ -44,7 +44,7 @@ za lokalno bazo vedno uporabite `-f compose.dev.yaml`.
 ## 3. Prvi zagon aplikacije
 
 Ko ste preverili, da `.env` kaže na **lokalno** bazo, pripravite odvisnosti,
-migracije in demo podatke.
+migracije in začetno prazno okolje.
 
 macOS / Linux:
 
@@ -60,7 +60,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
 npm.cmd --prefix frontend ci
 .\.venv\Scripts\python.exe backend/manage.py migrate --noinput
-.\.venv\Scripts\python.exe backend/manage.py seed_demo
+.\.venv\Scripts\python.exe backend/manage.py init_workspace
 .\.venv\Scripts\python.exe backend/manage.py runserver 127.0.0.1:8001
 ```
 
@@ -108,7 +108,7 @@ docker compose -f compose.dev.yaml ps
 docker compose -f compose.dev.yaml logs --tail=50 postgres
 ```
 
-Okolje se začne s prazno bazo; zgornji ukazi jo napolnijo z demo podatki.
+Okolje se začne s prazno bazo; zgornji ukazi pripravijo prazen profil in zbirko resničnih preteklih oddaj.
 Produkcijski podatki se ne prenesejo samodejno. Za realistične podatke potrebujete
 ločeno anonimizirano kopijo baze in ustrezne dokumente; reference `s3://` iz produkcije
 same po sebi ne zagotovijo lokalnih datotek.
@@ -133,10 +133,10 @@ uvozite datoteko. Na macOS/Linux:
 ```
 
 Na Windows uporabite `.\.venv\Scripts\python.exe` namesto `.venv/bin/python`.
-Uvažajte v prazno lokalno bazo (samo migracije, brez `seed_demo`), ker `loaddata`
+Uvažajte v prazno lokalno bazo (samo migracije, brez `init_workspace`), ker `loaddata`
 posodablja enake primarne ključe, dodatnih obstoječih zapisov pa ne odstrani.
 Po uvozu Django in Vite zaženite z ločenima ukazoma iz 3. koraka; `dev.sh` ponovno
-zažene `seed_demo`, kar je pri kopiji resničnih podatkov običajno nepotrebno.
+zažene `init_workspace`, kar je pri kopiji resničnih podatkov običajno nepotrebno.
 Za lokalno administratorsko prijavo ustvarite svoj račun z `manage.py createsuperuser`.
 
 Vrednosti v `.env`, vključno s `PIPELINE_REMOTE=0`, ostanejo lokalne. V izvozu ohranjene

@@ -5,7 +5,8 @@ from .models import Tender, CompanyProfile, Notification, DemoEvent, TenderVersi
 from .seed import get_profile, today
 from .accounts import account_id, companies, searches
 from .matching import serialize_tender
-from .ai import ai_enabled
+from .ai import ai_enabled, rules_mode
+from .runtime_data import application_tenders, test_fixtures_enabled
 
 
 def serialize_notification(item):
@@ -18,6 +19,8 @@ def all_notifications():
     from .improvements import refresh_suggestions, visible_notifications
     refresh_suggestions()
     rows = list(visible_notifications())
+    if not test_fixtures_enabled():
+        rows = [row for row in rows if not row.is_demo]
     if account_id() is not None:
         from .models import NotificationRead
         read_ids = set(NotificationRead.objects.filter(owner_id=account_id()).values_list('notification_id', flat=True))
@@ -31,7 +34,7 @@ def all_tenders(profile=None):
     profile = profile or get_profile()
     from .relevance import resolve_matches
     from .documents import document_metadata
-    tenders = list(Tender.objects.prefetch_related(Prefetch('document_records',
+    tenders = list(application_tenders().prefetch_related(Prefetch('document_records',
         queryset=document_metadata().order_by('id'), to_attr='_document_metadata')))
     if account_id() is not None:
         from .models import TenderFollow
@@ -56,7 +59,7 @@ def bootstrap():
                          for item in companies().order_by('pk')],
             'profile': profile, 'tenders': all_tenders(profile), 'notifications': all_notifications(),
             'saved_searches': [serialize_search(s) for s in searches()],
-            'meta': {'demo': True, 'ai_mode': 'live' if ai_enabled() else 'demo', 'today': today().isoformat(),
+            'meta': {'demo': test_fixtures_enabled(), 'ai_mode': 'live' if ai_enabled() else rules_mode(), 'today': today().isoformat(),
                      'last_sync': latest.created_at.isoformat() if latest else None,
                      'integrations': {'pjn': pjn_status(), 'ajpes': ajpes_status()}}}
 

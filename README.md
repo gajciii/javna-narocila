@@ -38,7 +38,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
 npm.cmd --prefix frontend ci
 .\.venv\Scripts\python.exe backend/manage.py migrate --noinput
-.\.venv\Scripts\python.exe backend/manage.py seed_demo
+.\.venv\Scripts\python.exe backend/manage.py init_workspace
 ```
 
 V prvem terminalu zaženite API:
@@ -53,7 +53,7 @@ V drugem terminalu zaženite vmesnik:
 npm.cmd --prefix frontend run dev -- --host 127.0.0.1 --port 5174 --strictPort
 ```
 
-Odprite **http://localhost:5174**. Aktivacija virtualnega okolja ni potrebna. Ob naslednjem zagonu zadoščata zadnja dva ukaza; po posodobitvi projekta po potrebi ponovite namestitev odvisnosti, migracije in `seed_demo`.
+Odprite **http://localhost:5174**. Aktivacija virtualnega okolja ni potrebna. Ob naslednjem zagonu zadoščata zadnja dva ukaza; po posodobitvi projekta po potrebi ponovite namestitev odvisnosti, migracije in `init_workspace`.
 
 ### Linux / macOS
 
@@ -76,18 +76,17 @@ Odprite **http://localhost:5174**. Podatki ostanejo v nosilcu `radar-data`; zaus
 docker compose --profile sync up --build
 ```
 
-Običajni zagon ne sproži zunanjega zajema. `seed_demo` ohrani shranjeni profil in spremljanje; ponastavitev je izrecna akcija v meniju **Demo**.
+Običajni zagon ne sproži zunanjega zajema. `init_workspace` pripravi prazen profil in zbirko resničnih preteklih oddaj. Shranjenih podjetij in spremljanja ne ponastavlja.
 
-## Petminutna predstavitev
+## Predstavitev na dejanskem podjetju
 
-1. **Profil podjetja:** pokažite izmišljeno podjetje Lumina digital in njegove reference. Športna referenca namenoma nima vrednosti in datuma.
-2. **Razpisi:** preglejte priporočila, razloge na karticah, rok in vrednost. Preizkusite filtre ali shranite iskanje.
-3. **Energetski razpis → Pogoji:** odprite dokaz na konkretni strani PDF-ja. Pokažite razliko med vsebinsko oceno in preverjanjem pogojev.
-4. **Športni portal:** manjkajoči podatki ostanejo neznani. Dopolnite referenco z vrednostjo 80.000 EUR in letom znotraj zadnjih treh let. Za priporočilo je potreben tudi ISO 27001.
-5. **AI pomočnik:** izberite primerjavo dveh razpisov. Brez ključa je odgovor označen kot demo.
-6. **Demo → Popravek referenčnega pogoja:** satelitski razpis zahteva dve referenci namesto ene. Odprite obvestilo in primerjavo spremembe. Ponovitev dogodka ne doda novega obvestila.
+1. Prijavite se in v **Profil podjetja** izberite podjetje v AJPES. Dopolnite njegove dejanske reference, znanja, certifikate in kapacitete.
+2. V **Razpisi** uvozite objave e-Naročanja, preglejte priporočila in uporabite napredne filtre.
+3. Odprite pogoje razpisa in izvorne dokaze. Manjkajoči podatki ostanejo neznani.
+4. V **AI pomočnik** primerjajte razpise in pripravite seznam korakov za prijavo.
+5. Preverite **Partnerje**, **Pretekle oddaje**, **Zgodovino naročnika** in **Obvestila → Predlogi za razvoj**.
 
-Za razširjeno predstavitev odprite **Partnerji** v razpisu ali **Obvestila → Predlogi za razvoj**. [Kratka predstavitvena zgodba](PITCH_PREGLED_APLIKACIJE.md).
+Aplikacija nima demo računa, menija za izmišljene dogodke ali ponastavljanja profila. Stari izmišljeni zapisi so iz aplikacije izločeni; resnični podatki ostanejo ohranjeni. Brez povezave z AI se lahko prikaže jasno označen pregled po pravilih nad dejanskimi shranjenimi podatki.
 
 ## Podatkovni tok
 
@@ -131,7 +130,7 @@ Vir: **Javne informacije Slovenije – portal javnih naročil**. [Dokumentacija 
 
 Podprti so besedilni PDF-ji in ZIP arhivi: največ 10 MB na datoteko, 30 članov oziroma 20 MB razpakirane vsebine in 150 strani na PDF. Skeni, zaščiteni dokumenti in nepodprti formati ostanejo označeni za dodaten pregled. Izluščeno besedilo še ne pomeni analize pogojev.
 
-Za živo analizo kopirajte `.env.example` v `.env` in nastavite `OPENROUTER_API_KEY` (privzeti model `openai/gpt-6-luna`, spremenljiv z `OPENROUTER_MODEL`) ali `OPENAI_API_KEY` in `OPENAI_MODEL`, nato znova zaženite backend. Če sta nastavljena oba, ima prednost OpenRouter; zahteve gredo samo k ponudnikom s strukturiranim izhodom, ki ne zbirajo podatkov za učenje. Citati v odgovorih se dobesedno preverijo proti strani dokumenta, sicer je prikazan demo odgovor. Ključ ostane na strežniku; `.env` ni v Gitu. Model prejme ustrezne podatke profila in dokumentacije. Brez ključa se uporabljajo pripravljene demo analize in označeni demo odgovori; pogojev resničnih dokumentov aplikacija ne izmišljuje.
+Za živo analizo kopirajte `.env.example` v `.env` in nastavite `OPENROUTER_API_KEY` (privzeti model `openai/gpt-6-luna`, spremenljiv z `OPENROUTER_MODEL`) ali `OPENAI_API_KEY` in `OPENAI_MODEL`, nato znova zaženite backend. Če sta nastavljena oba, ima prednost OpenRouter; zahteve gredo samo k ponudnikom s strukturiranim izhodom, ki ne zbirajo podatkov za učenje. Citati v odgovorih se dobesedno preverijo proti strani dokumenta, sicer je prikazan pregled po pravilih iz shranjenih podatkov. Ključ ostane na strežniku; `.env` ni v Gitu. Model prejme ustrezne podatke profila in dokumentacije. Brez ključa je pregled po pravilih vidno označen; pogojev resničnih dokumentov aplikacija ne izmišljuje.
 
 Za AI presojo, ali se **predmet** razpisa ujema s podjetjem, nastavite še `GEMINI_API_KEY` in znova zaženite backend. Gemini Decision 1 prejme dejavnost, opis, področja, ključne besede in tehnologije profila ter naslov, predmet, vrsto in CPV razpisa; ne prejme naziva podjetja, matične številke, naslova, referenc ali dokumentacije. Brez ključa ostanejo pravila. Vmesnik pri vsaki oceni pokaže uporabljeni način. AI ocena ne potrjuje obveznih pogojev in ni verjetnost uspeha. Pri brezplačni ravni Gemini API lahko Google poslano vsebino uporabi za izboljšave.
 
@@ -165,7 +164,7 @@ Oddaje se prenašajo neposredno s Portala javnih naročil (`obrazecGet` obvestil
 
 Ukaz brez `--from` nadaljuje od najnovejše oddaje. Že shranjena obvestila preskoči, `--max-notices` omeji zagon, `--delay` (privzeto 0,3 s) določa premor med zahtevki.
 
-Začetna zbirka je v repozitoriju (`backend/source_data/past_awards/`, licenca CC BY 4.0) in se ob prvem zagonu (`seed_demo`, v Dockerju samodejno) ali prvem odprtju zavihka naloži v prazno tabelo. Sestavljena je iz izvozov Apify strgalnika [`publicmoney/enarocanje-slovenia-scraper`](https://apify.com/publicmoney/enarocanje-slovenia-scraper) (`phase: RESULT`, `fetchDetails: true`). Takšen izvoz še vedno lahko uvozite in z njim osvežite zbirko za Git:
+Začetna zbirka je v repozitoriju (`backend/source_data/past_awards/`, licenca CC BY 4.0) in se ob prvem zagonu (`init_workspace`, v Dockerju samodejno) ali prvem odprtju zavihka naloži v prazno tabelo. Sestavljena je iz izvozov Apify strgalnika [`publicmoney/enarocanje-slovenia-scraper`](https://apify.com/publicmoney/enarocanje-slovenia-scraper) (`phase: RESULT`, `fetchDetails: true`). Takšen izvoz še vedno lahko uvozite in z njim osvežite zbirko za Git:
 
 ```bash
 .venv/bin/python backend/manage.py import_past_awards pot/do/izvoza.json --write-bundle
@@ -173,13 +172,13 @@ Začetna zbirka je v repozitoriju (`backend/source_data/past_awards/`, licenca C
 
 Preslikava PJN je bila 12. 11. 2026 preverjena na 108 obvestilih iz izvoza strgalnika in se z njim ujema v vseh poljih. Edina razlika je CPV sklopa: strgalnik vzame samo dodatne kode, PJN preslikava pa glavno in dodatne. Ponovni uvoz posodobi obstoječe zapise. Kandidate izbere besedilna podobnost naslova in opisa skupaj s kodo CPV. Če je nastavljen `GEMINI_API_KEY`, kandidate (največ 40) razvrsti Gemini Decisions API: ostanejo tisti z verjetnostjo podobnosti vsaj 0,5. Rezultat se shrani in ponovno uporabi, dokler se razpis ali zbirka ne spremenita. Brez ključa ali ob napaki se prikaže besedilno ujemanje z oznako. Gemini prejme samo javne podatke razpisa in preteklih oddaj, profila podjetja ne. Vir: Portal javnih naročil, CC BY 4.0.
 
-### Podjetja, partnerji in demo podatki
+### Podjetja in partnerji
 
 AJPES/OPSI povezava uporablja javni nabor PRS brez API ključa. Predizpolni samo **naziv, matično številko in naslov**. Rezultati se hranijo 24 ur. [Vir in licenca CC BY 4.0](https://podatki.gov.si/dataset/poslovni-register-slovenije).
 
-Začetni nabor vsebuje šest izmišljenih razpisov, en resničen arhivski zapis in pet demo PDF-jev, vključno s popravljeno različico satelitskega razpisa. Datumi demo objav se določijo ob pripravi oziroma ponastavitvi; arhivski datumi ostanejo izvorni. **Demo oznake so vidne tudi na karticah in v prihajajočih rokih.** Arhivski zapis ni aktualna priložnost.
+Začetni profil je prazen. Razpise pridobimo iz e-Naročanja, podatke o podjetju pa uporabnik potrdi in dopolni. Izmišljeni primeri in PDF-ji v repozitoriju se uporabljajo izključno kot testne datoteke v avtomatiziranih testih.
 
-Partnerji prispevajo samo podatke s podprtimi dokazili. Uporabniška potrditev ni neodvisno preverjanje. Skupni potencial zahteva pregled dovoljenega načina skupne prijave. Razvojni načrti primerjajo predpostavke s trenutnimi pogoji in ne spreminjajo profila. Demo in resnični podatki se pri teh primerjavah ne mešajo.
+Partnerji prispevajo samo podatke s podprtimi dokazili. Uporabniška potrditev ni neodvisno preverjanje. Skupni potencial zahteva pregled dovoljenega načina skupne prijave. Razvojni načrti primerjajo predpostavke s trenutnimi pogoji in ne spreminjajo profila. Primerjave v aplikaciji uporabljajo samo dejanska podjetja in resnične razpise.
 
 ## Struktura projekta
 
@@ -205,7 +204,7 @@ Ločeni strežnik za prenos, skupno indeksiranje prilog in opravila v PostgreSQL
 | `backend/tenders/website.py`, `frontend/src/WebsiteImport.tsx` | Predlogi profila s spletne strani podjetja |
 | `backend/tenders/past_awards.py`, `frontend/src/PastAwards.tsx` | Uvoz obvestil o oddaji in podobna pretekla naročila |
 | `backend/tenders/relevance_eval.py`, `backend/eval/` | Primerjava pristopov za vsebinsko ujemanje na označenem naboru |
-| `backend/demo_documents/`, `source_data/` | Demo dokumentacija, šifranti in zbirka preteklih oddaj |
+| `backend/demo_documents/`, `source_data/` | Testna dokumentacija, šifranti in zbirka preteklih oddaj |
 | `scripts/` | Priprava, zagon in preverjanje za Bash |
 
 Podatkovni objekti, API in pravila so opisani v [CONTRACT.md](CONTRACT.md). SQLite baze, preneseni dokumenti, ključi in razvojna okolja so izključeni iz Gita.

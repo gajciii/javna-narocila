@@ -4,7 +4,7 @@ import { api } from './api';
 import type { Espd, EspdAnswers, EspdRow, EspdSource } from './types';
 
 const sourceLabels: Record<EspdSource, [string, string]> = {
-    ajpes: ['AJPES', 'green'], profile: ['Profil', 'neutral'], demo: ['Demo profil', 'amber'], missing: ['Ni podatka', 'amber'],
+    ajpes: ['AJPES', 'green'], profile: ['Profil', 'neutral'], demo: ['Profil podjetja', 'neutral'], missing: ['Ni podatka', 'amber'],
 };
 const statusLabels: Record<string, [string, string]> = { met: ['Izpolnjen po profilu', 'green'], unmet: ['Ni izpolnjen', 'red'], unknown: ['Potrebno preveriti', 'amber'] };
 const kindLabels: Record<string, string> = { services: 'Storitve', goods: 'Blago', works: 'Gradnje' };
@@ -78,7 +78,7 @@ export default function EspdPanel({ tenderId, notify }: { tenderId: string; noti
         </section>
 
         <section className="surface detail-section">
-            <div className="section-heading"><h2><span className="step-number">I</span>Informacije o postopku in naročniku</h2><Badge tone={espd.part1.source_type === 'real' ? 'green' : 'amber'}>{espd.part1.source_type === 'real' ? 'e-Naročanje' : 'Demo razpis'}</Badge></div>
+            <div className="section-heading"><h2><span className="step-number">I</span>Informacije o postopku in naročniku</h2><Badge tone={espd.part1.source_type === 'real' ? 'green' : 'amber'}>{espd.part1.source_type === 'real' ? 'e-Naročanje' : 'Vir ni potrjen'}</Badge></div>
             <dl className="espd-facts">
                 <dt>Naročnik</dt><dd>{espd.part1.buyer || 'Ni podatka'}</dd>
                 <dt>Naziv naročila</dt><dd>{espd.part1.title}</dd>

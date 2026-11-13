@@ -33,8 +33,8 @@ Administracijski zasloni imajo svojo prijavo; zanje potrebuje obstoječ staff ra
 ## 1. Priprava okolja
 
 Ukaze izvajajte v korenu repozitorija. **Ne zaganjajte `scripts/setup.sh` ali
-`scripts/dev.sh`: obe skripti izvedeta `migrate` in `seed_demo`.** Proti produkciji
-prav tako ne izvajajte `flush`, `seed_demo`, demo ponastavitve ali lokalnih migracij.
+`scripts/dev.sh`: obe skripti izvedeta `migrate` in `init_workspace`.** Proti produkciji
+prav tako ne izvajajte `flush`, `init_workspace`, demo ponastavitve ali lokalnih migracij.
 
 macOS / Linux:
 

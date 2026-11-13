@@ -5,10 +5,18 @@ from django.db import transaction
 from django.utils import timezone
 from .accounts import account_id, companies, searches, lock_account
 from .models import CompanyProfile, Tender, TenderVersion, SavedSearch, Notification, DemoEvent, Document
+from .runtime_data import test_fixtures_enabled
+
+
+def empty_profile():
+    profile = {key: [] if isinstance(value, list) else None if isinstance(value, (int, float)) else ''
+               for key, value in demo_profile().items() if key != 'id'}
+    profile['source'] = 'user'
+    return profile
 
 
 def today():
-    return date.fromisoformat(settings.DEMO_DATE) if settings.DEMO_DATE else timezone.localdate()
+    return date.fromisoformat(settings.DEMO_DATE) if test_fixtures_enabled() and settings.DEMO_DATE else timezone.localdate()
 
 
 def demo_profile():
@@ -77,6 +85,10 @@ def seed_tenders():
 def ensure_seed(reset=False):
     if account_id() is not None:
         lock_account()
+    if not test_fixtures_enabled():
+        if not companies().exists():
+            CompanyProfile.objects.create(owner_id=account_id(), data=empty_profile(), is_active=True)
+        return
     if reset:
         Notification.objects.filter(is_demo=True).delete()
         DemoEvent.objects.all().delete()
