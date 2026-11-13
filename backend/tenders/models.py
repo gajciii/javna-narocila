@@ -6,7 +6,15 @@ from django.utils import timezone
 import uuid
 
 
+class WithoutVectorsManager(models.Manager):
+    """Vectors are large and only used by explicit vector queries, so normal loads skip them."""
+    def get_queryset(self):
+        return super().get_queryset().defer('embedding')
+
+
 class CompanyProfile(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=False)
     data = models.JSONField(default=dict)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -24,6 +32,7 @@ class Tender(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     embedding = HalfVectorField(dimensions=1024, null=True, blank=True)
+    objects = WithoutVectorsManager()
     embedding_digest = models.CharField(max_length=32, blank=True)
 
     EMBEDDING_FIELDS = ('embedding', 'embedding_digest')
@@ -96,6 +105,7 @@ class DocumentChunk(models.Model):
     normalized_text = models.TextField()
     search_vector = SearchVectorField(null=True)
     embedding = HalfVectorField(dimensions=1024, null=True, blank=True)
+    objects = WithoutVectorsManager()
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['content', 'ordinal'], name='unique_content_chunk')]
@@ -214,6 +224,7 @@ class Notification(models.Model):
 
 
 class SavedSearch(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     filters = models.JSONField(default=dict)
 
@@ -280,6 +291,7 @@ class PastAward(models.Model):
     data = models.JSONField(default=dict)
     imported_at = models.DateTimeField(auto_now=True)
     embedding = HalfVectorField(dimensions=1024, null=True, blank=True)
+    objects = WithoutVectorsManager()
     embedding_digest = models.CharField(max_length=32, blank=True)
 
 
@@ -319,17 +331,27 @@ class MonthlyScanItem(models.Model):
         constraints = [models.UniqueConstraint(fields=['period', 'notice_id'], name='unique_monthly_scan_notice')]
 
 
+EMAIL_TYPES = ('correction', 'deadline')
+
+
+def default_email_types():
+    return list(EMAIL_TYPES)
+
+
 class EmailNotificationSettings(models.Model):
-    """One recipient for the existing single-company application."""
-    id = models.PositiveSmallIntegerField(primary_key=True, default=1)
+    """Email preferences for one account (null owner preserves legacy settings)."""
+    owner = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    id = models.BigAutoField(primary_key=True)
     enabled = models.BooleanField(default=False)
     email = models.EmailField(blank=True)
     enabled_since = models.DateTimeField(null=True, blank=True)
+    types = models.JSONField(default=default_email_types)
     updated_at = models.DateTimeField(auto_now=True)
 
 
 class NotificationEmail(models.Model):
-    notification = models.OneToOneField(Notification, on_delete=models.CASCADE, related_name='email_delivery')
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    notification = models.ForeignKey(Notification, on_delete=models.CASCADE, related_name='email_delivery')
     recipient = models.EmailField()
     sender = models.CharField(max_length=320, blank=True)
     delivery_key = models.UUIDField(default=uuid.uuid4, editable=False)
@@ -344,3 +366,30 @@ class NotificationEmail(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=['state', 'available_at'], name='notification_email_pending')]
+        constraints = [models.UniqueConstraint(fields=['notification', 'owner'], name='unique_account_notification_email')]
+
+
+class TenderFollow(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['owner', 'tender'], name='unique_account_tender_follow')]
+
+
+class TenderIgnore(models.Model):
+    """A tender the account chose to hide from its lists. A null owner is the anonymous workspace."""
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['owner', 'tender'], name='unique_account_tender_ignore')]
+
+
+class NotificationRead(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    notification = models.ForeignKey(Notification, on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['owner', 'notification'], name='unique_account_notification_read')]

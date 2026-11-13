@@ -3,6 +3,8 @@ import { ArrowDown, ArrowRight, ArrowUpRight, Pause, Play, Radar } from 'lucide-
 import './home.css';
 
 const navigation = [
+    { label: 'Prijava', href: '#/prijava' },
+    { label: 'Registracija', href: '#/registracija' },
     { label: 'Razpisi', href: '#/razpisi' },
     { label: 'AI pomočnik', href: '#/svetovalec' },
     { label: 'Obvestila', href: '#/obvestila' },

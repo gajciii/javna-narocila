@@ -117,10 +117,12 @@ export interface Tender {
     topics: string[];
     technologies: string[];
     following: boolean;
+    /** Hidden from the account's lists; shown only in the Skriti view. */
+    ignored: boolean;
     is_new: boolean;
     has_update: boolean;
     version: number;
-    /** Present only in search results: every search term found in the tender. */
+    /** Present in search results and on a detail page opened from a search: every search term found in the tender. */
     keyword_matches?: KeywordMatch[];
     match: {
         level: MatchLevel;
@@ -226,7 +228,7 @@ export interface Filters {
     only_following?: boolean;
     statuses?: string[];
     source_types?: string[];
-    view?: 'recommended' | 'all' | 'following';
+    view?: 'recommended' | 'all' | 'following' | 'ignored';
     sort?: 'match' | 'deadline' | 'newest' | 'value';
 }
 export interface SavedSearch {
@@ -235,13 +237,14 @@ export interface SavedSearch {
     filters: Filters;
 }
 export interface Bootstrap {
+    profiles: Pick<Profile, 'id' | 'name' | 'registration_number'>[];
     profile: Profile;
     tenders: Tender[];
     notifications: Notification[];
     saved_searches: SavedSearch[];
     meta: {
         demo: boolean;
-        ai_mode: 'demo' | 'live';
+        ai_mode: 'rules' | 'live';
         today: string;
         last_sync: string | null;
         integrations?: { pjn: { state: string; last_success: string | null; runs_remaining: number; real_count: number }; ajpes: { state: string; last_success: string | null; message: string; url: string } };
@@ -256,7 +259,7 @@ export interface Citation {
 }
 export interface ChatResponse {
     answer: string;
-    mode: 'demo' | 'live';
+    mode: 'rules' | 'live';
     citations: Citation[];
     profile_patch?: Partial<Profile>;
     filters?: Filters;
@@ -370,7 +373,7 @@ export interface PastAward {
     lowest_offer: number | null; highest_offer: number | null; tenders_received: number | null; awarded: boolean; winners: PastAwardWinner[];
 }
 export interface SimilarAwards {
-    tender_id: string; mode: 'ai' | 'text' | 'empty'; message: string; warning: string | null;
+    tender_id: string; mode: 'ai' | 'text' | 'empty'; matching?: 'semantic' | 'text'; message: string; warning: string | null;
     dataset: { label: string; license: string; attribution: string; lots: number; coverage_from: string | null; coverage_to: string | null; imported_at: string | null };
     results: PastAward[];
     summary: {

@@ -91,7 +91,8 @@ def collect_run(run, agent=None):
 
     try:
         if run.mode == 'existing':
-            records = Tender.objects.order_by('pk')
+            from .runtime_data import application_tenders
+            records = application_tenders().order_by('pk')
             if run.max_notices:
                 records = records[:run.max_notices]
             iterable = records.iterator()
@@ -136,6 +137,8 @@ def collect_run(run, agent=None):
                 if try_sync(tender).get('changed'):
                     tender.refresh_from_db()
                 time.sleep(0.3)
+            from .pjn_contracts import sync_contracts
+            sync_contracts(tender)
             from .models import PipelineJob
             reused = PipelineJob.objects.filter(key=index_identity(tender)).exists()
             job = enqueue_index(tender, retry=True)

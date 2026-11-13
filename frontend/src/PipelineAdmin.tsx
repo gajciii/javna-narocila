@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Activity, ArrowLeft, CheckCircle2, Clock3, Database, Download, HardDrive, LockKeyhole, LogOut, Play, RefreshCw, Server, ShieldCheck, XCircle } from 'lucide-react';
 import './pipeline-admin.css';
+import { track } from './analytics';
 
 type Session = { authenticated: boolean; username: string; csrf_token: string };
 type Counts = { total: number; reused: number; pending: number; running: number; complete: number; failed: number; superseded: number };
@@ -256,6 +257,7 @@ export default function PipelineAdmin() {
             const run = await request<Run>('/runs', { method: 'POST', body: JSON.stringify({ mode,
                 period: mode === 'monthly' ? period : '', max_notices: maximum ? Number(maximum) : null,
                 open_only: openOnly, request_key: submissionKey.current }) }, session!.csrf_token);
+            track('pipeline_run_started', { mode, open_only: openOnly, max_notices: maximum ? Number(maximum) : null });
             submissionKey.current = ''; setSource(''); setPage(1); setListing('runs'); setSelected(run.id); setJobPage(1); setJobState(''); setDetail(null);
             setMessage(`Zagon #${run.id} je v vrsti. Izvedel ga bo scheduler na strežniku.`);
         });
@@ -280,7 +282,7 @@ export default function PipelineAdmin() {
         {message && <div className="pipeline-message" role="status"><CheckCircle2 size={18}/>{message}</div>}
         <section className="surface pipeline-panel">
             <div className="section-heading"><h2><Database size={18}/>Izvoz podatkovne baze</h2></div>
-            <p className="section-help">Prenesite podatke aplikacije za uvoz v lokalno razvojno okolje. Izvoz vsebuje tudi profil podjetja in shranjene vnose; podatki niso anonimizirani. Uporabniški računi, gesla, prijavne seje in datoteke dokumentov niso vključeni.</p>
+            <p className="section-help">Prenesite podatke aplikacije za uvoz v lokalno razvojno okolje. Izvoz vsebuje skupne podatke in stare vnose brez lastnika; podatki niso anonimizirani. Zasebni vnosi uporabniških računov niso vključeni. Uporabniški računi, gesla, prijavne seje in datoteke dokumentov niso vključeni.</p>
             <a className="button" href="/api/admin/pipeline/database-export" target="_blank" rel="noopener noreferrer" download><Download size={16}/>Prenesi izvoz baze (.json.gz)</a>
             <p className="section-help">Pri večji bazi lahko priprava traja nekaj časa. Dokumente iz S3 je treba prenesti ločeno.</p>
         </section>

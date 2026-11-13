@@ -1,3 +1,4 @@
+from .accounts import following as account_following, ignored as account_ignored
 import re
 import unicodedata
 import math
@@ -233,7 +234,7 @@ def serialize_tender(tender, profile, documents=None, content_result=None):
             recommendation = 'review'
         if not has_unknown and not has_unmet and status == 'open':
             open_question = preference_notes[0]
-    return {**data, 'id': tender.pk, 'status': status, 'following': tender.following, 'criteria': criteria, 'lots': lots,
+    return {**data, 'id': tender.pk, 'status': status, 'following': account_following(tender), 'ignored': account_ignored(tender), 'criteria': criteria, 'lots': lots,
             'documents': [serialize_document(doc) for doc in docs], 'preference_notes': preference_notes,
             'match': {'level': level, 'score': score, 'mode': content_result.get('mode', 'rules'),
                       'warning': content_result.get('warning'), 'recommendation': recommendation, 'reasons': reasons,

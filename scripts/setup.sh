@@ -18,5 +18,5 @@ if [[ ! -d .venv ]]; then "$PYTHON_BIN" -m venv .venv; fi
 .venv/bin/python -m pip install -r backend/requirements.txt
 npm --prefix frontend ci
 .venv/bin/python backend/manage.py migrate --noinput
-.venv/bin/python backend/manage.py seed_demo
+.venv/bin/python backend/manage.py init_workspace
 echo "Okolje je pripravljeno. Zaženite ./scripts/dev.sh"

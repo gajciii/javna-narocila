@@ -1,5 +1,6 @@
 import hashlib
 from pathlib import Path
+import time
 import uuid
 from django.conf import settings
 from django.http import FileResponse
@@ -9,10 +10,13 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from .accounts import account_id, companies, searches, lock_account
+from .analytics import capture
 from .models import CompanyProfile, Tender, SavedSearch, Notification, Document
-from .seed import ensure_seed, get_profile, demo_profile
+from .seed import ensure_seed, get_profile, demo_profile, get_active_company, empty_profile
+from .runtime_data import application_tenders, application_records, test_fixtures_enabled
 from .matching import serialize_tender
-from .filtering import apply_filters, keyword_matches, validate_filters
+from .filtering import apply_filters, keyword_matches, search_terms, validate_filters
 from .validation import validate_profile
 from .services import bootstrap, all_tenders, all_notifications, serialize_search, trigger_event
 from .documents import extract_pages, serialize_document, active_documents
@@ -37,9 +41,46 @@ def profile_view(request):
     ensure_seed()
     if request.method == 'PUT':
         with transaction.atomic():
-            record = CompanyProfile.objects.select_for_update().get(pk=1)
+            lock_account()
+            record = get_active_company()
+            if request.data.get('id', record.pk) != record.pk:
+                return Response({'message': 'Izbrano podjetje se je spremenilo. Osvežite stran.'}, status=409)
             record.data = validate_profile(request.data, record.data)
+            validate_unique_company(record.data, exclude=record.pk)
             record.save()
+    return Response(get_profile())
+
+
+def validate_unique_company(data, exclude=None):
+    from .improvements import company_key
+    key = company_key(data)
+    if any(company_key(item.data) == key for item in companies().exclude(pk=exclude)):
+        raise ValidationError('To podjetje je že shranjeno. Izberite ga med shranjenimi podjetji.')
+
+
+@api_view(['POST'])
+def profiles_view(request):
+    ensure_seed()
+    with transaction.atomic():
+        lock_account()
+        # Start with empty fields; a new company must never inherit demo capabilities.
+        empty = empty_profile()
+        data = validate_profile(request.data, empty)
+        validate_unique_company(data)
+        companies().filter(is_active=True).update(is_active=False)
+        CompanyProfile.objects.create(owner_id=account_id(), data=data, is_active=True)
+    return Response(get_profile(), status=201)
+
+
+@api_view(['POST'])
+def activate_profile_view(request, profile_id):
+    ensure_seed()
+    with transaction.atomic():
+        lock_account()
+        record = get_object_or_404(companies(), pk=profile_id)
+        companies().filter(is_active=True).update(is_active=False)
+        record.is_active = True
+        record.save(update_fields=['is_active'])
     return Response(get_profile())
 
 
@@ -68,8 +109,8 @@ def prefill_view(request):
             return Response({'message': str(exc)}, status=404)
         except RegistryUnavailable as exc:
             return Response({'code': 'ajpes_unavailable', 'message': str(exc)}, status=503)
-    if provider != 'demo':
-        raise ValidationError('Izberite vir ajpes ali demo.')
+    if provider != 'demo' or not test_fixtures_enabled():
+        raise ValidationError('Izberite vir AJPES.')
     profile = demo_profile()
     return Response({'profile': profile, 'source': 'demo', 'message': 'Prikazan je izmišljeni demo profil Lumina digital. To niso podatki iz AJPES. Podatke preverite in shranite izrecno.'})
 
@@ -114,7 +155,12 @@ def keyword_expansion_view(request):
     query = request.data.get('q', '')
     if not isinstance(query, str) or not 2 <= len(query.strip()) <= 1000:
         raise ValidationError({'q': 'Vnesite ključne besede od 2 do 1.000 znakov.'})
-    return Response(expand(query.strip()))
+    started = time.monotonic()
+    result = expand(query.strip())
+    capture('keyword_expansion', mode=result['mode'], suggestions=len(result['suggestions']),
+            from_awards=sum(1 for s in result['suggestions'] if not s['evidence'].get('document_id')),
+            duration_ms=round((time.monotonic() - started) * 1000))
+    return Response(result)
 
 
 def tender_detail(tender, profile):
@@ -125,18 +171,59 @@ def tender_detail(tender, profile):
 @api_view(['GET'])
 def tender_view(request, tender_id):
     ensure_seed()
-    return Response(tender_detail(get_object_or_404(Tender, pk=tender_id), get_profile()))
+    data = tender_detail(get_object_or_404(application_tenders(), pk=tender_id), get_profile())
+    # The search that led here, so the detail page can show which keywords the tender contains and where.
+    query = request.query_params.get('q', '')
+    if len(query) > 2000:
+        raise ValidationError({'q': 'Besedilo je predolgo ali neveljavno.'})
+    if query.strip():
+        from .keyword_expansion import document_keyword_hits
+        hits = document_keyword_hits(list(search_terms(query)), [data['id']]).get(data['id'], {})
+        data['keyword_matches'] = keyword_matches(data, query, hits)
+    return Response(data)
 
 
 @api_view(['POST'])
 def follow_view(request, tender_id):
     ensure_seed()
-    tender = get_object_or_404(Tender, pk=tender_id)
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
     following = request.data.get('following')
     if not isinstance(following, bool):
         raise ValidationError({'following': 'Pričakovana je logična vrednost.'})
-    tender.following = following
-    tender.save(update_fields=['following'])
+    if account_id() is None:
+        tender.following = following
+        tender.save(update_fields=['following'])
+    else:
+        from .models import TenderFollow
+        if following:
+            TenderFollow.objects.get_or_create(owner_id=account_id(), tender=tender)
+        else:
+            TenderFollow.objects.filter(owner_id=account_id(), tender=tender).delete()
+    if following:
+        from .models import TenderIgnore
+        TenderIgnore.objects.filter(owner_id=account_id(), tender=tender).delete()
+    return Response(tender_detail(tender, get_profile()))
+
+
+@api_view(['POST'])
+def ignore_view(request, tender_id):
+    ensure_seed()
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
+    ignored = request.data.get('ignored')
+    if not isinstance(ignored, bool):
+        raise ValidationError({'ignored': 'Pričakovana je logična vrednost.'})
+    from .models import TenderFollow, TenderIgnore
+    if ignored:
+        TenderIgnore.objects.get_or_create(owner_id=account_id(), tender=tender)
+        # An ignored tender is no longer of interest, so stop following it too.
+        if account_id() is None:
+            if tender.following:
+                tender.following = False
+                tender.save(update_fields=['following'])
+        else:
+            TenderFollow.objects.filter(owner_id=account_id(), tender=tender).delete()
+    else:
+        TenderIgnore.objects.filter(owner_id=account_id(), tender=tender).delete()
     return Response(tender_detail(tender, get_profile()))
 
 
@@ -148,14 +235,14 @@ def searches_view(request):
         if not isinstance(name, str) or not name.strip() or len(name) > 100:
             raise ValidationError({'name': 'Vnesite ime iskanja do 100 znakov.'})
         filters = validate_filters(request.data.get('filters', {}))
-        item = SavedSearch.objects.create(name=name.strip(), filters=filters)
+        item = SavedSearch.objects.create(owner_id=account_id(), name=name.strip(), filters=filters)
         return Response(serialize_search(item), status=201)
-    return Response([serialize_search(s) for s in SavedSearch.objects.all()])
+    return Response([serialize_search(s) for s in searches()])
 
 
 @api_view(['DELETE'])
 def search_view(request, search_id):
-    get_object_or_404(SavedSearch, pk=search_id).delete()
+    get_object_or_404(searches(), pk=search_id).delete()
     return Response(status=204)
 
 
@@ -195,7 +282,14 @@ def notifications_read_view(request):
     if request.data.get('id') is not None:
         item = get_object_or_404(queryset, pk=request.data['id'])
         queryset = queryset.filter(pk=item.pk)
-    queryset.update(read=True)
+    if account_id() is None:
+        queryset.update(read=True)
+    else:
+        from .models import NotificationRead
+        queryset.filter(type='improvement').update(read=True)
+        queryset = queryset.exclude(type='improvement')
+        NotificationRead.objects.bulk_create([NotificationRead(owner_id=account_id(), notification_id=pk)
+                                             for pk in queryset.values_list('pk', flat=True)], ignore_conflicts=True)
     return Response(all_notifications())
 
 
@@ -218,6 +312,8 @@ def plan_values(data, current=None):
         raise ValidationError('Načrt poimenujte z največ 100 znaki.')
     if source not in ('real', 'demo'):
         raise ValidationError('Demo in resnične razpise shranite v ločena načrta.')
+    if source != 'real' and not test_fixtures_enabled():
+        raise ValidationError('Načrt lahko temelji samo na resničnih razpisih.')
     return {'name': name.strip(), 'source_type': source,
             'actions': clean_actions(data.get('actions', current.actions if current else None))}
 
@@ -231,7 +327,7 @@ def improvement_plans_view(request):
         plan = ImprovementPlan.objects.create(company_key=company_key(), **plan_values(request.data))
         return Response(serialize_plan(plan), status=201)
     context = snapshot()
-    return Response([serialize_plan(p, context) for p in ImprovementPlan.objects.filter(company_key=company_key(context[0])).order_by('-updated_at')])
+    return Response([serialize_plan(p, context) for p in application_records(ImprovementPlan.objects.filter(company_key=company_key(context[0]))).order_by('-updated_at')])
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -239,7 +335,7 @@ def improvement_plan_view(request, plan_id):
     from .models import ImprovementPlan
     from .improvements import company_key, serialize_plan
     ensure_seed()
-    plan = get_object_or_404(ImprovementPlan, pk=plan_id, company_key=company_key())
+    plan = get_object_or_404(application_records(ImprovementPlan.objects.all()), pk=plan_id, company_key=company_key())
     if request.method == 'DELETE':
         plan.delete()
         return Response(status=204)
@@ -252,6 +348,8 @@ def improvement_plan_view(request, plan_id):
 
 @api_view(['POST'])
 def event_view(request):
+    if not test_fixtures_enabled():
+        return Response({'message': 'Demo način ni več na voljo.'}, status=410)
     ensure_seed()
     try:
         return Response(trigger_event(request.data.get('type')))
@@ -261,6 +359,8 @@ def event_view(request):
 
 @api_view(['POST'])
 def reset_view(request):
+    if not test_fixtures_enabled():
+        return Response({'message': 'Demo način ni več na voljo.'}, status=410)
     ensure_seed(reset=True)
     return Response(bootstrap())
 
@@ -291,7 +391,7 @@ def sync_view(request):
 @api_view(['POST'])
 def analyze_view(request, tender_id):
     ensure_seed()
-    tender = get_object_or_404(Tender, pk=tender_id)
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
     from .tender_conditions import extract_conditions
     outcomes = [analyze_document(doc) for doc in active_documents(tender)]
     record = extract_conditions(tender, force=True)
@@ -308,7 +408,7 @@ def analyze_view(request, tender_id):
 @parser_classes([MultiPartParser, FormParser])
 def document_upload_view(request, tender_id):
     ensure_seed()
-    tender = get_object_or_404(Tender, pk=tender_id)
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
     uploaded = request.FILES.get('file')
     if not uploaded:
         raise ValidationError({'file': 'Izberite dokument.'})
@@ -356,7 +456,7 @@ def document_upload_view(request, tender_id):
 @api_view(['GET'])
 def document_view(request, document_id):
     ensure_seed()
-    doc = get_object_or_404(Document, pk=document_id)
+    doc = get_object_or_404(Document.objects.filter(tender__in=application_tenders()), pk=document_id)
     if doc.path.startswith('s3://'):
         from .pipeline_storage import stream
         content_type = ('application/pdf' if doc.title.lower().endswith('.pdf') or doc.extraction.get('format') == 'pdf'
@@ -386,13 +486,17 @@ def similar_awards_view(request, tender_id):
     from .past_awards import ensure_past_awards, similar_awards
     ensure_seed()
     ensure_past_awards()
-    return Response(similar_awards(get_object_or_404(Tender, pk=tender_id)))
+    started = time.monotonic()
+    result = similar_awards(get_object_or_404(application_tenders(), pk=tender_id))
+    capture('similar_awards', mode=result['mode'], matching=result.get('matching'), results=len(result['results']),
+            warning=bool(result.get('warning')), duration_ms=round((time.monotonic() - started) * 1000))
+    return Response(result)
 
 
 @api_view(['GET'])
 def tender_faq_view(request, tender_id):
     from .pjn_faq import tender_faq
-    return Response(tender_faq(get_object_or_404(Tender, pk=tender_id)))
+    return Response(tender_faq(get_object_or_404(application_tenders(), pk=tender_id)))
 
 
 @api_view(['GET'])
@@ -400,7 +504,18 @@ def buyer_history_view(request, tender_id):
     from .buyer_history import history
     from .past_awards import ensure_past_awards
     ensure_past_awards()
-    return Response(history(get_object_or_404(Tender, pk=tender_id), request.query_params))
+    return Response(history(get_object_or_404(application_tenders(), pk=tender_id), request.query_params))
+
+
+@api_view(['POST'])
+def notification_email_test_view(request):
+    from django.core.cache import cache
+    from .accounts import account_id
+    from .email_notifications import send_test
+    # One test per account per minute is enough to check settings and keeps the button from mailing in bulk.
+    if not cache.add(f'email-test:{account_id()}', 1, 60):
+        return Response({'sent': False, 'message': 'Testno sporočilo lahko pošljete enkrat na minuto.'}, status=429)
+    return Response(send_test())
 
 
 @api_view(['GET', 'PUT'])

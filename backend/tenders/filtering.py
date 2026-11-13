@@ -103,6 +103,9 @@ def apply_filters(tenders, filters, keyword_hits=None):
         if keyword_hits is not None:
             keyword_hits.update(document_matches)
     for tender in tenders:
+        # Ignored tenders appear only in their own view, so they stop resurfacing in every list.
+        if (view == 'ignored') != bool(tender.get('ignored')):
+            continue
         if view == 'recommended':
             partner_opportunity = filters.get('include_partner_opportunities') and any(c['status'] == 'unmet' for c in tender['match']['conditions'])
             if tender['status'] != 'open' or tender['match']['level'] == 'low' or (tender['match']['recommendation'] == 'unsuitable' and not partner_opportunity):

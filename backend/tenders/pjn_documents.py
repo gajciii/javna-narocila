@@ -51,10 +51,22 @@ def download_documents(tender, max_file=MAX_FILE, max_expanded=MAX_EXPANDED, max
         job = enqueue_index(tender)
         return {'downloaded': 0, 'queued': True, 'job_id': job.pk,
                 'warning': 'Dokumentacija je v vrsti za prenos in indeksiranje na ločenem strežniku.'}
+    from .pjn_contracts import supported, sync_contracts
+    if supported(tender):
+        try:
+            from .pipeline_download import download_file
+            from .document_index import index_document
+            for item in sync_contracts(tender):
+                download_file(tender, item)
+            for doc in tender.document_records.filter(version=tender.data.get('version', 1),
+                                                       extraction__source='pjn-contract'):
+                index_document(doc)
+        except Exception as exc:
+            return {'downloaded': tender.document_records.count(), 'warning': safe_error(exc)}
     meta = dict(tender.data.get('source_metadata', {}))
     url = meta.get('attachment_url')
     if not url or meta.get('access_restricted') or not official_url(url, attachment=True):
-        return {'downloaded': 0, 'warning': 'Dokumentacija nima javne povezave za prenos s portala. Odprite izvorno objavo.'}
+        return {'downloaded': tender.document_records.filter(version=tender.data.get('version', 1)).count(), 'warning': 'Dokumentacija nima javne povezave za prenos s portala. Odprite izvorno objavo.'}
     try:
         payload, headers = fetch(url, max_bytes=max_file)
         message = Message()

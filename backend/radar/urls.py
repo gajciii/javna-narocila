@@ -1,9 +1,13 @@
 from django.urls import path
-from tenders import views, partner_views, espd_views, opportunities, pipeline_admin
+from tenders import views, partner_views, espd_views, opportunities, pipeline_admin, auth_views
 from tenders.health import health_view
 from tenders.submission_views import submission_review_view
 
 urlpatterns = [
+    path('api/auth/session', auth_views.session_view),
+    path('api/auth/register', auth_views.register_view),
+    path('api/auth/login', auth_views.login_view),
+    path('api/auth/logout', auth_views.logout_view),
     path('api/health', health_view),
     path('api/admin/pipeline/session', pipeline_admin.session_view),
     path('api/admin/pipeline/login', pipeline_admin.login_view),
@@ -27,6 +31,8 @@ urlpatterns = [
     path('api/certifications', partner_views.certifications_view),
     path('api/bootstrap', views.bootstrap_view),
     path('api/profile', views.profile_view),
+    path('api/profiles', views.profiles_view),
+    path('api/profiles/<int:profile_id>/activate', views.activate_profile_view),
     path('api/profile/prefill', views.prefill_view),
     path('api/profile/award-references', views.award_references_view),
     path('api/profile/website', views.website_profile_view),
@@ -34,6 +40,7 @@ urlpatterns = [
     path('api/tenders', views.tenders_view),
     path('api/tenders/<slug:tender_id>', views.tender_view),
     path('api/tenders/<slug:tender_id>/follow', views.follow_view),
+    path('api/tenders/<slug:tender_id>/ignore', views.ignore_view),
     path('api/tenders/<slug:tender_id>/analyze', views.analyze_view),
     path('api/tenders/<slug:tender_id>/documents', views.document_upload_view),
     path('api/searches', views.searches_view),
@@ -42,6 +49,7 @@ urlpatterns = [
     path('api/filters/suggest', views.filter_suggestion_view),
     path('api/chat', views.chat_view),
     path('api/notifications/email-settings', views.notification_email_settings_view),
+    path('api/notifications/email-test', views.notification_email_test_view),
     path('api/notifications', views.notifications_view),
     path('api/notifications/read', views.notifications_read_view),
     path('api/improvements/evaluate', views.improvement_evaluate_view),

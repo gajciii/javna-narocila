@@ -7,10 +7,11 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
         ...(csrf && unsafe ? { 'X-CSRFToken': decodeURIComponent(csrf) } : {}), ...options.headers } });
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        if (body.code === 'login_required') window.location.hash = '/administracija';
+        if (body.code === 'login_required') window.dispatchEvent(new Event('account-session-expired'));
         const flatten = (value: unknown): string => typeof value === 'string' ? value : Array.isArray(value) ? value.map(flatten).join(' ') : value && typeof value === 'object' ? Object.values(value).map(flatten).join(' ') : '';
         throw new Error(flatten(body.error || body.detail || body.message || body) || `Zahteve ni bilo mogoče zaključiti (${response.status}).`);
     }
+    if (unsafe && ['/admin/pipeline/login', '/admin/pipeline/logout'].includes(path)) window.dispatchEvent(new Event('account-session-changed'));
     if (response.status === 204)
         return undefined as T;
     return response.json() as Promise<T>;

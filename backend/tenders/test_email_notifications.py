@@ -54,7 +54,7 @@ class EmailNotificationTests(TestCase):
         message = mail.outbox[0]
         self.assertEqual(message.to, ['user@example.com'])
         self.assertIn('https://razpizi.example.com/#/razpisi/email-test?tab=changes', message.body)
-        self.assertIn('https://razpizi.example.com/#/obvestila', message.body)
+        self.assertIn('https://razpizi.example.com/#/racun', message.body)
         self.assertIn('Občina Primer', message.body)
         self.assertIn('Sprememba roka', mail.outbox[1].subject)
         self.assertEqual(status()['pending'], 0)
@@ -115,6 +115,29 @@ class EmailNotificationTests(TestCase):
         self.notification()
         self.assertEqual(process(), 1)
         self.assertEqual(mail.outbox[0].to, ['third@example.com'])
+
+    def test_only_chosen_types_are_sent_and_deselected_pending_is_cancelled(self):
+        self.assertEqual(status()['types'], ['correction', 'deadline'])
+        self.enable()
+        correction, deadline = self.notification(), self.notification(type='deadline')
+        enqueue()
+        save_settings({'enabled': True, 'email': 'user@example.com', 'types': ['deadline']})
+        states = dict(NotificationEmail.objects.values_list('notification_id', 'state'))
+        self.assertEqual(states, {correction.pk: 'cancelled', deadline.pk: 'pending'})
+        self.notification()
+        later = self.notification(type='deadline')
+        self.assertEqual(process(), 2)
+        self.assertEqual(set(NotificationEmail.objects.filter(state='sent').values_list('notification_id', flat=True)),
+                         {deadline.pk, later.pk})
+        self.assertEqual(status()['types'], ['deadline'])
+
+    def test_types_are_validated(self):
+        client, url = APIClient(), '/api/notifications/email-settings'
+        for types in [['new'], 'deadline', [1], []]:
+            response = client.put(url, {'email': 'a@example.com', 'enabled': True, 'types': types}, format='json')
+            self.assertEqual(response.status_code, 400, types)
+        response = client.put(url, {'email': 'a@example.com', 'enabled': False, 'types': []}, format='json')
+        self.assertEqual((response.status_code, response.data['types']), (200, []))
 
     def test_saving_unchanged_settings_keeps_pending_and_original_cutoff(self):
         self.enable()
@@ -286,3 +309,51 @@ class ResendNotificationTests(TestCase):
         self.assertEqual(process(), 1)
         post.assert_not_called()
         self.assertEqual(len(mail.outbox), 1)
+
+
+@override_settings(EMAIL_PROVIDER='smtp', EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    EMAIL_HOST='smtp.example.com', DEFAULT_FROM_EMAIL='RazpIzi <notice@example.com>',
+    PUBLIC_APP_URL='https://razpizi.example.com', EMAIL_USE_TLS=True, EMAIL_USE_SSL=False)
+class TestEmailTests(TestCase):
+    url = '/api/notifications/email-test'
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_sends_to_saved_recipient_and_limits_rate(self):
+        save_settings({'enabled': False, 'email': 'user@example.com'})
+        client = APIClient()
+        response = client.post(self.url)
+        self.assertEqual((response.status_code, response.data['sent']), (200, True))
+        self.assertEqual(mail.outbox[0].to, ['user@example.com'])
+        self.assertIn('Testno', mail.outbox[0].subject)
+        self.assertEqual(client.post(self.url).status_code, 429)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertFalse(NotificationEmail.objects.exists())
+
+    def test_reports_missing_settings_and_recipient(self):
+        self.assertIn('naslov', APIClient().post(self.url).data['message'])
+        save_settings({'enabled': False, 'email': 'user@example.com'})
+        from django.core.cache import cache
+        cache.clear()
+        with override_settings(EMAIL_PROVIDER='resend', RESEND_API_KEY='', DEFAULT_FROM_EMAIL=''):
+            data = APIClient().post(self.url).data
+        self.assertFalse(data['sent'])
+        self.assertIn('RESEND_API_KEY', data['message'])
+        self.assertIn('DEFAULT_FROM_EMAIL', data['message'])
+        self.assertEqual(len(mail.outbox), 0)
+
+    @patch('tenders.email_notifications.requests.post')
+    def test_resend_rejection_explains_why_without_the_key(self, post):
+        save_settings({'enabled': False, 'email': 'user@example.com'})
+        response = requests.Response()
+        response.status_code = 403
+        response._content = b'{"message": "The example.com domain is not verified."}'
+        post.return_value = response
+        with override_settings(EMAIL_PROVIDER='resend', RESEND_API_KEY='re_secret'):
+            data = APIClient().post(self.url).data
+        self.assertFalse(data['sent'])
+        self.assertIn('403', data['message'])
+        self.assertIn('not verified', data['message'])
+        self.assertNotIn('re_secret', str(data))

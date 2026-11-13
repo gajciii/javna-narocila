@@ -58,6 +58,8 @@ def login_view(request):
         cache.set(key, failures + 1, 900)
         return JsonResponse({'error': 'Prijava ni uspela. Preverite administratorske prijavne podatke.'}, status=403)
     cache.delete(key)
+    from .auth_views import claim_legacy_workspace
+    claim_legacy_workspace(user)
     login(request, user)
     return JsonResponse({'authenticated': True, 'username': user.username, 'csrf_token': get_token(request)})
 

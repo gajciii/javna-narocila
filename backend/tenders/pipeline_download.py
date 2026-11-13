@@ -63,13 +63,29 @@ def register(tender, path, title, digest, archive=False):
 
 
 def download(tender):
+    from .pjn_contracts import supported, sync_contracts
+    if supported(tender) and not tender.data.get('source_metadata', {}).get('contracts_synced_at'):
+        sync_contracts(tender)
     meta = tender.data.get('source_metadata', {})
-    url = meta.get('attachment_url')
-    if not url or meta.get('access_restricted'):
+    files = list(meta.get('contract_files', []))
+    if meta.get('attachment_url') and not meta.get('access_restricted'):
+        files.insert(0, {'url': meta['attachment_url']})
+    for item in files:
+        download_file(tender, item)
+
+
+def download_file(tender, item):
+    url = item['url']
+    version = tender.data.get('version', 1)
+    # Preserve completed downloads made before the per-file cache was introduced.
+    legacy_key = hashlib.sha256(f'{version}:{url}'.encode()).hexdigest()
+    if ('contract_id' not in item
+            and tender.data.get('source_metadata', {}).get('pipeline_download_key') == legacy_key
+            and tender.document_records.filter(version=version).exists()):
         return
-    download_key = hashlib.sha256(f'{tender.data.get("version", 1)}:{url}'.encode()).hexdigest()
-    if meta.get('pipeline_download_key') == download_key and tender.document_records.filter(
-            version=tender.data.get('version', 1)).exists():
+    # Cache each source separately: adding a contract must not re-download a large archive.
+    if tender.document_records.filter(version=version, extraction__source_url=url,
+                                       extraction__download_complete=True).exists():
         return
     with tempfile.TemporaryDirectory(prefix='razpizi-download-') as directory:
         root = Path(directory)
@@ -80,6 +96,10 @@ def download(tender):
         def unpack(path, title, digest, depth=0):
             archive = zipfile.is_zipfile(path) and not title.lower().endswith(OFFICE)
             document = register(tender, path, title, digest, archive=archive)
+            document.extraction = {**document.extraction, 'source_url': url,
+                **({'source': 'pjn-contract', 'contract_id': item['contract_id'],
+                    'notice_number': item['notice_number']} if 'contract_id' in item else {})}
+            document.save(update_fields=['extraction'])
             if not archive:
                 return
             try:
@@ -107,9 +127,10 @@ def download(tender):
                 document.error = 'Arhiva ni bilo mogoče v celoti razpakirati; potreben je ponoven ali ročni pregled.'
                 document.save(update_fields=['status', 'error'])
                 raise
-        unpack(path, title, digest)
-    # Refresh before touching metadata; do not overwrite unrelated concurrent changes.
-    tender.refresh_from_db()
-    tender.data = {**tender.data, 'source_metadata': {**tender.data.get('source_metadata', {}),
-                   'pipeline_download_key': download_key}}
-    tender.save(update_fields=['data'])
+        unpack(path, item.get('title') or title, digest)
+        document = register(tender, path, item.get('title') or title, digest,
+                            archive=zipfile.is_zipfile(path) and not title.lower().endswith(OFFICE))
+        document.extraction = {**document.extraction, 'source_url': url, 'download_complete': True,
+            **({'source': 'pjn-contract', 'contract_id': item['contract_id'],
+                'notice_number': item['notice_number']} if 'contract_id' in item else {})}
+        document.save(update_fields=['extraction'])

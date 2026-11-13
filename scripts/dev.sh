@@ -18,7 +18,7 @@ for value in sys.argv[1:]:
         raise SystemExit(f'Vrata {value} niso na voljo. Ustavite prejšnji zagon ali nastavite RADAR_BACKEND_PORT in RADAR_FRONTEND_PORT.')
 PY
 .venv/bin/python backend/manage.py migrate --noinput
-.venv/bin/python backend/manage.py seed_demo
+.venv/bin/python backend/manage.py init_workspace
 .venv/bin/python backend/manage.py runserver "127.0.0.1:$RADAR_BACKEND_PORT" --noreload &
 RADAR_BACKEND_PID=$!
 trap 'kill "$RADAR_BACKEND_PID" 2>/dev/null || true' EXIT INT TERM

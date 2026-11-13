@@ -177,8 +177,9 @@ class ImporterTests(TestCase):
         self.assertEqual(SyncRun.objects.count(), 1)
         self.assertTrue(SyncRun.objects.get().finished_at)
 
+    @patch('tenders.pjn_contracts.supported', return_value=False)
     @patch('tenders.pjn_documents.fetch')
-    def test_actual_pdf_and_safe_zip_processing(self, fetch_file):
+    def test_actual_pdf_and_safe_zip_processing(self, fetch_file, _contract_support):
         record, _, _ = persist_notice(normalize_notice(self.payload(razpisnaDokumentacijaURL='https://www.enarocanje.si/api/datoteka/get?id=public'), '9999999'))
         pdf = (settings.DEMO_DOCUMENTS_ROOT / 'energy-v1.pdf').read_bytes()
         archive = io.BytesIO()

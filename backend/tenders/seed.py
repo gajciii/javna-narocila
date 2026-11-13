@@ -3,11 +3,20 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from .accounts import account_id, companies, searches, lock_account
 from .models import CompanyProfile, Tender, TenderVersion, SavedSearch, Notification, DemoEvent, Document
+from .runtime_data import test_fixtures_enabled
+
+
+def empty_profile():
+    profile = {key: [] if isinstance(value, list) else None if isinstance(value, (int, float)) else ''
+               for key, value in demo_profile().items() if key != 'id'}
+    profile['source'] = 'user'
+    return profile
 
 
 def today():
-    return date.fromisoformat(settings.DEMO_DATE) if settings.DEMO_DATE else timezone.localdate()
+    return date.fromisoformat(settings.DEMO_DATE) if test_fixtures_enabled() and settings.DEMO_DATE else timezone.localdate()
 
 
 def demo_profile():
@@ -74,24 +83,52 @@ def seed_tenders():
 
 @transaction.atomic
 def ensure_seed(reset=False):
+    if account_id() is not None:
+        lock_account()
+    if not test_fixtures_enabled():
+        if not companies().exists():
+            CompanyProfile.objects.create(owner_id=account_id(), data=empty_profile(), is_active=True)
+        return
     if reset:
         Notification.objects.filter(is_demo=True).delete()
         DemoEvent.objects.all().delete()
-        SavedSearch.objects.all().delete()
+        searches().delete()
         Tender.objects.filter(data__source_type='demo').delete()
-        CompanyProfile.objects.all().delete()
-    if not CompanyProfile.objects.filter(pk=1).exists():
-        CompanyProfile.objects.create(pk=1, data=demo_profile())
+        companies().delete()
+    if not CompanyProfile.objects.filter(owner__isnull=True).exists():
+        if not CompanyProfile.objects.filter(pk=1).exists():
+            CompanyProfile.objects.create(pk=1, data=demo_profile(), is_active=True)
+            from django.db import connection
+            from django.core.management.color import no_style
+            for sql in connection.ops.sequence_reset_sql(no_style(), [CompanyProfile]):
+                with connection.cursor() as cursor:
+                    cursor.execute(sql)
+        else:
+            CompanyProfile.objects.create(data=demo_profile(), is_active=True)
+    if account_id() is not None and not companies().exists():
+        CompanyProfile.objects.create(owner_id=account_id(), data=demo_profile(), is_active=True)
     if reset or not Tender.objects.exists():
         for data in seed_tenders():
             tender, created = Tender.objects.get_or_create(id=data['id'], defaults={'data': data, 'following': data['id'] in ['satellite', 'sport-portal']})
             if created:
                 TenderVersion.objects.create(tender=tender, version=1, data=data)
-        SavedSearch.objects.create(name='Digitalne priložnosti', filters={'q': 'spletna platforma, integracija, IoT', 'statuses': ['open'], 'min_days': 14, 'view': 'all', 'include_unknown': True})
+        SavedSearch.objects.create(owner_id=account_id(), name='Digitalne priložnosti', filters={'q': 'spletna platforma, integracija, IoT', 'statuses': ['open'], 'min_days': 14, 'view': 'all', 'include_unknown': True})
     from .documents import load_demo_documents
     load_demo_documents()
 
 
 def get_profile():
-    record = CompanyProfile.objects.get(pk=1)
-    return {**record.data, 'id': 1, 'updated_at': record.updated_at.isoformat()}
+    record = get_active_company()
+    return serialize_profile(record)
+
+
+def get_active_company():
+    record = companies().filter(is_active=True).first() or companies().order_by('pk').first()
+    if record is None:
+        ensure_seed()
+        record = companies().filter(is_active=True).first() or companies().order_by('pk').first()
+    return record
+
+
+def serialize_profile(record):
+    return {**record.data, 'owner_id': record.owner_id, 'id': record.pk, 'updated_at': record.updated_at.isoformat()}

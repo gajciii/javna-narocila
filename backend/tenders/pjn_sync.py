@@ -6,9 +6,9 @@ from time import monotonic, sleep
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from django.db.models import Max
+from django.db.models import Max, Q
 
-from .models import PastAward, SyncRun, SyncAttempt, Tender, TenderVersion, Notification
+from .models import PastAward, SyncRun, SyncAttempt, Tender, TenderVersion, Notification, TenderFollow
 from .past_awards import from_pjn, import_notices
 from .pjn_normalize import normalize_notice, timestamp
 from .pjn_transport import fetch_json, safe_error
@@ -98,7 +98,7 @@ def persist_notice(data):
             # calculates cached Gemini fit in one batch when the refreshed list opens.
             evaluated = serialize_tender(record, get_profile(), content_result={'mode': 'rules'})
             relevant = evaluated['status'] == 'open' and evaluated['match']['level'] != 'low' and evaluated['match']['recommendation'] != 'unsuitable'
-            if (created and relevant) or (not created and record.following):
+            if (created and relevant) or (not created and (record.following or TenderFollow.objects.filter(tender=record, owner__is_active=True).exists())):
                 deadline_changed = not created and old.get('deadline') != data.get('deadline')
                 body = 'Predmet se ujema s profilom. Pogoje iz dokumentacije je treba še preveriti.'
                 if not created:
@@ -124,7 +124,7 @@ def collect_notice(notice_id, download=True, accept=None):
         record, created, changed = persist_notice(normalized)
         result = {'mode': 'live', 'tender': record, 'created': created, 'changed': changed,
                   'message': 'Pridobljeni so dejanski metapodatki iz e-Naročanja.'}
-        if download or record.following:
+        if download or record.following or TenderFollow.objects.filter(tender=record, owner__is_active=True).exists():
             # Before downloading, so the queued index job already includes the portal Q&A.
             from .pjn_faq import try_sync
             faq = try_sync(record, requeue=not download)
@@ -254,7 +254,7 @@ def sync_recent(limit=20):
                 ids.append(row['idObrazec'])
                 seen_dossiers.add(row.get('idDosje'))
         # A followed notice remains tracked even after it falls out of recommendations.
-        followed = Tender.objects.filter(following=True, data__source_type='real')
+        followed = Tender.objects.filter(Q(following=True) | Q(tenderfollow__owner__is_active=True), data__source_type='real').distinct()
         for tender in followed[:30]:
             if monotonic() - started > 60:
                 result['errors'].append({'id': 'zajem', 'message': 'Časovna omejitev zajema; preostali spremljani dosjeji niso bili preverjeni.'})

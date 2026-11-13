@@ -11,6 +11,7 @@ from .improvements import company_key
 from .matching import evaluate_requirement, serialize_tender, text_normalize, certification_key, content_match
 from .documents import active_documents
 from .validation import validate_profile
+from .runtime_data import application_tenders, test_fixtures_enabled
 
 POTENTIAL_LABEL = 'Potencialno pokrito – preverite pogoje skupne prijave'
 
@@ -48,6 +49,8 @@ def partner_values(payload, current=None):
     if not isinstance(payload, dict):
         raise ValidationError('Pričakovan je objekt partnerja.')
     source = payload.get('source_type', current.source_type if current else 'real')
+    if source != 'real' and not test_fixtures_enabled():
+        raise ValidationError('Dodajte dejansko podjetje in njegove sposobnosti.')
     if source not in ('real', 'demo') or (current and source != current.source_type):
         raise ValidationError('Vir partnerja mora biti real ali demo in ga ni mogoče zamenjati.')
     raw = payload.get('profile', {})
@@ -227,7 +230,7 @@ def certification_catalog():
     profile = get_profile()
     for label in profile.get('certifications', []):
         add(label)
-    for tender in Tender.objects.all():
+    for tender in application_tenders():
         docs = active_documents(tender)
         rendered = serialize_tender(tender, profile, docs, content_result={'mode': 'rules'})
         relevant = rendered['status'] == 'open' and rendered['match']['level'] != 'low'
@@ -242,6 +245,8 @@ def certification_catalog():
 
 @transaction.atomic
 def ensure_demo_partners(profile=None):
+    if not test_fixtures_enabled():
+        return
     profile = profile or get_profile()
     key = company_key(profile)
     marker, created = DemoEvent.objects.get_or_create(key='partners-v1-' + key)

@@ -19,7 +19,8 @@ export const queryClient = new QueryClient({
 export const queryKeys = {
     bootstrap: ['bootstrap'] as const,
     tenders: (query: string) => ['tenders', query] as const,
-    tender: (id: string) => ['tender', id] as const,
+    /** `search` is the list search that opened the tender; the response then includes its keyword matches. */
+    tender: (id: string, search = '') => ['tender', id, search] as const,
     similarAwards: (tenderId: string) => ['similar-awards', tenderId] as const,
     tenderFaq: (tenderId: string) => ['tender-faq', tenderId] as const,
     buyerHistory: (tenderId: string, query: string) => ['buyer-history', tenderId, query] as const,

@@ -1,7 +1,7 @@
 import { ArrowRight, Bookmark, CalendarDays, CheckCircle2, ChevronRight, CircleHelp, Radar, Sparkles } from 'lucide-react';
 import type { Bootstrap, Filters, Tender } from './types';
 
-const recommended = (t: Tender) => t.status === 'open' && t.match.level !== 'low' && ['recommended', 'review'].includes(t.match.recommendation);
+const recommended = (t: Tender) => !t.ignored && t.status === 'open' && t.match.level !== 'low' && ['recommended', 'review'].includes(t.match.recommendation);
 
 export function OpportunityOverview({ data, onView }: { data: Bootstrap; onView: (filters: Filters) => void }) {
     const opportunities = data.tenders.filter(recommended);
@@ -34,17 +34,17 @@ export function OpportunityAside({ data, goChat }: { data: Bootstrap; goChat: ()
             <h2>Od dolgega razpisa<br/>do jasne odločitve.</h2>
             <p>Preverite pogoje, poiščite dokaze ali primerjajte priložnosti za svoje podjetje.</p>
             <button className="button" onClick={goChat}>Vprašaj pomočnika<ArrowRight size={16}/></button>
-            <span className="assistant-mode">{data.meta.ai_mode === 'live' ? 'AI je povezan' : 'Demo način · pripravljeni odgovori'}</span>
+            <span className="assistant-mode">{data.meta.ai_mode === 'live' ? 'AI je povezan' : 'AI ni povezan · pregled po pravilih'}</span>
         </section>
         <section className="deadline-agenda">
             <div className="aside-heading"><h2>Prihajajoči roki</h2><CalendarDays size={18}/></div>
             <p>Odprti razpisi, ki jih spremljate</p>
             {deadlines.length ? deadlines.map(t => <a key={t.id} className="agenda-item" href={`#/razpisi/${t.id}`}>
                 <span className="agenda-date"><strong>{new Date(t.deadline!).toLocaleDateString('sl-SI', { day: '2-digit', timeZone: 'Europe/Ljubljana' }).replace('.', '')}</strong><small>{new Date(t.deadline!).toLocaleDateString('sl-SI', { month: 'short', timeZone: 'Europe/Ljubljana' })}</small></span>
-                <span><strong>{t.title}</strong><small>{t.source_type === 'demo' ? 'Demo razpis' : 'e-Naročanje'}</small></span><ChevronRight size={16}/>
+                <span><strong>{t.title}</strong><small>e-Naročanje</small></span><ChevronRight size={16}/>
             </a>) : <div className="agenda-empty"><Bookmark size={20}/><p>Spremljajte razpis in njegov rok se bo prikazal tukaj.</p></div>}
         </section>
         <a className="profile-nudge" href="#/profil"><span>{incomplete ? <CircleHelp size={20}/> : <CheckCircle2 size={20}/>}</span><div><strong>{incomplete ? 'Dopolnite svoje reference' : 'Vaš profil, vaše priložnosti.'}</strong><p>{incomplete ? `Reference z manjkajočimi podatki: ${incomplete}. Dopolnitev omogoča natančnejši pregled pogojev.` : 'Posodobite znanja, ekipo in reference svojega podjetja.'}</p><span>Uredi profil<ArrowRight size={14}/></span></div></a>
-        <p className="data-context">Pregled vključuje shranjene objave in označene demo primere. Ujemanje ni zagotovilo za uspešno prijavo.</p>
+        <p className="data-context">Pregled vključuje shranjene objave s portala e-Naročanje. Ujemanje ni zagotovilo za uspešno prijavo.</p>
     </aside>;
 }
