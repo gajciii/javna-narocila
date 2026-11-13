@@ -32,7 +32,7 @@ function WinnerRanking({ winners }: { winners: SimilarAwards['summary']['top_win
     </div>;
 }
 
-function Award({ award }: { award: PastAward }) {
+export function HistoricalAward({ award }: { award: Omit<PastAward, 'similarity'> & { similarity?: number } }) {
     const awardCurrency = award.award_currency === undefined ? award.currency : award.award_currency;
     const estimateCurrency = award.estimate_currency === undefined ? award.currency : award.estimate_currency;
     const comparison = award.value_comparison;
@@ -43,7 +43,7 @@ function Award({ award }: { award: PastAward }) {
     return <article className="similar-tender">
         <a className="similar-tender-link" href={award.notice_url} target="_blank" rel="noopener noreferrer" aria-label={`${award.title} – odpri uradno objavo v novem zavihku`}>
             <div className="similar-tender-subject">
-                <div className="similar-tender-meta"><span>Podobnost predmeta {Math.round(award.similarity * 100)} %</span><span>{day(award.published_on)}</span>{award.framework && <span>Okvirni sporazum</span>}</div>
+                <div className="similar-tender-meta">{award.similarity != null && <span>Podobnost predmeta {Math.round(award.similarity * 100)} %</span>}<span>{day(award.published_on)}</span>{award.framework && <span>Okvirni sporazum</span>}</div>
                 <h4>{award.title}</h4>
                 {award.lot_title && award.lot_title !== award.title && <p className="similar-tender-lot">Sklop: {award.lot_title}</p>}
                 <p className="similar-tender-buyer"><Building2 size={15}/>{award.buyer}</p>
@@ -92,7 +92,7 @@ export default function PastAwardsPanel({ tenderId }: { tenderId: string }) {
                     <div><strong>{knownBids.length ? <>{singleBids}<small> od {knownBids.length}</small></> : '—'}</strong><span>naročil z eno samo ponudbo</span></div>
                 </div>
                 <div className="similar-awards-list-heading"><div><h3>Podobni razpisi</h3><p>Klik na razpis odpre uradno objavo v novem zavihku. To so pretekla naročila, na katera se ne morete več prijaviti.</p></div><label className="similar-awards-sort"><span>Razvrsti</span><select value={sort} onChange={event => setSort(event.target.value)}><option value="similarity">Najbolj podobni</option><option value="newest">Najnovejši</option></select></label></div>
-                <div className="similar-tenders-list">{results.map(award => <Award key={award.id} award={award}/>)}</div>
+                <div className="similar-tenders-list">{results.map(award => <HistoricalAward key={award.id} award={award}/>)}</div>
                 {s && s.top_winners.length > 0 && <WinnerRanking winners={s.top_winners}/>}
             </>}
             <details className="similar-awards-disclosure"><summary>Viri in način primerjave<ChevronDown size={18}/></summary><div className="similar-awards-method">
