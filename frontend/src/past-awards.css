@@ -11,13 +11,38 @@
 .past-awards-winners li span { margin-right:8px; }
 .past-awards-winners small { color:var(--muted); }
 .past-awards-list { display:grid; gap:12px; }
-.past-award { display:grid; gap:10px; padding:16px; border:1px solid var(--line); border-radius:12px; background:#fff; }
-.past-award-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
-.past-award-head h3 { font-size:15px; color:var(--ink); margin:0; line-height:1.4; }
+.past-awards-list-title { margin:8px 0 0; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+.past-award { display:grid; gap:12px; padding:16px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+.past-award-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+.past-award-head h3 { font-size:16px; color:var(--ink); margin:4px 0 0; line-height:1.4; }
 .past-award-head .badge { flex-shrink:0; }
-.past-award-lot, .past-award-meta { margin:4px 0 0; font-size:12px; color:var(--muted); line-height:1.5; }
-.past-award-facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px 16px; margin:0; }
-.past-award-facts dt { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
-.past-award-facts dd { margin:2px 0 0; font-size:13px; color:var(--ink); line-height:1.45; }
-.past-award .text-link { display:inline-flex; align-items:center; gap:4px; font-size:12px; justify-self:start; }
+.past-award-meta { display:flex; align-items:center; gap:6px; margin:0; font-size:12px; color:var(--muted); line-height:1.5; }
+.past-award-meta svg { flex-shrink:0; }
+.past-award-lot { margin:4px 0 0; font-size:13px; color:var(--muted); line-height:1.5; }
+/* The outcome is what the user scans for: who won and for how much. */
+.past-award-outcome { display:grid; grid-template-columns:auto 1fr auto; gap:6px 14px; align-items:start; padding:14px 16px; border-radius:10px; background:var(--soft, #e9f3ef); }
+.past-award-outcome > svg { color:var(--green, #197363); margin-top:2px; }
+.past-award-outcome.none { grid-template-columns:auto 1fr; background:#fbf4ea; }
+.past-award-outcome.none > svg { color:var(--amber, #99621a); }
+.past-award-outcome > div { display:grid; gap:2px; min-width:0; }
+.past-award-outcome strong { font-size:15px; font-weight:600; color:var(--ink); line-height:1.4; overflow-wrap:anywhere; }
+.past-award-outcome strong small { font-weight:400; font-size:12px; color:var(--muted); }
+.past-award-outcome.none span { font-size:13px; color:var(--muted); }
+.past-award-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+.past-award-price { text-align:right; }
+.past-award-price strong { font-size:17px; font-variant-numeric:tabular-nums; }
+.past-award-price small { font-size:12px; color:var(--muted); }
+.past-award-details { list-style:none; display:flex; flex-wrap:wrap; gap:6px 24px; margin:0; padding:0; font-size:13px; color:var(--ink); }
+.past-award-details li { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; }
+.past-award-details li.wide { flex-basis:100%; }
+.past-award-details span { color:var(--muted); }
+.past-award-details span::after { content:':'; }
+.past-award-details small { color:var(--muted); }
+.past-award-single { font-style:normal; font-size:11px; font-weight:600; padding:1px 8px; border-radius:999px; background:#fbf4ea; color:var(--amber, #99621a); }
+.past-award .text-link { display:inline-flex; align-items:center; gap:4px; font-size:13px; }
+@media (max-width:640px) {
+  .past-award-head { flex-direction:column; }
+  .past-award-outcome { grid-template-columns:auto 1fr; }
+  .past-award-price { grid-column:2; text-align:left; }
+}
 .past-awards-note, .past-awards-source { margin:0; font-size:12px; color:var(--muted); line-height:1.6; }
