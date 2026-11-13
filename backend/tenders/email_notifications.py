@@ -1,9 +1,10 @@
-"""Durable SMTP/Resend outbox for future changes of followed, real tenders."""
+"""Durable SMTP/Resend outbox for followed changes and new-tender digests."""
 import logging
 import re
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from email.utils import parseaddr
 from urllib.parse import quote, urlsplit
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -12,15 +13,29 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import EmailMessage
 from django.core.validators import validate_email
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Max, Min
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from .accounts import account_id
-from .models import EMAIL_TYPES, EmailNotificationSettings, Notification, NotificationEmail, TenderFollow
+from .models import (EMAIL_TYPES, EmailNotificationSettings, Notification, NotificationEmail,
+                     Tender, TenderDigestEmail, TenderFollow)
 
 log = logging.getLogger(__name__)
 MAX_ATTEMPTS = 5
+DIGEST_FREQUENCIES = ('daily', 'weekly')
+
+
+def next_digest_at(now, frequency):
+    """Next 08:00 in Slovenia; weekly digests go out on Monday."""
+    local = now.astimezone(ZoneInfo(settings.TIME_ZONE))
+    day = local.date()
+    if frequency == 'weekly':
+        day += timedelta(days=(7 - day.weekday()) % 7)
+    candidate = datetime.combine(day, time(8), tzinfo=ZoneInfo(settings.TIME_ZONE))
+    if candidate <= local:
+        candidate += timedelta(days=7 if frequency == 'weekly' else 1)
+    return candidate
 
 
 def transport_ready():
@@ -39,13 +54,18 @@ def transport_ready():
 def status():
     config, _ = EmailNotificationSettings.objects.get_or_create(owner_id=account_id())
     deliveries = NotificationEmail.objects.filter(owner_id=account_id())
-    last = deliveries.aggregate(sent=Max('sent_at'))['sent']
+    digests = TenderDigestEmail.objects.filter(owner_id=account_id())
+    last = max(filter(None, (deliveries.aggregate(sent=Max('sent_at'))['sent'],
+                             digests.aggregate(sent=Max('sent_at'))['sent'])), default=None)
     account_email = getattr(getattr(config, 'owner', None), 'email', '') or ''
     return {'enabled': config.enabled, 'email': config.email, 'account_email': account_email,
-            'types': [t for t in EMAIL_TYPES if t in config.types], 'transport_ready': transport_ready(),
+            'types': [t for t in EMAIL_TYPES if t in config.types],
+            'digest_enabled': config.digest_enabled, 'digest_frequency': config.digest_frequency,
+            'digest_next_at': config.digest_next_at.isoformat() if config.digest_next_at else None,
+            'transport_ready': transport_ready(),
             'provider': settings.EMAIL_PROVIDER if settings.EMAIL_PROVIDER in ('smtp', 'resend') else 'unavailable',
-            'pending': deliveries.filter(state='pending').count(),
-            'failed': deliveries.filter(state='failed').count(),
+            'pending': deliveries.filter(state='pending').count() + digests.filter(state='pending').count(),
+            'failed': deliveries.filter(state='failed').count() + digests.filter(state='failed').count(),
             'last_sent_at': last.isoformat() if last else None}
 
 
@@ -58,8 +78,6 @@ def save_settings(data):
     if not isinstance(types, list) or not all(isinstance(t, str) and t in EMAIL_TYPES for t in types):
         raise ValidationError({'types': 'Izberite veljavne vrste obvestil.'})
     types = [t for t in EMAIL_TYPES if t in types]
-    if enabled and not types:
-        raise ValidationError({'types': 'Izberite vsaj eno vrsto obvestil ali izklopite e-poštna obvestila.'})
     if not isinstance(email, str) or len(email) > 254:
         raise ValidationError({'email': 'Vnesite veljaven e-poštni naslov.'})
     email = email.strip()
@@ -70,16 +88,43 @@ def save_settings(data):
             raise ValidationError({'email': 'Vnesite veljaven e-poštni naslov.'})
     config, _ = EmailNotificationSettings.objects.get_or_create(owner_id=account_id())
     config = EmailNotificationSettings.objects.select_for_update().get(pk=config.pk)
+    digest_enabled = data.get('digest_enabled', config.digest_enabled)
+    frequency = data.get('digest_frequency', config.digest_frequency)
+    if not isinstance(digest_enabled, bool):
+        raise ValidationError({'digest_enabled': 'Izberite, ali želite prejemati nove razpise.'})
+    if frequency not in DIGEST_FREQUENCIES:
+        raise ValidationError({'digest_frequency': 'Izberite dnevno ali tedensko pošiljanje.'})
+    if enabled and not types and not digest_enabled:
+        raise ValidationError({'types': 'Izberite vsaj eno vrsto obvestil ali izklopite e-poštna obvestila.'})
     changed = config.email != email or config.enabled != enabled
+    digest_changed = config.digest_enabled != digest_enabled or config.digest_frequency != frequency
     if changed:
         # No old notifications are mailed after enabling or changing the recipient.
         config.enabled_since = timezone.now() if enabled else None
         NotificationEmail.objects.filter(owner_id=account_id(), state__in=['pending', 'failed']).update(state='cancelled')
+        TenderDigestEmail.objects.filter(owner_id=account_id(), state__in=['pending', 'failed']).update(state='cancelled')
+        config.digest_cursor_at = config.enabled_since if enabled and digest_enabled else None
+        config.digest_next_at = next_digest_at(config.enabled_since, frequency) if enabled and digest_enabled else None
     elif removed := set(config.types) - set(types):
         # Messages of a type the user no longer wants are not sent.
         NotificationEmail.objects.filter(owner_id=account_id(), state__in=['pending', 'failed'],
                                          notification__type__in=removed).update(state='cancelled')
+    if not changed and digest_changed:
+        outstanding = TenderDigestEmail.objects.filter(owner_id=account_id(), state__in=['pending', 'failed'])
+        earliest = outstanding.aggregate(start=Min('period_start'))['start']
+        outstanding.update(state='cancelled')
+        if enabled and digest_enabled:
+            if not config.digest_enabled:
+                config.digest_cursor_at = timezone.now()
+            elif earliest and (not config.digest_cursor_at or earliest < config.digest_cursor_at):
+                config.digest_cursor_at = earliest
+            elif not config.digest_cursor_at:
+                config.digest_cursor_at = timezone.now()
+            config.digest_next_at = next_digest_at(timezone.now(), frequency)
+        else:
+            config.digest_cursor_at = config.digest_next_at = None
     config.email, config.enabled, config.types = email, enabled, types
+    config.digest_enabled, config.digest_frequency = digest_enabled, frequency
     config.save()
     return status()
 
@@ -124,6 +169,70 @@ def enqueue(limit=100):
     return count
 
 
+def digest_message(matches, frequency):
+    label = 'Dnevni' if frequency == 'daily' else 'Tedenski'
+    subject = f'RazpIzi · {label.lower()} pregled novih razpisov ({len(matches)})'
+    lines = [f'{label} pregled novih primernih razpisov', '',
+             f'Novi odprti razpisi za vaš trenutni profil: {len(matches)}.',
+             'Pogoje in dokumentacijo preverite pred odločitvijo za prijavo.', '']
+    for tender in matches[:100]:
+        lines.extend([f'• {tender["title"]} — {tender["buyer"]}',
+                      f'  {settings.PUBLIC_APP_URL}/#/razpisi/{quote(tender["id"], safe="")}', ''])
+    if len(matches) > 100:
+        lines.extend([f'Prikazanih je prvih 100 od {len(matches)} razpisov. Vse preglejte v aplikaciji:',
+                      f'{settings.PUBLIC_APP_URL}/#/razpisi', ''])
+    lines.extend(['Pogostost pošiljanja uredite v Moj račun:', f'{settings.PUBLIC_APP_URL}/#/racun'])
+    return subject[:250], '\n'.join(lines)
+
+
+@transaction.atomic
+def enqueue_digests(now=None):
+    """Queue at most one digest per account when its local daily or weekly slot is due."""
+    if not transport_ready():
+        return 0
+    from .accounts import account_scope, companies
+    from .matching import serialize_tender
+    from .seed import serialize_profile
+
+    now = now or timezone.now()
+    count = 0
+    configs = EmailNotificationSettings.objects.select_for_update().filter(enabled=True, digest_enabled=True)
+    for config in configs:
+        if config.owner_id is not None and not config.owner.is_active:
+            continue
+        if not config.digest_cursor_at or not config.digest_next_at:
+            # Existing subscribers start fresh after the migration; no historical backfill.
+            config.digest_cursor_at = now
+            config.digest_next_at = next_digest_at(now, config.digest_frequency)
+            config.save(update_fields=['digest_cursor_at', 'digest_next_at'])
+            continue
+        if config.digest_next_at > now:
+            continue
+        with account_scope(config.owner_id):
+            profile_record = companies().filter(is_active=True).first() or companies().order_by('pk').first()
+            profile = serialize_profile(profile_record) if profile_record else None
+            matches = []
+            if profile:
+                candidates = Tender.objects.filter(data__source_type='real', created_at__gte=config.digest_cursor_at,
+                                                   created_at__lt=now).order_by('created_at', 'pk')
+                for tender in candidates.iterator():
+                    result = serialize_tender(tender, profile, content_result={'mode': 'rules'})
+                    if (result['status'] == 'open' and result['match']['level'] != 'low'
+                            and result['match']['recommendation'] != 'unsuitable' and not result['ignored']):
+                        matches.append(result)
+        if matches:
+            subject, body = digest_message(matches, config.digest_frequency)
+            TenderDigestEmail.objects.create(owner_id=config.owner_id, recipient=config.email,
+                sender=settings.DEFAULT_FROM_EMAIL, subject=subject, body=body,
+                period_start=config.digest_cursor_at, period_end=now,
+                tender_ids=[item['id'] for item in matches])
+            count += 1
+        config.digest_cursor_at = now
+        config.digest_next_at = next_digest_at(now, config.digest_frequency)
+        config.save(update_fields=['digest_cursor_at', 'digest_next_at'])
+    return count
+
+
 class ProviderRejected(RuntimeError):
     """The provider answered but did not accept the message; `detail` is its own short explanation."""
     def __init__(self, detail):
@@ -162,6 +271,13 @@ def send(delivery):
              f'notification/{delivery.delivery_key}/{delivery.pk}')
 
 
+def send_digest(delivery):
+    host = urlsplit(settings.PUBLIC_APP_URL).hostname
+    transmit(delivery.sender, delivery.recipient, delivery.subject, delivery.body,
+             {'Message-ID': f'<razpizi-digest-{delivery.pk}@{host}>'},
+             f'digest/{delivery.delivery_key}/{delivery.pk}')
+
+
 def missing_settings():
     """Server settings that still prevent sending, named as they are set in the deployment."""
     missing = []
@@ -198,7 +314,7 @@ def send_test():
     provider = 'Resend' if settings.EMAIL_PROVIDER == 'resend' else 'SMTP'
     body = (f'To je testno sporočilo iz aplikacije RazpIzi.\n\n'
             f'Če ga berete, pošiljanje prek {provider} deluje in boste prejemali izbrana obvestila '
-            f'o razpisih, ki jih spremljate.\n\nNastavitve: {settings.PUBLIC_APP_URL}/#/racun\n')
+            f'o spremembah in novih primernih razpisih.\n\nNastavitve: {settings.PUBLIC_APP_URL}/#/racun\n')
     try:
         transmit(settings.DEFAULT_FROM_EMAIL, recipient, 'RazpIzi · Testno sporočilo', body,
                  {'Message-ID': f'<razpizi-test-{token}@{host}>'}, f'test/{token}')
@@ -249,8 +365,40 @@ def deliver(delivery_id):
     return delivery.state == 'sent'
 
 
+@transaction.atomic
+def deliver_digest(delivery_id):
+    owner = TenderDigestEmail.objects.values_list('owner_id', flat=True).get(pk=delivery_id)
+    config = EmailNotificationSettings.objects.select_for_update().filter(owner_id=owner).first()
+    delivery = TenderDigestEmail.objects.select_for_update().get(pk=delivery_id)
+    if delivery.state != 'pending' or delivery.available_at > timezone.now():
+        return False
+    if (not config or not config.enabled or not config.digest_enabled or config.email != delivery.recipient
+            or (owner is not None and not config.owner.is_active)):
+        delivery.state = 'cancelled'
+        delivery.save(update_fields=['state'])
+        return False
+    if not transport_ready():
+        return False
+    delivery.attempts += 1
+    try:
+        send_digest(delivery)
+    except Exception as exc:
+        log.warning('Tender digest delivery failed (%s)', type(exc).__name__)
+        delivery.error = 'Pošiljanje ni uspelo. Preverite nastavitve pošiljanja e-pošte.'
+        delivery.state = 'failed' if delivery.attempts >= MAX_ATTEMPTS else 'pending'
+        delivery.available_at = timezone.now() + timedelta(seconds=min(3600, 60 * 2 ** (delivery.attempts - 1)))
+    else:
+        delivery.state, delivery.sent_at, delivery.error = 'sent', timezone.now(), ''
+    delivery.save(update_fields=['state', 'attempts', 'sent_at', 'error', 'available_at'])
+    return delivery.state == 'sent'
+
+
 def process(limit=20):
     enqueue()
+    enqueue_digests()
     ids = list(NotificationEmail.objects.filter(state='pending', available_at__lte=timezone.now())
                .order_by('available_at', 'pk').values_list('pk', flat=True)[:limit])
-    return sum(deliver(pk) for pk in ids)
+    sent = sum(deliver(pk) for pk in ids)
+    digest_ids = list(TenderDigestEmail.objects.filter(state='pending', available_at__lte=timezone.now())
+                      .order_by('available_at', 'pk').values_list('pk', flat=True)[:max(0, limit - len(ids))])
+    return sent + sum(deliver_digest(pk) for pk in digest_ids)

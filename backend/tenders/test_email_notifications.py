@@ -1,16 +1,21 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from smtplib import SMTPException
 from unittest.mock import MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import requests
 
 from django.core import mail
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .email_notifications import deliver, enqueue, process, save_settings, status, transport_ready
-from .models import EmailNotificationSettings, Notification, NotificationEmail, Tender
+from .accounts import account_scope
+from .email_notifications import (deliver, deliver_digest, enqueue, enqueue_digests, next_digest_at,
+                                  process, save_settings, status, transport_ready)
+from .models import (CompanyProfile, EmailNotificationSettings, Notification, NotificationEmail,
+                     Tender, TenderDigestEmail, TenderFollow, TenderIgnore)
 
 
 @override_settings(EMAIL_PROVIDER='smtp', EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
@@ -134,8 +139,15 @@ class EmailNotificationTests(TestCase):
     def test_types_are_validated(self):
         client, url = APIClient(), '/api/notifications/email-settings'
         for types in [['new'], 'deadline', [1], []]:
-            response = client.put(url, {'email': 'a@example.com', 'enabled': True, 'types': types}, format='json')
+            response = client.put(url, {'email': 'a@example.com', 'enabled': True,
+                                        'types': types, 'digest_enabled': False}, format='json')
             self.assertEqual(response.status_code, 400, types)
+        response = client.put(url, {'email': 'a@example.com', 'enabled': True,
+                                    'types': [], 'digest_enabled': True, 'digest_frequency': 'weekly'}, format='json')
+        self.assertEqual((response.status_code, response.data['digest_frequency']), (200, 'weekly'))
+        for frequency in ('hourly', None, []):
+            self.assertEqual(client.put(url, {'email': 'a@example.com', 'enabled': True,
+                'types': [], 'digest_frequency': frequency}, format='json').status_code, 400)
         response = client.put(url, {'email': 'a@example.com', 'enabled': False, 'types': []}, format='json')
         self.assertEqual((response.status_code, response.data['types']), (200, []))
 
@@ -357,3 +369,135 @@ class TestEmailTests(TestCase):
         self.assertIn('403', data['message'])
         self.assertIn('not verified', data['message'])
         self.assertNotIn('re_secret', str(data))
+
+
+@override_settings(EMAIL_PROVIDER='smtp', EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    EMAIL_HOST='smtp.example.com', DEFAULT_FROM_EMAIL='RazpIzi <notice@example.com>',
+    PUBLIC_APP_URL='https://razpizi.example.com', EMAIL_USE_TLS=True, EMAIL_USE_SSL=False)
+class TenderDigestTests(TestCase):
+    def setUp(self):
+        users = get_user_model().objects
+        self.ana = users.create_user('ana@example.com', email='ana@example.com')
+        self.bor = users.create_user('bor@example.com', email='bor@example.com')
+        CompanyProfile.objects.create(owner=self.ana, is_active=True,
+                                      data={'name': 'Razvoj', 'activity': 'Razvoj spletnih platform'})
+        CompanyProfile.objects.create(owner=self.bor, is_active=True,
+                                      data={'name': 'Gradnja', 'activity': 'Gradnja in gradbena dela'})
+
+    def enable(self, user, frequency='daily'):
+        with account_scope(user.pk):
+            return save_settings({'enabled': True, 'email': user.email, 'types': ['correction', 'deadline'],
+                                  'digest_enabled': True, 'digest_frequency': frequency})
+
+    def tender(self, pk, title, **changes):
+        data = {'source_type': 'real', 'title': title, 'summary': title, 'buyer': 'Občina Primer',
+                'kind': 'services', 'status': 'open', 'deadline': (timezone.now() + timedelta(days=30)).isoformat()}
+        data.update(changes)
+        return Tender.objects.create(pk=pk, data=data)
+
+    def due(self, *users):
+        EmailNotificationSettings.objects.filter(owner__in=users).update(digest_next_at=timezone.now() - timedelta(seconds=1))
+
+    def test_daily_digest_selects_new_open_suitable_tenders_per_account(self):
+        old = self.tender('old', 'Razvoj stare spletne platforme')
+        self.enable(self.ana)
+        self.enable(self.bor)
+        fit = self.tender('web', 'Razvoj spletne platforme')
+        build = self.tender('build', 'Gradnja mostu', kind='works')
+        hidden = self.tender('hidden', 'Razvoj skrite spletne aplikacije')
+        TenderIgnore.objects.create(owner=self.ana, tender=hidden)
+        self.tender('closed', 'Razvoj zaključene spletne platforme', status='closed')
+        self.tender('demo', 'Razvoj demo spletne platforme', source_type='demo')
+        self.due(self.ana, self.bor)
+
+        self.assertEqual(process(), 2)
+        self.assertEqual(process(), 0)
+        self.assertEqual(TenderDigestEmail.objects.count(), 2)
+        for user, expected, excluded in ((self.ana, fit.pk, build.pk), (self.bor, build.pk, fit.pk)):
+            digest = TenderDigestEmail.objects.get(owner=user)
+            self.assertEqual(digest.state, 'sent')
+            self.assertIn(expected, digest.tender_ids)
+            self.assertNotIn(excluded, digest.tender_ids)
+            self.assertNotIn(old.pk, digest.tender_ids)
+            if user == self.ana:
+                self.assertNotIn(hidden.pk, digest.tender_ids)
+            message = next(message for message in mail.outbox if message.to == [user.email])
+            self.assertIn(f'/#/razpisi/{expected}', message.body)
+            self.assertNotIn('zaključene', message.body)
+            self.assertNotIn('demo', message.body)
+
+    def test_weekly_schedule_keeps_followed_changes_immediate(self):
+        self.enable(self.ana, 'weekly')
+        tender = self.tender('web', 'Razvoj spletne platforme')
+        TenderFollow.objects.create(owner=self.ana, tender=tender)
+        Notification.objects.create(tender=tender, event_key='changed-web', type='deadline',
+                                    title='Rok', body='Rok je spremenjen.', is_demo=False)
+        self.assertEqual(process(), 1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertFalse(TenderDigestEmail.objects.exists())
+        self.due(self.ana)
+        self.assertEqual(process(), 1)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertIn('tedenski pregled', mail.outbox[1].subject.lower())
+        next_at = EmailNotificationSettings.objects.get(owner=self.ana).digest_next_at
+        local_next = timezone.localtime(next_at)
+        self.assertEqual((local_next.weekday(), local_next.hour), (0, 8))
+
+    def test_empty_digest_advances_window_without_sending(self):
+        self.enable(self.ana)
+        self.tender('road', 'Gradnja ceste', kind='works')
+        self.due(self.ana)
+        self.assertEqual(process(), 0)
+        self.assertFalse(TenderDigestEmail.objects.exists())
+        self.assertGreater(EmailNotificationSettings.objects.get(owner=self.ana).digest_next_at, timezone.now())
+
+    def test_frequency_change_cancels_pending_digest_and_preserves_window(self):
+        self.enable(self.ana)
+        tender = self.tender('web', 'Razvoj spletne platforme')
+        self.due(self.ana)
+        self.assertEqual(enqueue_digests(), 1)
+        old = TenderDigestEmail.objects.get(owner=self.ana)
+        self.enable(self.ana, 'weekly')
+        old.refresh_from_db()
+        self.assertEqual(old.state, 'cancelled')
+        self.due(self.ana)
+        self.assertEqual(process(), 1)
+        self.assertEqual(TenderDigestEmail.objects.get(state='sent').tender_ids, [tender.pk])
+        self.assertEqual(process(), 0)
+
+    def test_digest_delivery_retries_and_can_be_disabled(self):
+        self.enable(self.ana)
+        self.tender('web', 'Razvoj spletne platforme')
+        self.due(self.ana)
+        enqueue_digests()
+        digest = TenderDigestEmail.objects.get(owner=self.ana)
+        with patch('tenders.email_notifications.EmailMessage.send', side_effect=SMTPException('private details')):
+            self.assertFalse(deliver_digest(digest.pk))
+        digest.refresh_from_db()
+        self.assertEqual((digest.state, digest.attempts), ('pending', 1))
+        self.assertNotIn('private details', digest.error)
+        TenderDigestEmail.objects.filter(pk=digest.pk).update(available_at=timezone.now() - timedelta(seconds=1))
+        self.assertEqual(process(), 1)
+        self.assertFalse(deliver_digest(digest.pk))
+        with account_scope(self.ana.pk):
+            save_settings({'enabled': False, 'email': self.ana.email})
+            self.assertEqual(status()['pending'], 0)
+
+    def test_disabling_digest_cancels_pending_and_reenable_does_not_backfill(self):
+        self.enable(self.ana)
+        self.tender('web', 'Razvoj spletne platforme')
+        self.due(self.ana)
+        self.assertEqual(enqueue_digests(), 1)
+        with account_scope(self.ana.pk):
+            save_settings({'enabled': True, 'email': self.ana.email, 'digest_enabled': False})
+        self.assertEqual(TenderDigestEmail.objects.get().state, 'cancelled')
+        self.enable(self.ana)
+        self.due(self.ana)
+        self.assertEqual(process(), 0)
+        self.assertFalse(TenderDigestEmail.objects.filter(state='sent').exists())
+
+    def test_schedule_uses_slovenian_time_across_dst(self):
+        slovenia = ZoneInfo('Europe/Ljubljana')
+        before = datetime(2026, 3, 28, 9, tzinfo=slovenia)
+        self.assertEqual(next_digest_at(before, 'daily'), datetime(2026, 3, 29, 8, tzinfo=slovenia))
+        self.assertEqual(next_digest_at(before, 'weekly'), datetime(2026, 3, 30, 8, tzinfo=slovenia))
