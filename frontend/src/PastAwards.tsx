@@ -1,5 +1,5 @@
-import { Fragment } from 'react';
-import { Building2, ExternalLink, History, LoaderCircle, Trophy, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Building2, ChevronDown, ExternalLink, History, LoaderCircle, Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { queryKeys } from './queryClient';
@@ -12,108 +12,94 @@ const amount = (value: number | null, currency: string | null) => {
     if (!currency) return `${value.toLocaleString('sl-SI')} (valuta ni navedena)`;
     return new Intl.NumberFormat('sl-SI', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
 };
-const percent = (value: number | null) => value == null ? '—' : `${Math.round(value * 100)} %`;
 const changePercent = new Intl.NumberFormat('sl-SI', { style: 'percent', maximumFractionDigits: 1, signDisplay: 'exceptZero' });
 const differenceLabel = (difference: number, currency: string) =>
     difference === 0 ? 'Enako oceni' : `${amount(Math.abs(difference), currency)} ${difference < 0 ? 'pod' : 'nad'} oceno`;
 
-function Outcome({ award }: { award: PastAward }) {
-    if (!award.awarded) return <div className="past-award-outcome none"><XCircle size={18}/><div><strong>Naročilo ni bilo oddano</strong><span>Naročnik ni izbral ponudnika.</span></div></div>;
-    const comparison = award.value_comparison;
-    const awardCurrency = award.award_currency === undefined ? award.currency : award.award_currency;
-    const estimateCurrency = award.estimate_currency === undefined ? award.currency : award.estimate_currency;
-    return <div className="past-award-outcome">
-        <Trophy size={18}/>
-        <div>
-            <span className="past-award-label">{award.winners.length > 1 ? 'Zmagali (skupna ponudba)' : 'Zmagal'}</span>
-            {award.winners.map(w => <strong key={w.registration_number || w.name}>{w.name}{w.registration_number && <small> · MŠ {w.registration_number}</small>}</strong>)}
-        </div>
-        <div className="past-award-price">
-            <span className="past-award-label">Pogodbena vrednost</span>
-            <strong>{amount(award.awarded_value, awardCurrency)}</strong>
-            {award.estimated_value != null && <small>Ocenjena vrednost {amount(award.estimated_value, estimateCurrency)}</small>}
-            {comparison && <small>{differenceLabel(comparison.difference, comparison.currency)}{comparison.difference !== 0 && ` (${changePercent.format(comparison.ratio - 1)})`}</small>}
-        </div>
-    </div>;
-}
-
-function ValueOverview({ summary }: { summary: SimilarAwards['summary'] }) {
-    const totals = summary.value_totals;
-    return <div className="past-award">
-        <h3>Ocenjena in pogodbena vrednost</h3>
-        {totals ? <>
-            <div className="past-awards-stats">
-                <div><strong>{amount(totals.estimated, 'EUR')}</strong><span>Skupna ocenjena vrednost</span></div>
-                <div><strong>{amount(totals.contracted, 'EUR')}</strong><span>Skupna pogodbena vrednost</span></div>
-                <div><strong>{changePercent.format(totals.ratio - 1)}</strong><span>{differenceLabel(totals.difference, 'EUR')}</span></div>
-            </div>
-            <p className="past-awards-note">{summary.price_to_estimate_count} od {summary.awarded} prikazanih oddanih sklopov ima primerljivi vrednosti v EUR. {totals.below} pod oceno · {totals.equal} enako oceni · {totals.above} nad oceno.</p>
-        </> : <p className="past-awards-note">Med prikazanimi oddajami ni sklopov s primerljivima vrednostma v EUR.</p>}
-        <p className="past-awards-note">Vir primerjave je obvestilo o oddaji na PJN. Primerjava izključuje okvirne sporazume. Pri posamezni oddaji so prikazana tudi povezana plačila iz uvoženega izvoza ERAR, kadar so na voljo.</p>
+function WinnerRanking({ winners }: { winners: SimilarAwards['summary']['top_winners'] }) {
+    const ranked = [...winners].sort((a, b) => b.wins - a.wins);
+    const rank = (wins: number) => ranked.findIndex(winner => winner.wins === wins) + 1;
+    const selectionLabel = (wins: number) => wins % 100 === 1 ? 'izbira' : wins % 100 === 2 ? 'izbiri' : [3, 4].includes(wins % 100) ? 'izbire' : 'izbir';
+    return <div className="past-awards-winners">
+        <h3><Trophy size={20}/>Najpogostejši izbrani ponudniki</h3>
+        <ol className="winner-podium" data-count={Math.min(ranked.length, 3)} role="list">
+            {ranked.slice(0, 3).map(winner => <li className={winner.wins === ranked[0].wins ? 'leading' : ''} key={winner.registration_number || winner.name}>
+                <div className="winner-info"><span className="winner-place">{rank(winner.wins)}. mesto</span><strong>{winner.name}</strong><small>{winner.registration_number ? `MŠ ${winner.registration_number}` : 'Matična številka ni navedena'}</small></div>
+                <div className="winner-step"><strong>{winner.wins}</strong><span>{selectionLabel(winner.wins)}</span></div>
+            </li>)}
+        </ol>
+        <p className="winner-ranking-note">Število izbir med prikazanimi podobnimi naročili. Enako število pomeni deljeno mesto.</p>
     </div>;
 }
 
 function Award({ award }: { award: PastAward }) {
-    const offers = award.lowest_offer && award.highest_offer && award.highest_offer !== award.lowest_offer
-        ? `${amount(award.lowest_offer, award.currency)} – ${amount(award.highest_offer, award.currency)}` : null;
+    const awardCurrency = award.award_currency === undefined ? award.currency : award.award_currency;
+    const estimateCurrency = award.estimate_currency === undefined ? award.currency : award.estimate_currency;
+    const comparison = award.value_comparison;
     const winners = new Set(award.winners.map(w => w.registration_number || w.name));
     const others = (award.participants || []).filter(p => !winners.has(p.registration_number || p.name));
-    return <article className="past-award">
-        <div className="past-award-head">
-            <div>
-                <p className="past-award-meta"><Building2 size={13}/>{award.buyer} · objavljeno {day(award.published_on)}{award.framework && ' · okvirni sporazum'}</p>
-                <h3>{award.title}</h3>
-                {award.lot_title && award.lot_title !== award.title && <p className="past-award-lot">Sklop: {award.lot_title}</p>}
+    const offers = award.lowest_offer != null && award.highest_offer != null && award.highest_offer !== award.lowest_offer
+        ? `${amount(award.lowest_offer, awardCurrency)} – ${amount(award.highest_offer, awardCurrency)}` : null;
+    return <article className="similar-tender">
+        <a className="similar-tender-link" href={award.notice_url} target="_blank" rel="noopener noreferrer" aria-label={`${award.title} – odpri uradno objavo v novem zavihku`}>
+            <div className="similar-tender-subject">
+                <div className="similar-tender-meta"><span>Podobnost predmeta {Math.round(award.similarity * 100)} %</span><span>{day(award.published_on)}</span>{award.framework && <span>Okvirni sporazum</span>}</div>
+                <h4>{award.title}</h4>
+                {award.lot_title && award.lot_title !== award.title && <p className="similar-tender-lot">Sklop: {award.lot_title}</p>}
+                <p className="similar-tender-buyer"><Building2 size={15}/>{award.buyer}</p>
             </div>
-            {award.awarded && <span className="badge" title="Kako podoben je predmet tega naročila vašemu razpisu">Podobnost {Math.round(award.similarity * 100)} %</span>}
-        </div>
-        <Outcome award={award}/>
-        <ul className="past-award-details">
-            {award.erar_payments && <li className="wide"><span>Izplačano po uvoženih podatkih ERAR</span>
-                <strong>{amount(award.erar_payments.amount, 'EUR')}</strong>
-                <small>{award.erar_payments.count} transakcij · zadnje plačilo {day(award.erar_payments.latest_payment_on)} · izvoz {day(award.erar_payments.latest_export_on)}</small>
-            </li>}
-            <li><span>Prejetih ponudb</span>{award.tenders_received ?? 'ni podatka'}{award.tenders_received === 1 && <em className="past-award-single">samo ena ponudba</em>}</li>
-            {offers && <li><span>Razpon dopustnih ponudb</span>{offers}</li>}
+            <div className="similar-tender-winner"><span className="similar-tender-label">{award.awarded ? (award.winners.length > 1 ? 'Izbrani ponudniki' : 'Izbrani ponudnik') : 'Izid naročila'}</span>
+                {!award.awarded ? <strong className="similar-tender-unawarded">Brez izbranega ponudnika</strong> : award.winners.length ? award.winners.map(winner => <strong key={winner.registration_number || winner.name}>{winner.name}</strong>) : <strong>Podatek ni objavljen</strong>}
+            </div>
+            <div className="similar-tender-price"><span className="similar-tender-label">Pogodbena vrednost</span><strong>{award.awarded ? amount(award.awarded_value, awardCurrency) : '—'}</strong><span>{award.tenders_received == null ? 'Število ponudb ni objavljeno' : `Prejetih ponudb: ${award.tenders_received}`}</span></div>
+            <span className="similar-tender-open"><ExternalLink size={20}/><span>Odpri objavo</span></span>
+        </a>
+        <details className="similar-tender-details"><summary>Več podatkov<ChevronDown size={16}/></summary><div className="similar-tender-extra">
+            <dl><div><dt>Ocenjena vrednost</dt><dd>{amount(award.estimated_value, estimateCurrency)}</dd></div>{comparison && <div><dt>Razlika glede na ocenjeno vrednost</dt><dd>{differenceLabel(comparison.difference, comparison.currency)}{comparison.difference !== 0 && ` (${changePercent.format(comparison.ratio - 1)})`}</dd></div>}<div><dt>Postopek</dt><dd>{award.procedure || 'Ni podatka'}</dd></div>{offers && <div><dt>Razpon dopustnih ponudb</dt><dd>{offers}</dd></div>}{award.cpv.length > 0 && <div><dt>CPV</dt><dd>{award.cpv.join(' · ')}</dd></div>}<div><dt>Obvestilo o oddaji</dt><dd>{award.notice_number || 'Ni podatka'}</dd></div></dl>
+            {award.erar_payments && <div><h5>Izplačano po uvoženih podatkih ERAR</h5><p><strong>{amount(award.erar_payments.amount, 'EUR')}</strong> · {award.erar_payments.count} transakcij</p><p>Zadnje plačilo {day(award.erar_payments.latest_payment_on)} · izvoz {day(award.erar_payments.latest_export_on)}</p></div>}
             {award.winners.flatMap(winner => {
                 const url = erarRecipient(winner.registration_number);
-                return url ? [<li className="wide" key={url}><a className="text-link" href={url} target="_blank" rel="noreferrer">ERAR · javna plačila podjetju {winner.name}<ExternalLink size={13}/></a></li>] : [];
+                return url ? [<p key={url}><a href={url} target="_blank" rel="noopener noreferrer">ERAR · javna plačila podjetju {winner.name}<ExternalLink size={13}/></a></p>] : [];
             })}
-            {others.length > 0 && <li className="wide"><span>Drugi ponudniki</span>{others.map((p, i) => <Fragment key={`${p.registration_number || p.name}-${i}`}>{i > 0 && ', '}<a href={p.source_url} target="_blank" rel="noreferrer" title="Vir zapisa o ponudniku">{p.name}</a> <small>({p.label.toLowerCase()})</small></Fragment>)}</li>}
-            <li><a className="text-link" href={award.notice_url} target="_blank" rel="noreferrer">Obvestilo o oddaji {award.notice_number}<ExternalLink size={13}/></a></li>
-        </ul>
+            {award.winners.some(w => w.registration_number) && <div><h5>Matične številke izbranih ponudnikov</h5>{award.winners.filter(w => w.registration_number).map(w => <p key={w.registration_number}>{w.name} · MŠ {w.registration_number}</p>)}</div>}
+            {others.length > 0 && <div><h5>Drugi ponudniki</h5><ul>{others.map((participant, index) => <li key={`${participant.registration_number || participant.name}-${index}`}><a href={participant.source_url} target="_blank" rel="noopener noreferrer">{participant.name}<ExternalLink size={12}/></a> · {participant.label}</li>)}</ul></div>}
+        </div></details>
     </article>;
 }
 
 export default function PastAwardsPanel({ tenderId }: { tenderId: string }) {
     // Historical award data rarely changes, so keep it cached for the session.
     const query = useQuery({ queryKey: queryKeys.similarAwards(tenderId), queryFn: ({ signal }) => api<SimilarAwards>(`/tenders/${tenderId}/similar-awards`, { signal }), staleTime: 30 * 60_000 });
+    const [sort, setSort] = useState('similarity');
     const data = query.data ?? null;
     const error = query.isFetching ? '' : query.error?.message ?? '';
     const s = data?.summary;
+    const results = [...(data?.results || [])].sort((a, b) => sort === 'newest'
+        ? (b.published_on || '').localeCompare(a.published_on || '') : b.similarity - a.similarity);
+    const knownBids = results.filter(award => award.tenders_received != null);
+    const singleBids = knownBids.filter(award => award.tenders_received === 1).length;
     return <section className="surface detail-section past-awards">
-        <div className="section-heading"><div><h2><History size={19}/>Podobna pretekla naročila</h2><p className="section-help">Kdo je zmagal pri podobnih naročilih, koliko ponudb je prejel naročnik in po kakšni ceni.</p></div>{data && data.mode !== 'empty' && <span className="badge purple">{data.mode === 'ai' ? 'Podobnost presodil Gemini' : data.matching === 'semantic' ? 'Pomensko ujemanje' : 'Besedilno ujemanje'}</span>}</div>
+        <div className="section-heading"><div><h2><History size={19}/>Analiza podobnih preteklih razpisov</h2><p className="section-help">Poglejte, kdo je bil izbran pri podobnih naročilih, za kakšno vrednost in koliko ponudb je prejel naročnik.</p></div></div>
         {error && <div role="alert" className="error-banner">{error}<button className="button small" onClick={() => query.refetch()}>Poskusi znova</button></div>}
-        {!data && !error && <div className="past-awards-loading"><LoaderCircle className="spin"/>Iščemo podobne oddaje …</div>}
+        {!data && !error && <div className="past-awards-loading" role="status"><LoaderCircle className="spin"/>Iščemo podobne razpise …</div>}
         {data && <>
             {data.warning && <div className="info-box amber"><p>{data.warning}</p></div>}
-            {data.message && <div className="empty-state compact"><History size={26}/><p>{data.message}</p></div>}
-            {s && s.count > 0 && <>
-                <h3 className="past-awards-list-title">Povzetek {s.count} podobnih naročil</h3>
-                <div className="past-awards-stats">
-                    <div><strong>{s.awarded}</strong><span>oddanih naročil{s.not_awarded ? ` (${s.not_awarded} neoddano)` : ''}</span></div>
-                    <div><strong>{s.median_tenders ?? '—'}</strong><span>mediana prejetih ponudb</span></div>
-                    <div><strong>{percent(s.single_bid_share)}</strong><span>z eno samo ponudbo</span></div>
-                    <div><strong>{s.median_price_to_estimate == null ? '—' : percent(s.median_price_to_estimate)}</strong><span>Mediana razmerja pogodbene do ocenjene vrednosti{s.price_to_estimate_count ? ` (n = ${s.price_to_estimate_count})` : ''}</span></div>
-                    <div><strong>{s.median_offer_spread == null ? '—' : `+${percent(s.median_offer_spread)}`}</strong><span>najvišja nad najnižjo ponudbo{s.offer_spread_count ? ` (n = ${s.offer_spread_count})` : ''}</span></div>
+            {!results.length && <div className="empty-state compact"><History size={26}/><p>{data.message || 'Podobnih preteklih razpisov še ni v shranjenih podatkih.'}</p></div>}
+            {results.length > 0 && <>
+                <div className="similar-awards-overview" aria-label="Povzetek podobnih razpisov">
+                    <div><strong>{results.length}</strong><span>podobnih preteklih razpisov</span></div>
+                    <div><strong>{s?.median_tenders == null ? '—' : new Intl.NumberFormat('sl-SI').format(s.median_tenders)}</strong><span>ponudb na naročilo <small>(mediana)</small></span></div>
+                    <div><strong>{knownBids.length ? <>{singleBids}<small> od {knownBids.length}</small></> : '—'}</strong><span>naročil z eno samo ponudbo</span></div>
                 </div>
-                <ValueOverview summary={s}/>
-                {s.top_winners.length > 0 && <div className="past-awards-winners"><h3><Trophy size={15}/>Najpogostejši izbrani ponudniki</h3><ol>{s.top_winners.map(w => <li key={w.registration_number || w.name}><span>{w.name}</span><small>{w.registration_number ? `MŠ ${w.registration_number} · ` : ''}{w.wins}×</small></li>)}</ol></div>}
-                <h3 className="past-awards-list-title">Posamezna naročila</h3>
-                <div className="past-awards-list">{data.results.map(award => <Award key={award.id} award={award}/>)}</div>
+                <div className="similar-awards-list-heading"><div><h3>Podobni razpisi</h3><p>Klik na razpis odpre uradno objavo v novem zavihku. To so pretekla naročila, na katera se ne morete več prijaviti.</p></div><label className="similar-awards-sort"><span>Razvrsti</span><select value={sort} onChange={event => setSort(event.target.value)}><option value="similarity">Najbolj podobni</option><option value="newest">Najnovejši</option></select></label></div>
+                <div className="similar-tenders-list">{results.map(award => <Award key={award.id} award={award}/>)}</div>
+                {s && s.top_winners.length > 0 && <WinnerRanking winners={s.top_winners}/>}
             </>}
-            <p className="past-awards-note">Podobnost ni ocena vaših možnosti za uspeh. Zmagovalci izhajajo iz obvestil o oddaji, drugi ponudniki iz dodatnih zapisnikov z navedenim virom. Mediane so izračunane iz zgoraj prikazanih oddaj.</p>
-            <p className="past-awards-source">Vir: {data.dataset.attribution}, {data.dataset.label}, {data.dataset.license}. Zbirka zajema {data.dataset.lots} sklopov iz obvestil, objavljenih {day(data.dataset.coverage_from)} – {day(data.dataset.coverage_to)}, in ni popolna.</p>
+            <details className="similar-awards-disclosure"><summary>Viri in način primerjave<ChevronDown size={18}/></summary><div className="similar-awards-method">
+                <p>{data.mode === 'ai' ? 'Podobnost predmeta je presodil Gemini.' : data.matching === 'semantic' ? 'Primerjava uporablja pomensko ujemanje predmeta naročila.' : 'Primerjava uporablja besedilno ujemanje predmeta naročila.'} Prikazana podobnost primerja predmeta naročil, ne ustreznosti vašega podjetja.</p>
+                <p>Izbrani ponudniki so povzeti iz obvestil o oddaji. Drugi ponudniki izhajajo iz dodatnih zapisnikov z navedenim virom. Lestvica prikazuje število izbir samo med zgornjimi podobnimi naročili.</p>
+                <p>Vir: {data.dataset.attribution}, {data.dataset.label}, {data.dataset.license}. Zbirka zajema {data.dataset.lots} sklopov iz obvestil, objavljenih {day(data.dataset.coverage_from)} – {day(data.dataset.coverage_to)}, in ni popolna.</p>
+            </div></details>
         </>}
     </section>;
 }

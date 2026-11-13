@@ -47,7 +47,7 @@ export default function SubmissionReview({ tenderId }: { tenderId: string }) {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
     return <section className="surface detail-section submission-review">
-        <div className="section-heading"><div><h2><FileCheck2 size={20}/>Pregled pripravljene prijave</h2><p className="section-help">Primerjajte vsebino ponudbe z zahtevanimi obrazci, prilogami, dokazili in navodili razpisa.</p></div></div>
+        <div className="section-heading"><div><h2><FileCheck2 size={20}/>Preveri prijavo z AI pomočnikom</h2><p className="section-help">Preverite, ali vaša prijava izpolnjuje zahteve razpisa.</p></div></div>
         <div className="submission-upload-action">
             <input ref={fileRef} className="sr-only" tabIndex={-1} aria-label="Izberi dokumente prijave" type="file" accept={accept} multiple disabled={busy} onChange={event => void reviewFiles(Array.from(event.target.files || []))}/>
             <button type="button" className="button primary" disabled={busy} onClick={() => { if (fileRef.current) { fileRef.current.value = ''; fileRef.current.click(); } }}>{busy ? <LoaderCircle className="spin" size={17}/> : <Upload size={17}/>} {busy ? 'AI pregleduje dokumente …' : 'Naloži in preveri prijavo'}</button>
