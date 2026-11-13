@@ -18,7 +18,11 @@ log = logging.getLogger(__name__)
 MODEL = 'openai/text-embedding-3-large'
 DIMENSIONS = 1024
 BATCH = 96  # Passages are at most ~1800 characters, far below the per-request token limit.
-MAX_TEXT = 8000
+MAX_TEXT = 6000  # Characters; stays below the model's 8191-token input limit.
+
+# Rows the provider permanently rejects are skipped until the worker restarts, so a single
+# bad row cannot block every batch behind it. Transient errors simply retry the batch.
+_rejected = {DocumentChunk: set(), PastAward: set(), Tender: set()}
 
 
 def enabled():
@@ -58,13 +62,37 @@ def award_text(data):
                 ', '.join(data.get('cpv') or []))
 
 
+def rejected(exc):
+    from openai import BadRequestError
+    return isinstance(exc, BadRequestError)
+
+
+def save(model, row, vector, digest_value):
+    fields = {'embedding': vector}
+    if digest_value is not None:
+        fields['embedding_digest'] = digest_value
+    model.objects.filter(pk=row).update(**fields)
+
+
 def store(model, rows, texts, digests=None):
-    vectors = embed(texts)
-    for index, (row, vector) in enumerate(zip(rows, vectors)):
-        fields = {'embedding': vector}
-        if digests is not None:
-            fields['embedding_digest'] = digests[index]
-        model.objects.filter(pk=row).update(**fields)
+    digests = digests or [None] * len(rows)
+    try:
+        vectors = embed(texts)
+    except Exception as exc:
+        if not rejected(exc):
+            raise
+        # Find the rejected rows one by one; the others are stored normally.
+        for row, text, digest_value in zip(rows, texts, digests):
+            try:
+                save(model, row, embed([text])[0], digest_value)
+            except Exception as single:
+                if not rejected(single):
+                    raise
+                _rejected[model].add(row)
+                log.warning('Embedding rejected for %s %s', model.__name__, row)
+        return len(rows)
+    for row, vector, digest_value in zip(rows, vectors, digests):
+        save(model, row, vector, digest_value)
     return len(rows)
 
 
@@ -72,14 +100,14 @@ def embed_chunks(limit=BATCH):
     with transaction.atomic():
         # skip_locked lets several workers fill vectors without embedding the same passage twice.
         rows = list(DocumentChunk.objects.select_for_update(skip_locked=True).filter(embedding__isnull=True)
-                    .order_by('pk').values_list('pk', 'text')[:limit])
+                    .exclude(pk__in=_rejected[DocumentChunk]).order_by('pk').values_list('pk', 'text')[:limit])
         return store(DocumentChunk, [r[0] for r in rows], [r[1] for r in rows]) if rows else 0
 
 
 def embed_awards(limit=BATCH):
     with transaction.atomic():
         rows = list(PastAward.objects.select_for_update(skip_locked=True).filter(embedding__isnull=True)
-                    .order_by('-published_on', 'pk').values_list('pk', 'data')[:limit])
+                    .exclude(pk__in=_rejected[PastAward]).order_by('-published_on', 'pk').values_list('pk', 'data')[:limit])
         texts = [award_text(data) or 'Javno naročilo' for _, data in rows]
         return store(PastAward, [r[0] for r in rows], texts, [digest(t) for t in texts]) if rows else 0
 
@@ -89,7 +117,7 @@ def stale_tenders(limit=BATCH):
     stale = []
     for pk, data, current in Tender.objects.values_list('pk', 'data', 'embedding_digest').iterator():
         text = tender_text(data)
-        if text and digest(text) != current:
+        if text and digest(text) != current and pk not in _rejected[Tender]:
             stale.append((pk, text))
             if len(stale) >= limit:
                 break

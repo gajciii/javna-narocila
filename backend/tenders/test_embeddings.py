@@ -68,3 +68,41 @@ class AwardInvalidationTests(TestCase):
                 embedding_digest=embeddings.digest(embeddings.award_text({'title': 'Servis'})))
             import_notices([{}])
         self.assertIsNotNone(PastAward.objects.get(pk='a1').embedding)
+
+
+def bad_request():
+    import httpx
+    from openai import BadRequestError
+    request = httpx.Request('POST', 'https://openrouter.ai/api/v1/embeddings')
+    return BadRequestError('rejected', response=httpx.Response(400, request=request), body=None)
+
+
+@patch('tenders.embeddings.enabled', return_value=True)
+class EmbeddingFailureTests(TestCase):
+    def setUp(self):
+        embeddings._rejected[DocumentChunk].clear()
+        content = IndexedContent.objects.create(pk='c1', sha256='a' * 64, extractor_version='shared-v1', pages=[], format='txt')
+        for i in range(4):
+            DocumentChunk.objects.create(content=content, ordinal=i, page=1, locator='stran 1', text=f'Odlomek {i}', normalized_text='o')
+        self.addCleanup(embeddings._rejected[DocumentChunk].clear)
+
+    def test_transient_error_keeps_rows_pending_and_progress_saved(self, _):
+        with patch('tenders.embeddings.embed', side_effect=fake_embed):
+            embeddings.embed_chunks(limit=2)
+        with patch('tenders.embeddings.embed', side_effect=TimeoutError):
+            with self.assertRaises(TimeoutError):
+                embeddings.embed_chunks(limit=2)
+        self.assertEqual(DocumentChunk.objects.filter(embedding__isnull=True).count(), 2)
+        with patch('tenders.embeddings.embed', side_effect=fake_embed):
+            embeddings.embed_chunks(limit=2)
+        self.assertFalse(DocumentChunk.objects.filter(embedding__isnull=True).exists())
+
+    def test_rejected_row_is_skipped_without_blocking_others(self, _):
+        def reject_two(texts, timeout=60):
+            if any(t == 'Odlomek 2' for t in texts):
+                raise bad_request()
+            return fake_embed(texts)
+        with patch('tenders.embeddings.embed', side_effect=reject_two):
+            while embeddings.embed_chunks(limit=10):
+                pass
+        self.assertEqual(list(DocumentChunk.objects.filter(embedding__isnull=True).values_list('text', flat=True)), ['Odlomek 2'])
