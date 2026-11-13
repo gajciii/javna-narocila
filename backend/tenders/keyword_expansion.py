@@ -7,7 +7,7 @@ from .ai import ai_enabled, structured_call
 from .deep_relevance import fold
 from .document_index import search_passages
 from .documents import active_documents
-from .models import Document, DocumentChunk, PastAward
+from .models import Document, DocumentChunk, PastAward, Tender
 
 log = logging.getLogger(__name__)
 SCHEMA = {'type': 'object', 'additionalProperties': False, 'properties': {
@@ -19,15 +19,20 @@ SCHEMA = {'type': 'object', 'additionalProperties': False, 'properties': {
 
 def indexed_documents(tender_ids=None):
     # Reuse the same version/family rules as evidence validation, without loading full pages.
-    query = Document.objects.select_related('tender').defer('pages')
+    # Each tender is loaded once and without its vector. select_related('tender') built a separate
+    # copy of the tender's data for every document, which took about 0.5 GB for a full search.
+    query = Document.objects.defer('pages')
     if tender_ids is not None:
         query = query.filter(tender_id__in=tender_ids)
     grouped = defaultdict(list)
     for doc in query.order_by('id').iterator():
         grouped[doc.tender_id].append(doc)
+    tenders = Tender.objects.defer('embedding').in_bulk(list(grouped))
     result = []
-    for docs in grouped.values():
-        tender = docs[0].tender
+    for tender_id, docs in grouped.items():
+        tender = tenders[tender_id]
+        for doc in docs:
+            doc.tender = tender
         tender._document_metadata = docs
         result.extend(doc for doc in active_documents(tender, metadata_only=True)
                       if doc.indexed_content_id and doc.status == 'processed'
