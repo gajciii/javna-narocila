@@ -1,5 +1,6 @@
 import hashlib
 from pathlib import Path
+import time
 import uuid
 from django.conf import settings
 from django.http import FileResponse
@@ -9,6 +10,7 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from .analytics import capture
 from .models import CompanyProfile, Tender, SavedSearch, Notification, Document
 from .seed import ensure_seed, get_profile, demo_profile
 from .matching import serialize_tender
@@ -114,7 +116,12 @@ def keyword_expansion_view(request):
     query = request.data.get('q', '')
     if not isinstance(query, str) or not 2 <= len(query.strip()) <= 1000:
         raise ValidationError({'q': 'Vnesite ključne besede od 2 do 1.000 znakov.'})
-    return Response(expand(query.strip()))
+    started = time.monotonic()
+    result = expand(query.strip())
+    capture('keyword_expansion', mode=result['mode'], suggestions=len(result['suggestions']),
+            from_awards=sum(1 for s in result['suggestions'] if not s['evidence'].get('document_id')),
+            duration_ms=round((time.monotonic() - started) * 1000))
+    return Response(result)
 
 
 def tender_detail(tender, profile):
@@ -386,7 +393,11 @@ def similar_awards_view(request, tender_id):
     from .past_awards import ensure_past_awards, similar_awards
     ensure_seed()
     ensure_past_awards()
-    return Response(similar_awards(get_object_or_404(Tender, pk=tender_id)))
+    started = time.monotonic()
+    result = similar_awards(get_object_or_404(Tender, pk=tender_id))
+    capture('similar_awards', mode=result['mode'], matching=result.get('matching'), results=len(result['results']),
+            warning=bool(result.get('warning')), duration_ms=round((time.monotonic() - started) * 1000))
+    return Response(result)
 
 
 @api_view(['GET'])

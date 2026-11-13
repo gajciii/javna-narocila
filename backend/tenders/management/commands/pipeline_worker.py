@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections, connection
 
+from tenders.analytics import capture
 from tenders.embeddings import embed_pending
 from tenders.pipeline_jobs import claim, execute, renew
 from tenders.pipeline_runs import register_agent, beat_agent
@@ -66,6 +67,7 @@ class Command(BaseCommand):
                         filled = embed_pending()
                     except Exception as exc:
                         logging.getLogger(__name__).warning('Embedding batch failed: %s', type(exc).__name__)
+                        capture('embedding_batch_failed', error=type(exc).__name__)
                         filled = 0
                         embed_after = time.monotonic() + 120
                     else:

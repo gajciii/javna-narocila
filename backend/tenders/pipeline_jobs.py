@@ -125,7 +125,14 @@ def finish(job, result, state='complete', error=''):
                 state='retrying' if state == 'pending' else state, finished_at=now, error=error, summary=summary)
             if state != 'pending':
                 close_processed_runs(PipelineRun.objects.filter(items__job=job))
-        return updated
+    if updated:
+        from .analytics import capture
+        started = PipelineAttempt.objects.filter(job=job, lease=job.lease).values_list('started_at', flat=True).first()
+        capture('pipeline_job_finished', kind=job.kind, state=state, attempt=job.attempts,
+                duration_s=round((now - started).total_seconds(), 1) if started else None,
+                documents=result.get('document_count'), unreadable=result.get('unreadable_count'),
+                conditions=result.get('condition_count'), error=error[:200])
+    return updated
 
 
 def execute(job):

@@ -3,7 +3,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+# PostHog project key is public (it ships in the bundle); empty disables analytics.
+ARG VITE_POSTHOG_KEY=
+ARG VITE_POSTHOG_HOST=https://eu.i.posthog.com
+RUN VITE_POSTHOG_KEY=$VITE_POSTHOG_KEY VITE_POSTHOG_HOST=$VITE_POSTHOG_HOST npm run build
 
 FROM nginx:alpine
 ARG NGINX_CONFIG=nginx.conf
