@@ -17,6 +17,7 @@ dist/
 .DS_Store
 backend/media/
 backend/raw_snapshots/
+/backend/source_data/erar/*.xlsx
 tmp/
 *.log
 .pytest_cache/

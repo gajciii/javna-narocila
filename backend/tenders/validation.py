@@ -4,6 +4,23 @@ import math
 from rest_framework.exceptions import ValidationError
 
 
+def validate_employment_report(report, registration):
+    if report is None:
+        return None
+    if not isinstance(report, dict):
+        raise ValidationError({'employment_report': 'Vnesite povprečje zaposlenih in leto poročila.'})
+    from .ajpes import registration_number
+    try:
+        registration_number(registration)
+    except ValueError as exc:
+        raise ValidationError({'employment_report': 'Za podatek iz letnega poročila vnesite veljavno matično številko.'}) from exc
+    average, year = report.get('average'), report.get('year')
+    if (type(average) not in (int, float) or not 0 <= average <= 1e12
+            or type(year) is not int or not 1900 <= year <= date.today().year):
+        raise ValidationError({'employment_report': 'Vnesite nenegativno povprečje in veljavno leto poročila.'})
+    return {'average': average, 'year': year}
+
+
 def validate_profile(payload, current):
     if not isinstance(payload, dict):
         raise ValidationError('Profil mora biti objekt.')
@@ -82,7 +99,14 @@ def validate_profile(payload, current):
             clean.append(item)
         result['references'] = clean
     result['source'] = 'user'
-    from .ajpes import verified_profile_source
+    from .ajpes import optional_registration_number, verified_profile_source
+    employment_report = payload.get('employment_report')
+    if optional_registration_number(result.get('registration_number')) != optional_registration_number(current.get('registration_number')):
+        result.pop('employment_report', None)
+        if employment_report == current.get('employment_report'):
+            employment_report = None
+    if 'employment_report' in payload:
+        result['employment_report'] = validate_employment_report(employment_report, result.get('registration_number'))
     provenance = verified_profile_source(result, payload.get('registry_source', current.get('registry_source')))
     result.pop('registry_source', None)
     if provenance:

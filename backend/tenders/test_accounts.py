@@ -9,7 +9,7 @@ from django.utils import timezone
 from .accounts import account_scope
 from .email_notifications import enqueue
 from .improvements import company_key
-from .models import (CompanyProfile, SavedSearch, Tender, TenderFollow, Notification,
+from .models import (CompanyProfile, ErarPayment, SavedSearch, Tender, TenderFollow, Notification,
                      NotificationEmail, EmailNotificationSettings, Partner, ImprovementPlan, EspdDraft)
 from .seed import ensure_seed, get_profile
 
@@ -44,6 +44,18 @@ class AccountTests(TestCase):
             self.assertEqual(response.status_code, 401)
             self.assertEqual(response.json()['code'], 'login_required')
         self.assertEqual(self.guest.get('/api/auth/session').status_code, 200)
+
+    def test_erar_payments_are_returned_for_the_saved_company(self):
+        profile = CompanyProfile.objects.create(owner=self.a, data={'registration_number': '2222222'})
+        day = timezone.localdate()
+        ErarPayment.objects.create(source_id='public-payment', recipient='2222222000', amount='120.50',
+                                   currency='EUR', paid_on=day, exported_on=day)
+        url = f'/api/profiles/{profile.pk}/erar-payments'
+        response = self.ca.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['registration_number'], '2222222000')
+        self.assertEqual(response.json()['payments']['amount'], 120.50)
+        self.assertEqual(self.cb.get(url).status_code, 404)
 
     def test_registration_normalizes_email_hashes_password_and_creates_session(self):
         response = self.write(self.guest, '/api/auth/register', {'email': 'Nova@Example.com', 'password': PASSWORD, 'password_confirm': PASSWORD, 'is_staff': True})

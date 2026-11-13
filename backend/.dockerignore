@@ -4,6 +4,7 @@ __pycache__
 *.sqlite3-*
 media
 raw_snapshots
+source_data/erar
 .env
 .env.*
 reports

@@ -173,7 +173,26 @@ Preslikava PJN je bila 12. 11. 2026 preverjena na 108 obvestilih iz izvoza strga
 
 ### Podjetja in partnerji
 
-AJPES/OPSI povezava uporablja javni nabor PRS brez API ključa. Predizpolni samo **naziv, matično številko in naslov**. Rezultati se hranijo 24 ur. [Vir in licenca CC BY 4.0](https://podatki.gov.si/dataset/poslovni-register-slovenije).
+AJPES/OPSI povezava uporablja javni nabor PRS brez API ključa. Predizpolni **naziv, matično številko in naslov**. Rezultati se hranijo 24 ur. Odprti nabor PRS ne vsebuje števila zaposlenih. [Vir in licenca CC BY 4.0](https://podatki.gov.si/dataset/poslovni-register-slovenije).
+
+V profilu podjetja razdelek **Poslovni register, letna poročila in javna plačila** odpre ePRS in JOLP ter prikaže vsoto, število in datume uvoženih plačil ERAR za matično številko podjetja. V **Preteklih oddajah** je povezava na ERAR na voljo pri izbranih ponudnikih z matično številko. Pogodbena vrednost oddaje izhaja iz podatkov PJN.
+
+Dejanski izvoz ERAR za Kemofarmacijo (matična `5003814000`) je v lokalni mapi `backend/source_data/erar/kemofarmacija-2026-11-13.xlsx`. Izvoz je bil 13. 11. 2026 prenesen z [uradne strani transakcij za podjetje](https://erar.si/podjetje/5003814000/profil/transakcije) za obdobje od 1. do 13. 11. 2026 in vsebuje 2.518 transakcij. Izvoz je izključen iz Gita in gradnje Docker slike. Za uvoz v drugo bazo uporabite spodnji ukaz s potjo do datoteke in datumom izvoza.
+
+Izvoz ERAR v CSV ali XLSX lahko uvozite ob zajemu preteklih oddaj. Datum v ukazu zamenjajte z datumom izvoza.
+
+```powershell
+.\.venv\Scripts\python.exe backend/manage.py migrate
+.\.venv\Scripts\python.exe backend/manage.py sync_past_awards --erar-export backend/source_data/erar/kemofarmacija-2026-11-13.xlsx --erar-exported-on 2026-11-13
+```
+
+Samo za osvežitev plačil uporabite `manage.py import_erar POT --exported-on YYYY-MM-DD`. Če glave izvoza odstopajo, uporabite `ID transakcije`, `Datum transakcije` in `Znesek EUR` oziroma `Znesek` in `Valuta`. Ob ponovnem uvozu se novejši zapis z istim ID-jem uporabi enkrat.
+
+Za samodejno povezovanje dodajte `Številka JN` (npr. `JN001234/2026`), `Matična številka plačnika` in `Matična številka prejemnika`. Če je povezava preverjena ročno, lahko namesto tega dodate `ID sklopa PJN` (v API-ju polje `id` oddaje). Plačila brez enolične povezave se shranijo brez pripisa sklopu. V aplikaciji je prikazana vsota povezanih uvoženih plačil v EUR z datumom zadnjega plačila in izvoza. Pokritost je odvisna od obsega izvoza. Za primerjavo s pogodbenimi zneski upoštevajte DDV in morebitne obroke.
+
+Podatek o zaposlenih poiščite v JOLP po matični številki. V zavihku **Ekipa in certifikati** vnesite povprečno število zaposlenih po delovnih urah in leto poročila. Za presojo kadrovskih pogojev v istem zavihku vnesite število strokovnjakov, ki so dejansko na voljo za izvedbo. [Struktura javnih letnih poročil AJPES](https://www.ajpes.si/Doc/AJPES/Za_razvijalce/Struktura_gospodarstvo_javna_objava_2025.pdf).
+
+Za samodejni prikaz podatkov iz zadnjega strukturiranega letnega poročila kapitalske družbe nastavite `AJPES_LP_API_KEY` v okolju strežnika. Če AJPES sporoči drug naslov, nastavite `AJPES_LP_API_BASE` na podprto uradno domeno (`https://wwwa.ajpes.si` ali `https://www.ajpes.si`). Aplikacija prikaže povprečje, kadar strukturiran odgovor vsebuje postavko `T188`. Kadar je poročilo na voljo samo kot dokument ali API postavke ne vrne, uporabite povezavo do JOLP in ročni vnos. [Navodila AJPES LP API](https://www.ajpes.si/Doc/AJPES/Za_razvijalce/LP_API_LP_ZP_kapitalske_druzbe_v_5.10.2026.pdf).
 
 Začetni profil je prazen. Razpise pridobimo iz e-Naročanja, podatke o podjetju pa uporabnik potrdi in dopolni. Izmišljeni primeri in PDF-ji v repozitoriju se uporabljajo izključno kot testne datoteke v avtomatiziranih testih.
 

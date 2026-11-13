@@ -32,6 +32,8 @@ urlpatterns = [
     path('api/bootstrap', views.bootstrap_view),
     path('api/profile', views.profile_view),
     path('api/profiles', views.profiles_view),
+    path('api/profiles/<int:profile_id>/annual-report', views.annual_report_view),
+    path('api/profiles/<int:profile_id>/erar-payments', views.erar_payments_view),
     path('api/profiles/<int:profile_id>/activate', views.activate_profile_view),
     path('api/profile/prefill', views.prefill_view),
     path('api/profile/award-references', views.award_references_view),
