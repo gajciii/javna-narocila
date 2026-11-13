@@ -1,0 +1,11 @@
+.award-references { margin: 4px 0 18px; padding: 14px 16px; border: 1px solid var(--line, #e3e5df); border-radius: 10px; background: #f7f9f5; }
+.award-references-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.award-references-head strong { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.award-references-head p, .award-references-note { margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted, #5f655e); }
+.award-references ul { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.award-references li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; background: #fff; border: 1px solid var(--line, #e3e5df); }
+.award-references li > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.award-references-title { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.award-references li small { font-size: 12px; color: var(--muted, #5f655e); }
+.award-references li a { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+.award-references-added { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--accent, #2f6b4f); white-space: nowrap; }

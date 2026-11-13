@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/bootstrap', views.bootstrap_view),
     path('api/profile', views.profile_view),
     path('api/profile/prefill', views.prefill_view),
+    path('api/profile/award-references', views.award_references_view),
     path('api/profile/website', views.website_profile_view),
     path('api/companies/search', views.company_search_view),
     path('api/tenders', views.tenders_view),

@@ -417,3 +417,10 @@ export interface TenderFaq {
     synced_at?: string | null;
     document_id?: string | null;
 }
+
+export interface AwardReferences {
+    registration_number: string;
+    items: { reference: CompanyReference; buyer: string; published_on: string | null; joint: boolean; added: boolean }[];
+    covered_from?: string | null;
+    message?: string;
+}

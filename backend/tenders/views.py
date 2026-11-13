@@ -43,6 +43,15 @@ def profile_view(request):
     return Response(get_profile())
 
 
+@api_view(['GET'])
+def award_references_view(request):
+    from .award_references import company_awards
+    from .past_awards import ensure_past_awards
+    ensure_seed()
+    ensure_past_awards()
+    return Response(company_awards(get_profile()))
+
+
 @api_view(['POST'])
 def prefill_view(request):
     query = request.data.get('query', '')
