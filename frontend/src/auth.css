@@ -1,0 +1,60 @@
+main.account-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: clamp(24px, 5vh, 64px) 20px;
+  gap: 24px;
+  background: #142b35;
+}
+
+.account-page::before {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(0 0 0 / 62%), rgb(0 0 0 / 72%)),
+    url('/corporate-building.webp') center 60% / cover no-repeat;
+  pointer-events: none;
+}
+
+.account-page > .brand,
+.account-page > .brand span,
+.account-page > .text-link { color: #fff; }
+.account-page > .brand { font-size: 25px; gap: 10px; }
+.account-page > .brand svg { color: #fff; }
+.account-page > .text-link { padding: 8px; }
+.account-page > :is(.brand, .text-link):focus-visible { outline-color: #fff; }
+
+.account-page .account-card {
+  width: min(100%, 460px);
+  padding: clamp(24px, 4vw, 36px);
+  background: #fff;
+  border: 1px solid #d5d9d3;
+  border-radius: 12px;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 24%);
+}
+.account-card h1 { font-size: clamp(30px, 5vw, 38px); line-height: 1.15; }
+.account-card > p { font-size: 16px; }
+.account-card > p:last-child { margin-bottom: 0; }
+.account-card .field > span { font-size: 15px; }
+.account-card input { min-height: 48px; font-size: 17px; background: #fff; }
+.account-card input[aria-invalid='true'] { border-color: #c43d22; }
+.account-card input[aria-invalid='true']:focus { outline-color: #c43d22; }
+.account-card .field > .account-field-error,
+.account-card .account-form-error {
+  display: block;
+  margin: 0;
+  color: #aa301b;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.account-card .field > .account-field-hint { font-size: 13px; font-weight: 400; line-height: 1.5; }
+.account-card .account-form-error { margin-top: -6px; }
+
+@media (max-width: 480px) {
+  main.account-page { padding: 24px 16px; gap: 20px; }
+  .account-page .account-card { padding: 24px; }
+  .account-page .account-card form { gap: 16px; }
+}
