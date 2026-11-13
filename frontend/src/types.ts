@@ -117,10 +117,12 @@ export interface Tender {
     topics: string[];
     technologies: string[];
     following: boolean;
+    /** Hidden from the account's lists; shown only in the Skriti view. */
+    ignored: boolean;
     is_new: boolean;
     has_update: boolean;
     version: number;
-    /** Present only in search results: every search term found in the tender. */
+    /** Present in search results and on a detail page opened from a search: every search term found in the tender. */
     keyword_matches?: KeywordMatch[];
     match: {
         level: MatchLevel;
@@ -226,7 +228,7 @@ export interface Filters {
     only_following?: boolean;
     statuses?: string[];
     source_types?: string[];
-    view?: 'recommended' | 'all' | 'following';
+    view?: 'recommended' | 'all' | 'following' | 'ignored';
     sort?: 'match' | 'deadline' | 'newest' | 'value';
 }
 export interface SavedSearch {

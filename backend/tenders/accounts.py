@@ -50,3 +50,10 @@ def following(tender):
     if hasattr(tender, '_account_following'):
         return tender._account_following
     return TenderFollow.objects.filter(owner_id=account_id(), tender=tender).exists()
+
+
+def ignored(tender):
+    from .models import TenderIgnore
+    if hasattr(tender, '_account_ignored'):
+        return tender._account_ignored
+    return TenderIgnore.objects.filter(owner_id=account_id(), tender=tender).exists()

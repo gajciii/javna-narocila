@@ -14,7 +14,7 @@
 :is(.tender-card, .notification-card, .overview-item, .impact-card):nth-child(3) { animation-delay: 65ms; }
 :is(.tender-card, .notification-card, .overview-item, .impact-card):nth-child(4) { animation-delay: 90ms; }
 :is(.tender-card, .notification-card, .impact-card):nth-child(n+5) { animation-delay: 110ms; }
-:is(.profile-section:not([hidden]), .detail-section, .espd, .chat-context,
+:is(.profile-section:not([hidden]), .detail-section, .chat-context,
     .chat-task-grid, .filter-panel, .active-filter-list, .scenario-actions,
     .plan-delete, .plan-merge-row, .cert-options, .company-results) {
   animation: radar-rise var(--motion-enter) var(--motion-ease);

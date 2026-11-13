@@ -175,3 +175,48 @@
   .app-shell .chat-welcome h2 { font-size: 28px; }
   .app-shell .chat-task-grid > button:nth-child(n) strong { padding-right: 26px; font-size: 17px; }
 }
+
+/* Card and detail actions: hide a tender from lists. */
+.app-shell .card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; margin-top: auto; }
+.app-shell .card-actions .card-detail-link { margin: 0; }
+.app-shell .card-ignore { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; border: 0; background: none; color: var(--muted); font-size: 13px; cursor: pointer; }
+.app-shell .card-ignore:hover { color: var(--ink); }
+.app-shell .card-ignore:disabled { cursor: wait; opacity: .6; }
+.app-shell .detail-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 40px; }
+
+/* Search keywords found in an opened tender, with their sources. */
+.app-shell .tender-keyword-list { display: grid; gap: 14px; }
+.app-shell .tender-keyword { padding: 0 0 14px; border-bottom: 1px solid var(--line); }
+.app-shell .tender-keyword:last-child { padding-bottom: 0; border-bottom: 0; }
+.app-shell .tender-keyword-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.app-shell .tender-keyword blockquote { margin: 8px 0 6px; padding-left: 11px; border-left: 2px solid var(--line); color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
+.app-shell .tender-keyword mark { padding: 0 2px; border-radius: 3px; background: #f6dfb4; color: var(--ink); }
+.app-shell .tender-keyword-source, .app-shell .tender-keyword p a { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-size: 13px; }
+.app-shell .tender-keywords-missing { display: flex; align-items: center; gap: 6px; margin: 14px 0 0; color: var(--muted); font-size: 13px; }
+.app-shell .keyword-loading { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+@media (max-width: 760px) {
+  .app-shell .card-actions { align-items: flex-start; }
+  .app-shell .detail-actions { justify-content: flex-start; margin-top: 0; }
+  .app-shell .detail-header { flex-direction: column; }
+}
+
+/* Loading states: make it obvious the list is still being searched or the keywords are not yet added. */
+.app-shell .tender-results { position: relative; }
+.app-shell .results-progress { position: absolute; top: 0; left: 0; right: 0; height: 3px; overflow: hidden; border-radius: 3px; background: var(--line); }
+.app-shell .results-progress > span { position: absolute; top: 0; bottom: 0; width: 35%; background: var(--accent); animation: results-progress 1.1s ease-in-out infinite; }
+@keyframes results-progress { from { left: -35%; } to { left: 100%; } }
+.app-shell .results-count { display: inline-flex; align-items: center; gap: 8px; }
+.app-shell .is-pending .results-count { color: var(--accent); }
+.app-shell .tender-list.refreshing > .tender-card { opacity: .45; filter: grayscale(.4); pointer-events: none; }
+.app-shell .tender-list.refreshing { opacity: 1; }
+.app-shell .results-stale-note { position: sticky; top: 12px; z-index: 2; display: flex; align-items: center; gap: 8px; align-self: center; margin: 0 0 12px; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 999px; background: #fff; color: var(--accent); font-size: 13px; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }
+.app-shell .keyword-pending { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 14px; padding: 14px 16px; border: 1px dashed var(--accent); border-radius: 9px; background: #f3f8f6; font-size: 14px; }
+.app-shell .keyword-pending > svg { flex: none; margin-top: 2px; color: var(--accent); }
+.app-shell .keyword-pending strong { display: block; color: var(--ink); }
+.app-shell .keyword-pending p { margin: 4px 0 8px; color: var(--muted); }
+.app-shell .keyword-steps { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
+.app-shell .keyword-steps li { display: flex; align-items: center; gap: 7px; }
+.app-shell .keyword-steps li.active { color: var(--ink); font-weight: 500; }
+.app-shell .keyword-steps li.done { color: var(--accent); }
+.app-shell .keyword-steps .step-dot { width: 13px; height: 13px; border: 1.5px solid currentColor; border-radius: 50%; }
+@media (prefers-reduced-motion: reduce) { .app-shell .results-progress > span { animation: none; left: 0; width: 100%; opacity: .5; } }

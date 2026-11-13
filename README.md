@@ -7,13 +7,12 @@ Prototip za **hackathon, izziv št. 2: podatkovno inženirstvo in AI za javna na
 ## Kaj ponuja
 
 - **Pregled priložnosti:** priporočeni in spremljani razpisi, neprebrana obvestila ter prihajajoči roki.
-- **Iskanje:** ključne besede, CPV, naročnik, lokacija, vrednost, roki, izvor, stanje in prag ujemanja. Napredni filtri se odprejo po potrebi; iskanja lahko shranite.
+- **Iskanje:** ključne besede, CPV, naročnik, lokacija, vrednost, roki, izvor, stanje in prag ujemanja. Napredni filtri se odprejo po potrebi; iskanja lahko shranite. Ko razpis odprete iz iskanja, so na njem prikazane najdene ključne besede z izvornim citatom in povezavo na dokument in stran.
 - **Razložljiva presoja:** vsebinsko ujemanje 0–100, ločen pregled obveznih pogojev in dokazi z navedbo dokumenta ter strani.
 - **Gemini Decision 1 (izbirno):** ob nastavljenem ključu oceni vsebinsko primernost predmeta razpisa za profil podjetja. Ocena se shrani glede na profil, razpis in model. Če ključ manjka ali storitev ni dosegljiva, je uporaba obstoječih pravil vidno označena. Končno priporočilo še vedno ločeno preveri pogoje in stanje razpisa.
 - **Profil podjetja:** osnovni podatki iz AJPES prek OPSI; reference, znanja, certifikati in ekipa so uporabniški vnosi. Dejavnost, opis, znanja in tehnologije lahko predlaga branje spletne strani podjetja, vsak predlog z dobesednim virom.
 - **AI pomočnik:** priporočila, preverjanje pogojev, primerjava razpisov in predlogi filtrov oziroma dopolnitve profila, ki jih uporabnik potrdi.
-- **Spremljanje:** spremembe pogojev, podaljšanja rokov in nove priložnosti brez podvajanja istega dogodka.
-- **ESPD osnutek:** zavihek ESPD na razpisu predizpolni podatke o naročilu, podjetju (AJPES, profil) in pogojih iz dokumentacije s predlogi odgovorov. Razlogov za izključitev ne izpolni samodejno. Izvoz v PDF (tisk) in JSON.
+- **Spremljanje:** spremembe pogojev, podaljšanja rokov in nove priložnosti brez podvajanja istega dogodka. Razpis, ki vas ne zanima, lahko skrijete; ostane v zavihku Skriti, od koder ga lahko vrnete.
 - **Pretekle oddaje:** zavihek na resničnem razpisu pokaže podobna že oddana naročila z izbranimi ponudniki, številom ponudb, pogodbeno in ocenjeno vrednostjo ter razponom ponudb.
 - **Partnerji in razvoj:** potencialna dopolnitev pogojev s partnerjem ter shranjeni načrti za razvoj kompetenc.
 
@@ -200,7 +199,7 @@ Ločeni strežnik za prenos, skupno indeksiranje prilog in opravila v PostgreSQL
 | `backend/tenders/documents.py`, `ai.py` | Besedilo PDF, dokazi in AI |
 | `backend/tenders/ajpes.py` | Iskanje podjetij in predpomnilnik |
 | `backend/tenders/improvements.py`, `partners.py` | Razvojni načrti in partnerski potencial |
-| `backend/tenders/espd.py`, `frontend/src/Espd.tsx` | ESPD osnutek |
+| `backend/tenders/espd.py` | ESPD osnutek (API; zavihek na razpisu je odstranjen) |
 | `backend/tenders/website.py`, `frontend/src/WebsiteImport.tsx` | Predlogi profila s spletne strani podjetja |
 | `backend/tenders/past_awards.py`, `frontend/src/PastAwards.tsx` | Uvoz obvestil o oddaji in podobna pretekla naročila |
 | `backend/tenders/relevance_eval.py`, `backend/eval/` | Primerjava pristopov za vsebinsko ujemanje na označenem naboru |

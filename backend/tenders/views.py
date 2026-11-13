@@ -16,7 +16,7 @@ from .models import CompanyProfile, Tender, SavedSearch, Notification, Document
 from .seed import ensure_seed, get_profile, demo_profile, get_active_company, empty_profile
 from .runtime_data import application_tenders, application_records, test_fixtures_enabled
 from .matching import serialize_tender
-from .filtering import apply_filters, keyword_matches, validate_filters
+from .filtering import apply_filters, keyword_matches, search_terms, validate_filters
 from .validation import validate_profile
 from .services import bootstrap, all_tenders, all_notifications, serialize_search, trigger_event
 from .documents import extract_pages, serialize_document, active_documents
@@ -171,7 +171,16 @@ def tender_detail(tender, profile):
 @api_view(['GET'])
 def tender_view(request, tender_id):
     ensure_seed()
-    return Response(tender_detail(get_object_or_404(application_tenders(), pk=tender_id), get_profile()))
+    data = tender_detail(get_object_or_404(application_tenders(), pk=tender_id), get_profile())
+    # The search that led here, so the detail page can show which keywords the tender contains and where.
+    query = request.query_params.get('q', '')
+    if len(query) > 2000:
+        raise ValidationError({'q': 'Besedilo je predolgo ali neveljavno.'})
+    if query.strip():
+        from .keyword_expansion import document_keyword_hits
+        hits = document_keyword_hits(list(search_terms(query)), [data['id']]).get(data['id'], {})
+        data['keyword_matches'] = keyword_matches(data, query, hits)
+    return Response(data)
 
 
 @api_view(['POST'])
@@ -190,6 +199,31 @@ def follow_view(request, tender_id):
             TenderFollow.objects.get_or_create(owner_id=account_id(), tender=tender)
         else:
             TenderFollow.objects.filter(owner_id=account_id(), tender=tender).delete()
+    if following:
+        from .models import TenderIgnore
+        TenderIgnore.objects.filter(owner_id=account_id(), tender=tender).delete()
+    return Response(tender_detail(tender, get_profile()))
+
+
+@api_view(['POST'])
+def ignore_view(request, tender_id):
+    ensure_seed()
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
+    ignored = request.data.get('ignored')
+    if not isinstance(ignored, bool):
+        raise ValidationError({'ignored': 'Pričakovana je logična vrednost.'})
+    from .models import TenderFollow, TenderIgnore
+    if ignored:
+        TenderIgnore.objects.get_or_create(owner_id=account_id(), tender=tender)
+        # An ignored tender is no longer of interest, so stop following it too.
+        if account_id() is None:
+            if tender.following:
+                tender.following = False
+                tender.save(update_fields=['following'])
+        else:
+            TenderFollow.objects.filter(owner_id=account_id(), tender=tender).delete()
+    else:
+        TenderIgnore.objects.filter(owner_id=account_id(), tender=tender).delete()
     return Response(tender_detail(tender, get_profile()))
 
 

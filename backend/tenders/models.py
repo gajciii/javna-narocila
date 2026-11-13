@@ -377,6 +377,16 @@ class TenderFollow(models.Model):
         constraints = [models.UniqueConstraint(fields=['owner', 'tender'], name='unique_account_tender_follow')]
 
 
+class TenderIgnore(models.Model):
+    """A tender the account chose to hide from its lists. A null owner is the anonymous workspace."""
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['owner', 'tender'], name='unique_account_tender_ignore')]
+
+
 class NotificationRead(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     notification = models.ForeignKey(Notification, on_delete=models.CASCADE)

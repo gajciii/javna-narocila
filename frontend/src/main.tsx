@@ -6,7 +6,6 @@ import { queryClient } from './queryClient';
 import { initAnalytics } from './analytics';
 import './styles.css';
 import './workspace-theme.css';
-import './espd.css';
 import './notifications.css';
 import './motion.css';
 import './past-awards.css';

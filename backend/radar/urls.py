@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/tenders', views.tenders_view),
     path('api/tenders/<slug:tender_id>', views.tender_view),
     path('api/tenders/<slug:tender_id>/follow', views.follow_view),
+    path('api/tenders/<slug:tender_id>/ignore', views.ignore_view),
     path('api/tenders/<slug:tender_id>/analyze', views.analyze_view),
     path('api/tenders/<slug:tender_id>/documents', views.document_upload_view),
     path('api/searches', views.searches_view),

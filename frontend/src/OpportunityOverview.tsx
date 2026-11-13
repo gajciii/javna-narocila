@@ -1,7 +1,7 @@
 import { ArrowRight, Bookmark, CalendarDays, CheckCircle2, ChevronRight, CircleHelp, Radar, Sparkles } from 'lucide-react';
 import type { Bootstrap, Filters, Tender } from './types';
 
-const recommended = (t: Tender) => t.status === 'open' && t.match.level !== 'low' && ['recommended', 'review'].includes(t.match.recommendation);
+const recommended = (t: Tender) => !t.ignored && t.status === 'open' && t.match.level !== 'low' && ['recommended', 'review'].includes(t.match.recommendation);
 
 export function OpportunityOverview({ data, onView }: { data: Bootstrap; onView: (filters: Filters) => void }) {
     const opportunities = data.tenders.filter(recommended);

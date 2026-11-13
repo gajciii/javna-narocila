@@ -41,6 +41,10 @@ def all_tenders(profile=None):
         followed = set(TenderFollow.objects.filter(owner_id=account_id()).values_list('tender_id', flat=True))
         for tender in tenders:
             tender._account_following = tender.pk in followed
+    from .models import TenderIgnore
+    hidden = set(TenderIgnore.objects.filter(owner_id=account_id()).values_list('tender_id', flat=True))
+    for tender in tenders:
+        tender._account_ignored = tender.pk in hidden
     matches = resolve_matches(tenders, profile)
     return [serialize_tender(t, profile, content_result=matches[t.pk]) for t in tenders]
 

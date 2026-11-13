@@ -153,7 +153,8 @@ class IndexTests(TestCase):
         from .services import all_tenders
         self.doc.pages = [{'page': 1, 'text': 'Large document text'}]
         self.doc.save()
-        with self.assertNumQueries(2):
+        # Tenders, document metadata and the account's ignored tenders.
+        with self.assertNumQueries(3):
             tenders = all_tenders(PROFILE)
         self.assertEqual(tenders[0]['documents'][0]['pages'], 1)
         from .documents import document_metadata
