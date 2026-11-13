@@ -90,7 +90,10 @@ def scored_tenders(profile=None, wait=True):
         matches, pending = resolve_matches(tenders, profile), False
     else:
         matches, pending = resolve_matches_nowait(tenders, profile)
-    return [serialize_tender(t, profile, content_result=matches[t.pk]) for t in tenders], pending
+    from .tender_conditions import unmet_conditions
+    unmet = unmet_conditions(profile)
+    return [serialize_tender(t, profile, content_result=matches[t.pk], unmet_condition=unmet.get(t.pk))
+            for t in tenders], pending
 
 
 def serialize_search(item):

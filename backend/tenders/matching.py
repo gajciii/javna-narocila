@@ -183,7 +183,8 @@ def effective_status(data):
     return 'open'
 
 
-def serialize_tender(tender, profile, documents=None, content_result=None):
+def serialize_tender(tender, profile, documents=None, content_result=None, unmet_condition=None):
+    """``unmet_condition`` is the title of a tender condition the company marked as not met."""
     data = dict(tender.data)
     docs = active_documents(tender, metadata_only=True) if documents is None else documents
     requirements = [req for doc in docs if doc.status == 'processed' and doc.extraction.get('mode') != 'unprocessed' for req in doc.extraction.get('requirements', [])]
@@ -203,9 +204,11 @@ def serialize_tender(tender, profile, documents=None, content_result=None):
     elif status != 'open':
         recommendation = 'closed'
         open_question = 'Naročilo ni odprto za prijavo.'
-    elif level == 'low' or has_unmet:
+    elif level == 'low' or has_unmet or unmet_condition:
         recommendation = 'unsuitable'
-        open_question = next((c['title'] for c in conditions if c['status'] == 'unmet'), 'Predmet ni med glavnimi dejavnostmi podjetja.')
+        open_question = next((c['title'] for c in conditions if c['status'] == 'unmet'),
+                             f'Pogoja »{unmet_condition}« po vaši oznaki v profilu ne izpolnjujete.' if unmet_condition
+                             else 'Predmet ni med glavnimi dejavnostmi podjetja.')
     elif not conditions or has_unknown or any(d.status != 'processed' or d.extraction.get('mode') == 'unprocessed' or d.extraction.get('rejected_requirements', 0) for d in docs):
         recommendation = 'review'
         open_question = next((c['company_value'] for c in conditions if c['status'] == 'unknown'), 'Pogoji iz celotne dokumentacije še niso preverjeni.')

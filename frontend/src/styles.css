@@ -8002,6 +8002,23 @@ button, a {
 .tender-condition-source a { display: inline-flex; align-items: center; gap: 5px; }
 .tender-condition-source .evidence-quote { margin: 0; }
 .condition-state.manual { color: #6b6f68; white-space: nowrap; }
+/* The company's own answer to a tender condition, saved to the company profile. */
+.condition-answer { margin-top: 10px; }
+.condition-answer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.condition-answer-label { font-size: 13px; color: var(--muted, #5f655e); }
+.condition-answer-buttons { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.condition-answer-button { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 4px 11px; font: inherit; font-size: 13px; color: #3f4540; background: #fff; border: 1px solid #d5d9d3; border-radius: 999px; cursor: pointer; }
+.condition-answer-button:hover:not(:disabled) { border-color: #9aa197; }
+.condition-answer-button:focus-visible { outline: 2px solid var(--slate, #3c4a52); outline-offset: 2px; }
+.condition-answer-button:disabled { cursor: default; opacity: 0.6; }
+.condition-answer-button.met.active { color: #1f6b41; background: #e8f4ec; border-color: #8fc4a2; font-weight: 600; }
+.condition-answer-button.unmet.active { color: #9b2c2c; background: #fbecec; border-color: #e3a5a5; font-weight: 600; }
+.tender-condition p.condition-answer-note { margin-top: 6px; font-size: 13px; color: var(--muted, #5f655e); }
+.condition-answer-remove { padding: 0; font: inherit; color: inherit; text-decoration: underline; background: none; border: 0; cursor: pointer; }
+.condition-answer-remove:hover:not(:disabled) { color: #9b2c2c; }
+.ov-condition-answers .condition-state { white-space: nowrap; }
+.ov-condition-answers .condition-state.met { color: #1f6b41; }
+.ov-condition-answers .condition-state.unmet { color: #9b2c2c; }
 .conditions-subheading { margin: 28px 0 10px; font-size: 15px; }
 
 /* Tooltip explaining the "Potrebna dopolnitev" condition state */

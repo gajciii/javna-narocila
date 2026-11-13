@@ -198,7 +198,60 @@ def keyword_expansion_view(request):
 
 def tender_detail(tender, profile):
     from .tender_conditions import conditions_payload
-    return {**serialize_tender(tender, profile), 'tender_conditions': conditions_payload(tender, profile)}
+    conditions = conditions_payload(tender, profile)
+    unmet = next((item['title'] for item in conditions['items'] if conditions['mode'] == 'live'
+                  and (item.get('profile_answer') or {}).get('answer') == 'unmet'), None)
+    return {**serialize_tender(tender, profile, unmet_condition=unmet), 'tender_conditions': conditions}
+
+
+def store_condition_answers(company, answers):
+    # Saved without touching updated_at: the client keys AI work (attachment opportunities, partner
+    # matches) on it, and condition answers do not affect those results.
+    company.data = {**company.data, 'condition_answers': answers}
+    CompanyProfile.objects.filter(pk=company.pk).update(data=company.data)
+
+
+@api_view(['POST'])
+def condition_answer_view(request, tender_id, condition_id):
+    """Record in the company profile whether the company meets a tender condition.
+
+    The answer also applies to similar conditions in other tenders; ``answer: null`` removes it.
+    """
+    from .models import TenderConditions
+    from .tender_conditions import save_answer, ANSWERS, profile_answers
+    ensure_seed()
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
+    answer = request.data.get('answer') if isinstance(request.data, dict) else 'invalid'
+    if answer is not None and answer not in ANSWERS:
+        raise ValidationError({'answer': 'Izberite, ali pogoj izpolnjujete ali ne.'})
+    record = get_object_or_404(TenderConditions, tender=tender)
+    item = next((c for c in record.conditions if c.get('id') == condition_id), None)
+    if item is None:
+        return Response({'message': 'Pogoja ni več v seznamu. Osvežite stran.'}, status=404)
+    with transaction.atomic():
+        lock_account()
+        company = get_active_company()
+        if request.data.get('profile_id', company.pk) != company.pk:
+            return Response({'message': 'Izbrano podjetje se je spremenilo. Osvežite stran.'}, status=409)
+        answers = save_answer(profile_answers(company.data), tender, item, answer)
+        store_condition_answers(company, answers)
+    profile = get_profile()
+    return Response({'tender': tender_detail(tender, profile), 'profile': profile})
+
+
+@api_view(['DELETE'])
+def condition_answer_delete_view(request, answer_id):
+    from .tender_conditions import profile_answers
+    ensure_seed()
+    with transaction.atomic():
+        lock_account()
+        company = get_active_company()
+        answers = profile_answers(company.data)
+        remaining = [a for a in answers if not isinstance(a, dict) or a.get('id') != answer_id]
+        if len(remaining) == len(answers):
+            return Response({'message': 'Oznake ni več v profilu.'}, status=404)
+        store_condition_answers(company, remaining)
+    return Response(get_profile())
 
 
 @api_view(['GET'])

@@ -57,7 +57,19 @@ export interface Profile {
     source: 'demo' | 'user';
     registry_source?: RegistrySource;
     references: CompanyReference[];
+    /** The company's own answers to tender conditions; reused for similar conditions in other tenders. */
+    condition_answers?: ConditionAnswer[];
     updated_at?: string;
+}
+export interface ConditionAnswer {
+    id: string;
+    answer: 'met' | 'unmet';
+    category: TenderCondition['category'];
+    title: string;
+    requirement: string;
+    tender_id: string;
+    tender_title: string;
+    updated_at: string;
 }
 export interface Condition {
     id: string;
@@ -90,7 +102,11 @@ export interface TenderCondition {
     page: number | null;
     locator: string;
     status: ConditionState | 'manual';
+    /** Status from the profile data alone, before the company's own answer. */
+    auto_status: ConditionState | 'manual';
     company_value: string;
+    /** The company's saved answer that applies; inherited when it was given for a similar condition elsewhere. */
+    profile_answer: { id: string; answer: 'met' | 'unmet'; tender_id: string; tender_title: string; title: string; inherited: boolean } | null;
 }
 export interface KeywordMatch {
     term: string;

@@ -7,6 +7,7 @@ import hashlib
 import json
 import logging
 import math
+import re
 
 from django.utils import timezone
 
@@ -153,12 +154,96 @@ def extract_conditions(tender, force=False):
     return record
 
 
-def conditions_payload(tender, profile):
+# Company answers to conditions ("izpolnjujemo" / "ne izpolnjujemo") are kept in the company
+# profile and reused for similar conditions in other tenders. Matching is deliberately strict:
+# a wrongly inherited "met" would tell the company it qualifies when it may not.
+ANSWERS = ('met', 'unmet')
+MAX_ANSWERS = 500
+MATCH_THRESHOLD = 0.6
+# Stems that appear in almost every condition and say nothing about which condition it is.
+COMMON_STEMS = {'ponud', 'mora', 'morajo', 'imeti', 'najma', 'vsaj', 'zadnj', 'pogoj', 'zahte', 'izpol',
+                'ki', 'ter', 'ali', 'pri', 'kot', 'tega', 'biti', 'ima', 'oziro', 'skladn', 'dolzn',
+                'vsak', 'vsi', 'vse', 'kater', 'mor', 'sme', 'smejo', 'ne', 'ni', 'naroc'}
+# Article and point references ("75. člena ZJN-3") are not thresholds and differ between write-ups.
+LEGAL_REFERENCE = re.compile(r'\d+\.\s*(?:odstav|clen|tock|alinej)\w*|zjn-\d+|\(\d+\)')
+NUMBER = re.compile(r'\d+(?:[. ]\d{3})*(?:,\d+)?')
+
+
+def condition_text(item):
+    return fold(f"{item.get('title', '')} {item.get('requirement', '')}")
+
+
+def stems(text):
+    words = re.findall(r'[a-z]+', LEGAL_REFERENCE.sub(' ', text))
+    return {word[:5] for word in words if len(word) >= 3} - COMMON_STEMS
+
+
+def numbers(text):
+    return {re.sub(r'[. ]', '', value) for value in NUMBER.findall(LEGAL_REFERENCE.sub(' ', text))}
+
+
+def answer_id(item):
+    key = '|'.join([item.get('category', ''), fold(item.get('title', '')).strip(), fold(item.get('requirement', '')).strip()])
+    return hashlib.sha256(key.encode()).hexdigest()[:16]
+
+
+def signature(item):
+    text = condition_text(item)
+    return item.get('category'), answer_id(item), numbers(text), stems(text)
+
+
+def similarity(left, right):
+    """Dice similarity of two condition signatures; 0 when category or thresholds differ."""
+    if left[0] != right[0]:
+        return 0.0
+    if left[1] == right[1]:
+        return 1.0
+    if left[2] != right[2] or not left[3] or not right[3]:
+        return 0.0
+    return 2 * len(left[3] & right[3]) / (len(left[3]) + len(right[3]))
+
+
+class AnswerIndex:
+    """Saved answers with precomputed signatures, matched against many conditions."""
+
+    def __init__(self, answers):
+        self.answers = [(a, signature(a)) for a in answers
+                        if isinstance(a, dict) and a.get('answer') in ANSWERS and a.get('category') in CATEGORIES]
+
+    def match(self, item):
+        """The saved answer that applies to the condition, or None."""
+        if not self.answers:
+            return None
+        own = signature(item)
+        best, best_score = None, MATCH_THRESHOLD
+        for answer, sig in self.answers:
+            score = similarity(own, sig)
+            # Later answers win ties, so a newer decision overrides an older one for the same wording.
+            if score >= best_score:
+                best, best_score = answer, score
+        return best
+
+
+def profile_answers(profile):
+    answers = profile.get('condition_answers')
+    return answers if isinstance(answers, list) else []
+
+
+def save_answer(answers, tender, item, answer):
+    """Answers after recording ``answer`` (met, unmet or None to remove) for the tender's condition."""
+    answers = [a for a in answers if isinstance(a, dict)]
+    if answer is None:
+        applied = AnswerIndex(answers).match(item)
+        return [a for a in answers if not applied or a.get('id') != applied.get('id')]
+    entry = {'id': answer_id(item), 'answer': answer, 'category': item['category'], 'title': item['title'],
+             'requirement': item.get('requirement', ''), 'tender_id': tender.pk,
+             'tender_title': str(tender.data.get('title', ''))[:300], 'updated_at': timezone.now().isoformat()}
+    return ([a for a in answers if a.get('id') != entry['id']] + [entry])[-MAX_ANSWERS:]
+
+
+def evaluated_items(record, profile, tender_id):
     from .matching import evaluate_requirement
-    record = TenderConditions.objects.filter(tender=tender).first()
-    if record is None:
-        return {'mode': 'pending', 'message': 'Pogoji bodo izluščeni ob indeksiranju dokumentacije.', 'items': []}
-    current = record.fingerprint == fingerprint(condition_documents(tender))
+    answers = AnswerIndex(profile_answers(profile))
     items = []
     for item in record.conditions:
         check = item.get('check', {})
@@ -167,7 +252,37 @@ def conditions_payload(tender, profile):
             evaluated = evaluate_requirement({**check, 'id': item['id'], 'title': item['title'],
                                               'requires_manual_review': False, 'quote': item['quote']}, profile)
             status, company_value = evaluated['status'], evaluated['company_value']
-        items.append({**item, 'category_label': CATEGORIES[item['category']], 'status': status,
-                      'company_value': company_value})
-    return {'mode': record.mode, 'message': record.message, 'items': items, 'current': current,
-            'extracted_at': record.extracted_at}
+        saved = answers.match(item)
+        profile_answer = None
+        if saved:
+            profile_answer = {'id': saved['id'], 'answer': saved['answer'], 'tender_id': saved.get('tender_id'),
+                              'tender_title': saved.get('tender_title', ''), 'title': saved.get('title', ''),
+                              'inherited': saved.get('tender_id') != tender_id or saved['id'] != answer_id(item)}
+        items.append({**item, 'category_label': CATEGORIES[item['category']],
+                      'status': saved['answer'] if saved else status, 'auto_status': status,
+                      'company_value': company_value, 'profile_answer': profile_answer})
+    return items
+
+
+def conditions_payload(tender, profile):
+    record = TenderConditions.objects.filter(tender=tender).first()
+    if record is None:
+        return {'mode': 'pending', 'message': 'Pogoji bodo izluščeni ob indeksiranju dokumentacije.', 'items': []}
+    current = record.fingerprint == fingerprint(condition_documents(tender))
+    return {'mode': record.mode, 'message': record.message, 'items': evaluated_items(record, profile, tender.pk),
+            'current': current, 'extracted_at': record.extracted_at}
+
+
+def unmet_conditions(profile):
+    """Tender id -> title of the first condition the company marked (here or elsewhere) as not met."""
+    answers = AnswerIndex(profile_answers(profile))
+    if not any(a['answer'] == 'unmet' for a, _ in answers.answers):
+        return {}
+    result = {}
+    for tender_id, conditions in TenderConditions.objects.filter(mode='live').values_list('tender_id', 'conditions'):
+        for item in conditions or []:
+            saved = answers.match(item)
+            if saved and saved['answer'] == 'unmet':
+                result[tender_id] = item['title']
+                break
+    return result
