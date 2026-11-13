@@ -467,6 +467,17 @@ def buyer_history_view(request, tender_id):
     return Response(history(get_object_or_404(Tender, pk=tender_id), request.query_params))
 
 
+@api_view(['POST'])
+def notification_email_test_view(request):
+    from django.core.cache import cache
+    from .accounts import account_id
+    from .email_notifications import send_test
+    # One test per account per minute is enough to check settings and keeps the button from mailing in bulk.
+    if not cache.add(f'email-test:{account_id()}', 1, 60):
+        return Response({'sent': False, 'message': 'Testno sporočilo lahko pošljete enkrat na minuto.'}, status=429)
+    return Response(send_test())
+
+
 @api_view(['GET', 'PUT'])
 def notification_email_settings_view(request):
     from .email_notifications import save_settings, status

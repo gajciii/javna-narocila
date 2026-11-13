@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { LoaderCircle, Mail, Save } from 'lucide-react';
-import { api } from './api';
+import { LoaderCircle, Mail, Save, Send } from 'lucide-react';
+import { api, post } from './api';
 
 type EmailType = 'correction' | 'deadline';
 type EmailSettings = {
@@ -22,6 +22,14 @@ export default function EmailNotificationSettings() {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [revision, setRevision] = useState(0);
+    const [testing, setTesting] = useState(false);
+    const [testResult, setTestResult] = useState<{ sent: boolean; message: string } | null>(null);
+    const sendTest = async () => {
+        setTesting(true); setTestResult(null);
+        try { setTestResult(await post<{ sent: boolean; message: string }>('/notifications/email-test')); }
+        catch (e) { setTestResult({ sent: false, message: (e as Error).message }); }
+        finally { setTesting(false); }
+    };
     const apply = (value: EmailSettings) => {
         // A new account starts with its login address as the recipient.
         setSettings(value); setEmail(value.email || value.account_email); setEnabled(value.enabled); setTypes(value.types);
@@ -63,8 +71,13 @@ export default function EmailNotificationSettings() {
             {settings.pending > 0 && <p className="section-help">V čakalni vrsti: {settings.pending}.</p>}
             {settings.failed > 0 && <p role="status" className="info-box">Pošiljanje {settings.failed} obvestil ni uspelo po petih poskusih. Preveriti je treba nastavitve pošiljanja.</p>}
             {settings.last_sent_at && <p className="section-help">Zadnje obvestilo predano v pošiljanje: {new Date(settings.last_sent_at).toLocaleString('sl-SI')}.</p>}
-            <button className="button primary small" disabled={busy || (enabled && !types.length)}>{busy ? <LoaderCircle size={16} className="spin"/> : <Save size={16}/>}Shrani nastavitve</button>
+            <div className="email-actions">
+                <button className="button primary small" disabled={busy || (enabled && !types.length)}>{busy ? <LoaderCircle size={16} className="spin"/> : <Save size={16}/>}Shrani nastavitve</button>
+                <button type="button" className="button small" disabled={busy || testing || (!settings.email && !settings.account_email)} onClick={() => void sendTest()} title={`Pošlje sporočilo na ${settings.email || settings.account_email}`}>{testing ? <LoaderCircle size={16} className="spin"/> : <Send size={16}/>}Pošlji testno sporočilo</button>
+            </div>
             {message && <p role="status">{message}</p>}
+            {testResult && <p role="status" className={testResult.sent ? 'email-test-ok' : 'info-box'}>{testResult.message}</p>}
+            <p className="section-help">Testno sporočilo gre na shranjeni naslov{settings.email ? ` (${settings.email})` : settings.account_email ? ` oziroma naslov računa (${settings.account_email})` : ''}, tudi če so obvestila izklopljena.</p>
         </form>}
     </section>;
 }

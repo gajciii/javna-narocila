@@ -7966,6 +7966,8 @@ button, a {
 .email-notification-settings .field { max-width: 460px; margin: 0; }
 .email-notification-settings form > p { margin: 0; }
 .email-notification-settings form > button { justify-self: start; }
+.email-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.email-test-ok { color: #23784a; font-weight: 600; }
 
 .tender-condition-groups { display: grid; gap: 22px; margin-top: 8px; }
 .tender-condition-group h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 15px; }

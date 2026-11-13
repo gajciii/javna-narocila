@@ -46,6 +46,7 @@ urlpatterns = [
     path('api/filters/suggest', views.filter_suggestion_view),
     path('api/chat', views.chat_view),
     path('api/notifications/email-settings', views.notification_email_settings_view),
+    path('api/notifications/email-test', views.notification_email_test_view),
     path('api/notifications', views.notifications_view),
     path('api/notifications/read', views.notifications_read_view),
     path('api/improvements/evaluate', views.improvement_evaluate_view),
