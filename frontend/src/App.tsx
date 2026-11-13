@@ -64,13 +64,38 @@ function MatchBadge({ level, score }: {
     level: MatchLevel;
     score?: number;
 }) { return <span className={`match-badge ${level}`}><span className="match-bars"><i /><i /><i /></span>{labels[level]}{score !== undefined && <b title="Ocena vsebinskega ujemanja, ne verjetnost uspeha">{Math.round(score)}</b>}</span>; }
-function TenderConditionList({ data }: { data?: Tender['tender_conditions'] }) {
+type ConditionAnswerValue = 'met' | 'unmet' | null;
+function ConditionAnswerControl({ item, busy, onAnswer }: {
+    item: TenderCondition;
+    busy: boolean;
+    onAnswer: (item: TenderCondition, answer: ConditionAnswerValue) => void;
+}) {
+    const saved = item.profile_answer;
+    // Clicking the active answer removes it, unless it was inherited from another tender; then it is confirmed here.
+    const choose = (answer: 'met' | 'unmet') => onAnswer(item, saved?.answer === answer && !saved.inherited ? null : answer);
+    return <div className="condition-answer">
+        <div className="condition-answer-row"><span className="condition-answer-label">Ali izpolnjujete ta pogoj?</span><div className="condition-answer-buttons" role="group" aria-label={`Ali izpolnjujete pogoj: ${item.title}`}>
+            <button type="button" className={`condition-answer-button met${saved?.answer === 'met' ? ' active' : ''}`} aria-pressed={saved?.answer === 'met'} disabled={busy} onClick={() => choose('met')}><Check size={14}/>Izpolnjujemo</button>
+            <button type="button" className={`condition-answer-button unmet${saved?.answer === 'unmet' ? ' active' : ''}`} aria-pressed={saved?.answer === 'unmet'} disabled={busy} onClick={() => choose('unmet')}><X size={14}/>Ne izpolnjujemo</button>
+            {busy && <Spinner small/>}
+        </div></div>
+        {saved && <p className="condition-answer-note">{saved.inherited
+            ? <>Upoštevano iz profila podjetja: podoben pogoj ste označili pri razpisu <a href={`#/razpisi/${encodeURIComponent(saved.tender_id)}`}>{saved.tender_title || 'drugem razpisu'}</a>.</>
+            : 'Shranjeno v profil podjetja. Upoštevamo ga tudi pri drugih razpisih s podobnim pogojem.'} <button type="button" className="condition-answer-remove" disabled={busy} onClick={() => onAnswer(item, null)}>Odstrani iz profila</button></p>}
+    </div>;
+}
+function TenderConditionList({ data, answering, onAnswer }: {
+    data?: Tender['tender_conditions'];
+    /** Id of the condition whose answer is being saved. */
+    answering?: string;
+    onAnswer?: (item: TenderCondition, answer: ConditionAnswerValue) => void;
+}) {
     if (!data || !data.items.length) {
         const message = data?.message || 'Pogoji bodo izluščeni ob indeksiranju dokumentacije.';
         return <EmptyState title="Pogoji razpisa še niso izluščeni." icon={<FileText size={25}/>}>{message} Z gumbom »Osveži analizo« jih lahko izluščite takoj.</EmptyState>;
     }
     const groups = data.items.reduce<Record<string, TenderCondition[]>>((all, item) => ({ ...all, [item.category_label]: [...(all[item.category_label] || []), item] }), {});
-    return <div className="tender-condition-groups">{data.current === false && <div className="info-box amber"><CircleHelp size={18}/><p>Dokumentacija se je spremenila; pogoji bodo ob naslednjem indeksiranju posodobljeni.</p></div>}{Object.entries(groups).map(([label, items]) => <details key={label} className="tender-condition-group"><summary><h3>{label}<span>{items.length}</span></h3><ChevronDown size={18}/></summary>{items.map(item => <div className="tender-condition" key={item.id}><div className="tender-condition-head"><strong>{item.title}</strong>{item.status === 'manual' ? <span className="condition-state manual"><CircleHelp size={15}/>Preverite sami</span> : <StateBadge status={item.status} reason={item.company_value}/>}</div>{item.requirement !== item.title && <p>{item.requirement}</p>}{item.status !== 'manual' && item.company_value && <p className="tender-condition-company"><Building2 size={13}/>{item.company_value}</p>}<div className="tender-condition-source"><a target="_blank" rel="noreferrer" href={`/api/documents/${encodeURIComponent(item.document_id)}${item.page ? `#page=${item.page}` : ''}`}><FileText size={12}/>{item.document_title} · {item.page ? `str. ${item.page}` : item.locator}<ArrowUpRight size={12}/></a><details className="evidence-quote"><summary>Izvorno besedilo</summary><blockquote>»{item.quote}«</blockquote></details></div></div>)}</details>)}</div>;
+    return <div className="tender-condition-groups">{data.current === false && <div className="info-box amber"><CircleHelp size={18}/><p>Dokumentacija se je spremenila; pogoji bodo ob naslednjem indeksiranju posodobljeni.</p></div>}{Object.entries(groups).map(([label, items]) => <details key={label} className="tender-condition-group"><summary><h3>{label}<span>{items.length}</span></h3><ChevronDown size={18}/></summary>{items.map(item => <div className="tender-condition" key={item.id}><div className="tender-condition-head"><strong>{item.title}</strong>{item.status === 'manual' ? <span className="condition-state manual"><CircleHelp size={15}/>Preverite sami</span> : <StateBadge status={item.status} reason={item.profile_answer ? undefined : item.company_value}/>}</div>{item.requirement !== item.title && <p>{item.requirement}</p>}{item.auto_status !== 'manual' && item.company_value && <p className="tender-condition-company"><Building2 size={13}/>{item.company_value}</p>}<div className="tender-condition-source"><a target="_blank" rel="noreferrer" href={`/api/documents/${encodeURIComponent(item.document_id)}${item.page ? `#page=${item.page}` : ''}`}><FileText size={12}/>{item.document_title} · {item.page ? `str. ${item.page}` : item.locator}<ArrowUpRight size={12}/></a><details className="evidence-quote"><summary>Izvorno besedilo</summary><blockquote>»{item.quote}«</blockquote></details></div>{onAnswer && <ConditionAnswerControl item={item} busy={answering === item.id} onAnswer={onAnswer}/>}</div>)}</details>)}</div>;
 }
 function StateBadge({ status, reason }: {
     status: ConditionState;
@@ -160,6 +185,11 @@ function applySavedProfile(saved: Profile) {
     // Improvement suggestions are recomputed on the server in the background.
     setTimeout(() => { void api<Notification[]>('/notifications').then(notifications => queryClient.setQueryData<Bootstrap>(queryKeys.bootstrap, old => old && { ...old, notifications })).catch(() => { }); }, 6000);
 }
+/** Put a profile whose condition answers changed into the workspace; tender lists and other tender details depend on them. */
+function applyConditionAnswers(saved: Profile, currentTender?: string) {
+    queryClient.setQueryData<Bootstrap>(queryKeys.bootstrap, old => old && { ...old, profile: saved });
+    void queryClient.invalidateQueries({ predicate: query => query.queryKey[0] === 'tenders' || (query.queryKey[0] === 'tender' && query.queryKey[1] !== currentTender) });
+}
 /** Reload workspace data after a change. Tender lists, details and partner matches depend on it, so they are refetched too. */
 async function refreshWorkspace() {
     await queryClient.cancelQueries({ predicate: query => query.queryKey[0] !== 'bootstrap' });
@@ -217,7 +247,6 @@ export default function App({ user, signOut }: { user: { username: string; is_st
       <a className="brand topbar-brand" href="#/" aria-label="RazpIzi, domača stran"><Radar size={28} strokeWidth={1.8}/><span>Razp<span>Izi</span></span></a>
       <nav id="main-navigation" className={`main-nav ${mobileNav ? 'open' : ''}`} aria-label="Glavna navigacija">
         <a href="#/razpisi" aria-current={section === 'Razpisi' ? 'page' : undefined} className={section === 'Razpisi' ? 'active' : ''} onClick={() => setFilters(f => ({ ...f, view: 'recommended' }))}>Razpisi</a>
-        <a href="#/pricakovani" aria-current={section === 'Pričakovani razpisi' ? 'page' : undefined} className={section === 'Pričakovani razpisi' ? 'active' : ''}>Pričakovani</a>
         <a href="#/obvestila" aria-current={section === 'Obvestila' ? 'page' : undefined} className={section === 'Obvestila' ? 'active' : ''}>Obvestila{unread > 0 && <span className="nav-count notification-count">{unread}</span>}</a>
         <a href="#/profil" aria-current={section === 'Profil podjetja' ? 'page' : undefined} className={section === 'Profil podjetja' ? 'active' : ''}>Podjetje</a>
         {user.is_staff && <a href="#/administracija">Administracija</a>}
@@ -501,6 +530,7 @@ function TenderDetail({ id, data, refresh, notify }: Shared & {
     const error = detail.error?.message ?? '';
     const [tab, setTab] = useState('conditions');
     const [busy, setBusy] = useState('');
+    const [answering, setAnswering] = useState('');
     useEffect(() => { const requested = new URLSearchParams(window.location.hash.split('?')[1] || '').get('tab'); setTab(requested && ['overview', 'conditions', 'partners', 'submission', 'history', 'buyer-history'].includes(requested) ? requested : 'conditions'); }, [id]);
     const act = async (kind: string, callback: () => Promise<void>) => { setBusy(kind); try {
         await callback();
@@ -516,9 +546,32 @@ function TenderDetail({ id, data, refresh, notify }: Shared & {
     if (!tender)
         return <div className="page-loading"><Spinner /><p>Nalagamo podrobnosti …</p></div>;
     const conditions = tender.match.conditions;
+    // Count the same conditions shown below; extracted conditions replace the legacy checks.
+    const displayedConditions = tender.tender_conditions?.items.length ? tender.tender_conditions.items : conditions;
+    const conditionCounts = { met: 0, unknown: 0, unmet: 0 };
+    for (const condition of displayedConditions) {
+        conditionCounts[condition.status === 'manual' ? 'unknown' : condition.status]++;
+    }
+    const manualConditions = displayedConditions.filter(condition => condition.status === 'manual').length;
     const days = daysLeft(tender.deadline, data.meta.today);
     const ignore = () => act('ignore', async () => { await post(`/tenders/${id}/ignore`, { ignored: !tender.ignored }); track('tender_ignore_toggled', { tender_id: id, ignored: !tender.ignored, from: 'detail' }); await refresh(); notify(tender.ignored ? 'Razpis je spet prikazan v seznamih.' : 'Razpis je skrit in ga ne boste več videli v seznamih. Najdete ga v zavihku Skriti.'); });
     const follow = () => act('follow', async () => { await post(`/tenders/${id}/follow`, { following: !tender.following }); track('tender_follow_toggled', { tender_id: id, following: !tender.following, from: 'detail' }); await refresh(); notify(tender.following ? 'Spremljanje je izključeno.' : 'Spremljanje je vključeno. Obvestili vas bomo o spremembah.'); });
+    const answerCondition = async (item: TenderCondition, answer: ConditionAnswerValue) => {
+        setAnswering(item.id);
+        try {
+            const result = await post<{ tender: Tender; profile: Profile }>(`/tenders/${encodeURIComponent(id)}/conditions/${encodeURIComponent(item.id)}/answer`, { answer, profile_id: data.profile.id });
+            queryClient.setQueryData(queryKeys.tender(id, search), { ...result.tender, keyword_matches: tender.keyword_matches });
+            applyConditionAnswers(result.profile, id);
+            track('condition_answered', { tender_id: id, category: item.category, answer: answer ?? 'removed', inherited: !!item.profile_answer?.inherited });
+            notify(answer === null ? 'Oznaka je odstranjena iz profila podjetja.' : 'Shranjeno v profil podjetja. Upoštevamo ga tudi pri drugih razpisih s podobnim pogojem.');
+        }
+        catch (e) {
+            notify((e as Error).message, true);
+        }
+        finally {
+            setAnswering('');
+        }
+    };
     const analyze = () => act('analyze', async () => { const result = await post<Tender & {
         analysis?: {
             mode: string;
@@ -536,11 +589,19 @@ function TenderDetail({ id, data, refresh, notify }: Shared & {
       {tab === 'history' && <PastAwardsPanel tenderId={tender.id}/>}
       {tab === 'buyer-history' && <BuyerHistoryPanel key={tender.id} tenderId={tender.id}><IncumbentsPanel key={`contracts-${tender.id}`} tenderId={tender.id}/></BuyerHistoryPanel>}
       {tab === 'partners' && <PartnersPanel tenderId={tender.id} companyId={`${data.profile.registration_number}:${data.profile.updated_at}`}/>}
-      {tab === 'conditions' && <><section className="surface detail-section"><div className="condition-summary">{(['met', 'unknown', 'unmet'] as const).map(status => <div key={status}><strong>{conditions.filter(c => c.status === status).length}</strong><StateBadge status={status}/></div>)}</div><p className="section-help">Prikaz velja za pogoje, izluščene iz obdelane dokumentacije.</p></section><section className="surface detail-section"><div className="section-heading"><div><h2>Pogoji razpisa</h2><p className="section-help">Vsi pogoji za sodelovanje iz dokumentacije, vsak z izvornim citatom. Kjer je mogoče, je pogoj preverjen s profilom podjetja.</p></div><button className="button small" disabled={!!busy} onClick={analyze}>{busy === 'analyze' ? <Spinner small/> : <RefreshCw size={14}/>}Osveži analizo</button></div><TenderConditionList data={tender.tender_conditions}/>{conditions.length > 0 && !tender.tender_conditions?.items.length && <><h3 className="conditions-subheading">Ali izpolnjujete pogoje?</h3><div className="conditions-table"><div className="conditions-header"><span>Pogoj iz dokumentacije</span><span>Vaše podjetje</span><span>Ugotovitev</span></div>{conditions.map(condition => <div className="condition-row" key={condition.id}><div><strong>{condition.title}</strong>{condition.document_id && condition.page && <a target="_blank" rel="noreferrer" href={`/api/documents/${condition.document_id}#page=${condition.page}`}><FileText size={12}/>Dokument, str. {condition.page}<ArrowUpRight size={12}/></a>}{condition.quote && <details className="evidence-quote"><summary>Poglej izvorno besedilo</summary><blockquote>»{condition.quote}«</blockquote></details>}</div><div>{condition.company_value || 'Podatek še ni na voljo'}</div><div><StateBadge status={condition.status} reason={condition.company_value}/></div></div>)}</div></>}<a href="#/profil" className="profile-callout"><Building2 size={19}/><div><strong>Manjka podatek o vašem podjetju?</strong><span>Dopolnite reference ali zmogljivosti in ponovno preverite ujemanje.</span></div><ArrowRight size={18}/></a></section></>}
+      {tab === 'conditions' && <><section className="surface detail-section"><div className="condition-summary">{(['met', 'unknown', 'unmet'] as const).map(status => <div key={status}><strong>{displayedConditions.length ? conditionCounts[status] : '—'}</strong><StateBadge status={status}/></div>)}</div><p className="section-help">{displayedConditions.length ? `Število pogojev iz obdelane dokumentacije: ${displayedConditions.length}.${manualConditions ? ' Pogoji z oznako »Preverite sami« so vključeni med pogoje, ki potrebujejo dopolnitev oziroma preverjanje.' : ''}` : 'Statistika bo na voljo, ko bodo pogoji izluščeni iz dokumentacije.'}</p></section><section className="surface detail-section"><div className="section-heading"><div><h2>Pogoji razpisa</h2><p className="section-help">Vsi pogoji za sodelovanje iz dokumentacije, vsak z izvornim citatom. Kjer je mogoče, je pogoj preverjen s profilom podjetja.</p></div><button className="button small" disabled={!!busy} onClick={analyze}>{busy === 'analyze' ? <Spinner small/> : <RefreshCw size={14}/>}Osveži analizo</button></div><TenderConditionList data={tender.tender_conditions} answering={answering} onAnswer={(item, answer) => void answerCondition(item, answer)}/>{conditions.length > 0 && !tender.tender_conditions?.items.length && <><h3 className="conditions-subheading">Ali izpolnjujete pogoje?</h3><div className="conditions-table"><div className="conditions-header"><span>Pogoj iz dokumentacije</span><span>Vaše podjetje</span><span>Ugotovitev</span></div>{conditions.map(condition => <div className="condition-row" key={condition.id}><div><strong>{condition.title}</strong>{condition.document_id && condition.page && <a target="_blank" rel="noreferrer" href={`/api/documents/${condition.document_id}#page=${condition.page}`}><FileText size={12}/>Dokument, str. {condition.page}<ArrowUpRight size={12}/></a>}{condition.quote && <details className="evidence-quote"><summary>Poglej izvorno besedilo</summary><blockquote>»{condition.quote}«</blockquote></details>}</div><div>{condition.company_value || 'Podatek še ni na voljo'}</div><div><StateBadge status={condition.status} reason={condition.company_value}/></div></div>)}</div></>}<a href="#/profil" className="profile-callout"><Building2 size={19}/><div><strong>Manjka podatek o vašem podjetju?</strong><span>Dopolnite reference ali zmogljivosti in ponovno preverite ujemanje.</span></div><ArrowRight size={18}/></a></section></>}
   </>;
 }
-function ProfileOverview({ data }: Shared) {
+function ProfileOverview({ data, notify }: Shared) {
     const p = data.profile;
+    const [removing, setRemoving] = useState('');
+    const answers = [...(p.condition_answers ?? [])].reverse();
+    const removeAnswer = async (answerId: string) => {
+        setRemoving(answerId);
+        try { applyConditionAnswers(await api<Profile>(`/profile/condition-answers/${encodeURIComponent(answerId)}`, { method: 'DELETE' })); notify('Oznaka pogoja je odstranjena iz profila.'); }
+        catch (e) { notify((e as Error).message, true); }
+        finally { setRemoving(''); }
+    };
     const registry = p.registry_source;
     const Row = ({ label, children }: { label: string; children?: ReactNode }) => <div className="ov-row"><dt>{label}</dt><dd>{children || <span className="ov-empty">Ni podatka</span>}</dd></div>;
     const Chips = ({ items }: { items: string[] }) => items.length ? <span className="ov-chips">{items.map(i => <span key={i} className="ov-chip">{i}</span>)}</span> : null;
@@ -572,6 +633,10 @@ function ProfileOverview({ data }: Shared) {
             </div>
             <section className="surface ov-card ov-wide"><div className="ov-card-head"><h2>Reference <span>{p.references.length}</span></h2></div>
                 {p.references.length ? <ul className="ov-refs">{p.references.map(r => <li key={r.id}><div><strong>{r.title || 'Brez naslova'}</strong>{r.description && <p>{r.description}</p>}</div><div className="ov-ref-meta"><span>{r.year ?? 'Leto ni znano'}</span><span>{money(r.value)}</span>{r.confirmed ? <Badge tone="green">Potrjeno</Badge> : <Badge tone="amber">Nepotrjeno</Badge>}</div></li>)}</ul> : <p className="ov-empty">Referenc še ni. <a href="#/profil/uredi">Dodajte prvo referenco</a></p>}
+            </section>
+            <section className="surface ov-card ov-wide"><div className="ov-card-head"><h2>Označeni pogoji razpisov <span>{answers.length}</span></h2></div>
+                <p className="section-help">Pogoji, za katere ste pri razpisih označili, ali jih izpolnjujete. Upoštevamo jih tudi pri drugih razpisih s podobnim pogojem z enakimi pragovi.</p>
+                {answers.length ? <ul className="ov-refs ov-condition-answers">{answers.map(a => <li key={a.id}><div><strong>{a.title}</strong>{a.requirement && a.requirement !== a.title && <p>{a.requirement}</p>}<p>Označeno pri razpisu <a href={`#/razpisi/${encodeURIComponent(a.tender_id)}`}>{a.tender_title || a.tender_id}</a> · {date(a.updated_at)}</p></div><div className="ov-ref-meta"><span className={`condition-state ${a.answer}`}>{a.answer === 'met' ? <CheckCircle2 size={15}/> : <AlertCircle size={15}/>}{a.answer === 'met' ? 'Izpolnjujemo' : 'Ne izpolnjujemo'}</span><button type="button" className="icon-button" aria-label={`Odstrani oznako: ${a.title}`} title="Odstrani iz profila" disabled={removing === a.id} onClick={() => void removeAnswer(a.id)}>{removing === a.id ? <Spinner small/> : <Trash2 size={16}/>}</button></div></li>)}</ul> : <p className="ov-empty">Še niste označili nobenega pogoja. Pri pregledu pogojev razpisa izberite »Izpolnjujemo« ali »Ne izpolnjujemo«.</p>}
             </section>
         </div>
     </>;

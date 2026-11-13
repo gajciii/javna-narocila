@@ -7,7 +7,7 @@ from .seed import ensure_seed, get_profile, today
 from .improvements import company_key
 from .filtering import apply_filters, validate_filters
 from .matching import serialize_tender, evaluate_requirement
-from .partners import compare_partner, partner_recommendations, certification_catalog
+from .partners import compare_partner, condition_set, partner_recommendations, certification_catalog
 from .services import trigger_event
 from rest_framework.exceptions import ValidationError
 
@@ -47,7 +47,7 @@ class PartnerTests(TestCase):
     def compare(self, requirements, partner, profile=None):
         tender, doc = self.tender(requirements)
         profile = profile or get_profile()
-        return compare_partner(tender, profile, partner, [doc], serialize_tender(tender, profile, [doc]))
+        return compare_partner(tender, profile, partner, condition_set(tender, profile, [doc]), serialize_tender(tender, profile, [doc]))
 
     def test_score_boundaries_and_bad_values(self):
         tender = serialize_tender(Tender.objects.get(pk='energy-iot'), get_profile())
@@ -95,7 +95,7 @@ class PartnerTests(TestCase):
         profile = get_profile()
         for patch in [{'confirmed': False}, {'evidence_source': ''}, {'year': today().year - 5}, {'year': None}, {'value': None}, {'year': today().year + 1}]:
             partner = self.partner(references=[self.ref(**patch)])
-            result = compare_partner(tender, profile, partner, [doc], serialize_tender(tender, profile, [doc]))
+            result = compare_partner(tender, profile, partner, condition_set(tender, profile, [doc]), serialize_tender(tender, profile, [doc]))
             self.assertEqual(result['supported_conditions'], 0, patch)
 
     def test_reference_values_are_never_added(self):
@@ -137,7 +137,7 @@ class PartnerTests(TestCase):
         for patch in [{'available_from': ''}, {'available_from': (today() + timedelta(days=100)).isoformat()}, {'capability_evidence': {'confirmed': False, 'source': 'Izjava'}}]:
             partner = self.partner(staff_count=8, **patch)
             profile = get_profile()
-            self.assertEqual(compare_partner(tender, profile, partner, [doc], serialize_tender(tender, profile, [doc]))['supported_conditions'], 0)
+            self.assertEqual(compare_partner(tender, profile, partner, condition_set(tender, profile, [doc]), serialize_tender(tender, profile, [doc]))['supported_conditions'], 0)
 
     def test_certificates_stay_partner_facts_and_keep_manual_review(self):
         result = self.compare([{'kind': 'certification', 'certification': 'ISO 27001'}, {'kind': 'certification', 'certification': 'ISO 27001:2022', 'requires_manual_review': True}], self.partner(certifications=['ISO/IEC 27001', 'ISO 27001:2022']))
@@ -242,3 +242,65 @@ class PartnerTests(TestCase):
     def test_unrelated_capability_proof_is_not_presented_as_certificate_evidence(self):
         result = self.compare([{'kind': 'certification', 'certification': 'ISO 27001'}], self.partner(certifications=['ISO 9001']))
         self.assertEqual(result['conditions'][0]['evidence'], [])
+
+    def extracted(self, tender, conditions):
+        from .models import TenderConditions
+        rows = [{'id': f'c{i}', 'category': 'technical', 'title': f'Pogoj {i}', 'requirement': f'Zahteva {i}',
+                 'quote': 'Dokumentiran pogoj', 'document_id': 'partner-test-doc', 'document_title': 'Pogoji',
+                 'page': 1, 'locator': 'stran 1', 'check': {'kind': 'none'}, **c} for i, c in enumerate(conditions, 1)]
+        return TenderConditions.objects.create(tender=tender, fingerprint='x', mode='live', conditions=rows,
+                                               extracted_at='2026-11-12T00:00Z')
+
+    def test_extracted_conditions_and_partner_answers(self):
+        tender, _ = self.tender([], source='real')
+        self.extracted(tender, [
+            {'category': 'economic', 'title': 'Povprečni letni promet', 'requirement': 'Promet najmanj 2.000.000 EUR.'},
+            {'category': 'exclusion', 'title': 'Ni blokiranega računa', 'requirement': 'Ponudnik nima blokiranega računa.'},
+            {'category': 'technical', 'title': 'Certifikat ISO 27001', 'quote': 'Certifikat ISO 27001',
+             'check': {'kind': 'certification', 'certification': 'ISO 27001'}}])
+        partner = self.partner(source='real', certifications=['ISO 27001'])
+        url = f'/api/tenders/{tender.pk}/partners'
+        result = self.client.get(url).data
+        self.assertEqual(len(result['missing_conditions']), 3)
+        self.assertEqual([c['partner']['id'] for c in result['candidates']], [partner.pk])
+        self.assertEqual(result['candidates'][0]['supported_conditions'], 1)
+        self.assertEqual(result['partners'][0]['id'], partner.pk)
+
+        response = self.client.post(f'{url}/{partner.pk}/conditions/c1/answer', {'answer': 'met'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        rows = {r['condition']['id']: r for r in response.data['comparison']['conditions']}
+        self.assertEqual(rows['c1']['state'], 'potential')
+        self.assertEqual(rows['c1']['partner_condition']['answer']['answer'], 'met')
+        self.assertFalse(rows['c1']['partner_condition']['answer']['inherited'])
+        self.assertNotIn('condition_answers', response.data['comparison']['partner']['profile'])
+
+        # A partner can never cover exclusion grounds, and an unmet one blocks the partner.
+        response = self.client.post(f'{url}/{partner.pk}/conditions/c2/answer', {'answer': 'met'}, format='json')
+        self.assertEqual({r['condition']['id']: r['state'] for r in response.data['comparison']['conditions']}['c2'], 'unresolved')
+        response = self.client.post(f'{url}/{partner.pk}/conditions/c2/answer', {'answer': 'unmet'}, format='json')
+        self.assertEqual(response.data['comparison']['blocked_by'], ['Ni blokiranega računa'])
+        self.assertEqual(response.data['candidates'], [])
+
+        response = self.client.post(f'{url}/{partner.pk}/conditions/c2/answer', {'answer': None}, format='json')
+        self.assertEqual(response.data['comparison']['blocked_by'], [])
+        self.assertEqual(self.client.post(f'{url}/{partner.pk}/conditions/c9/answer', {'answer': 'met'}, format='json').status_code, 404)
+        self.assertEqual(self.client.post(f'{url}/{partner.pk}/conditions/c1/answer', {'answer': 'maybe'}, format='json').status_code, 400)
+        # Editing the partner keeps its condition marks.
+        self.client.put(f'/api/partners/{partner.pk}', {'profile': {'name': 'Preimenovan'}}, format='json')
+        partner.refresh_from_db()
+        self.assertEqual(len(partner.data['condition_answers']), 1)
+
+    def test_partner_answers_apply_to_foreign_partner_only_in_scope(self):
+        tender, _ = self.tender([], source='real')
+        self.extracted(tender, [{'category': 'economic', 'title': 'Povprečni letni promet'}])
+        foreign = self.partner(source='real')
+        foreign.company_key = 'someone-else'; foreign.save()
+        url = f'/api/tenders/{tender.pk}/partners/{foreign.pk}/conditions/c1/answer'
+        self.assertEqual(self.client.post(url, {'answer': 'met'}, format='json').status_code, 404)
+
+    def test_no_partners_message(self):
+        tender, _ = self.tender([], source='real')
+        self.extracted(tender, [{'category': 'economic', 'title': 'Povprečni letni promet'}])
+        result = partner_recommendations(tender)
+        self.assertEqual(result['partners'], [])
+        self.assertIn('nimate vnesenih partnerjev', result['message'])
