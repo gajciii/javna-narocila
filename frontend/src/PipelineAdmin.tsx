@@ -16,12 +16,14 @@ type Attempt = { id: number; number: number; state: string; worker: string; star
 type AwardCounts = { notices: number; lots: number; awarded_lots: number };
 type AwardStats = AwardCounts & { first_published_on: string | null; last_published_on: string | null;
     last_imported_at: string | null; undated_lots: number; months: (AwardCounts & { month: string })[] };
+type SemanticIndex = { enabled: boolean; extension: boolean; model: string; dimensions: number;
+    items: { key: string; label: string; total: number; embedded: number }[] };
 type SizeMeasure = { bytes: number; objects?: number; location?: string } | { error: string } | null;
 type StorageUsage = { measuring: boolean; measured_at: string | null; next_refresh_at: string | null;
     database: SizeMeasure; storage: SizeMeasure };
 type Overview = { remote_enabled: boolean; server_time: string; queue: Record<string, number>;
     index: { documents: number; chunks: number }; schedule: { enabled: boolean; next_run_at: string };
-    past_awards: AwardStats; storage_usage: StorageUsage;
+    past_awards: AwardStats; semantic_index?: SemanticIndex; storage_usage: StorageUsage;
     agents: { id: string; role: string; hostname: string; online: boolean; state: string; last_seen: string; job_id: number | null; run_id: number | null }[];
     history_note: string };
 type RunDetail = { run: Run; errors: { notice_id: string; message: string }[]; jobs: Job[]; count: number; page: number };
@@ -106,6 +108,28 @@ function PastAwardStats({ stats }: { stats: AwardStats }) {
                 </table></div>
             </details>
         </> : <p className="pipeline-empty">Pretekle oddaje še niso uvožene.</p>}
+    </section>;
+}
+function SemanticIndexStats({ stats }: { stats: SemanticIndex }) {
+    const total = stats.items.reduce((sum, item) => sum + item.total, 0);
+    const embedded = stats.items.reduce((sum, item) => sum + item.embedded, 0);
+    const state = !stats.extension ? 'Baza nima razširitve pgvector; vektorji se ne računajo.'
+        : !stats.enabled ? 'Ključ za model ni nastavljen; vektorji se ne računajo.'
+        : embedded < total ? `Delavec računa manjkajoče vektorje, ko nima drugih opravil. Manjka še ${number(total - embedded)}.`
+        : 'Vsi zapisi imajo vektor. Novi se dodajo samodejno.';
+    return <section className="surface pipeline-panel" aria-label="Semantični indeks">
+        <div className="section-heading"><h2><Database size={18}/>Semantični indeks</h2></div>
+        <p className="section-help">{state} Model {stats.model}, {stats.dimensions} dimenzij. Osveževanje vsakih 5 sekund.</p>
+        <div className="pipeline-metrics pipeline-award-metrics">
+            {stats.items.map(item => {
+                const share = item.total ? item.embedded / item.total : 1;
+                return <div key={item.key}><span>{item.label}</span>
+                    <strong>{Math.floor(share * 100)} %</strong>
+                    <progress className="pipeline-progress" max={item.total || 1} value={item.embedded} aria-label={`${item.label}: ${number(item.embedded)} od ${number(item.total)}`}/>
+                    <small>{number(item.embedded)} od {number(item.total)} z vektorjem</small></div>;
+            })}
+            <div><span>Skupaj</span><strong>{number(embedded)}</strong><small>od {number(total)} zapisov</small></div>
+        </div>
     </section>;
 }
 function JobTable({ jobs, select }: { jobs: Job[]; select: (id: number) => void }) {
@@ -269,6 +293,7 @@ export default function PipelineAdmin() {
                 <div className="surface"><Database size={20}/><span>Indeksirani dokumenti</span><strong>{number(overview.index.documents)}</strong><small>{number(overview.index.chunks)} odlomkov</small></div>
             </div>
             <StorageUsageMetrics usage={overview.storage_usage}/>
+            {overview.semantic_index && <SemanticIndexStats stats={overview.semantic_index}/>}
             <PastAwardStats stats={overview.past_awards}/>
             <div className="pipeline-top-grid">
                 <section className="surface pipeline-panel"><div className="section-heading"><h2><Play size={18}/>Ročni zagon</h2></div><form onSubmit={startRun} className="pipeline-run-form">

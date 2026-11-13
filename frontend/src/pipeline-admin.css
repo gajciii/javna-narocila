@@ -6,3 +6,5 @@
 .pipeline-award-metrics>div{background:#f7f9f6;border-radius:8px}.pipeline-award-metrics strong.pipeline-award-date{font-size:17px;line-height:1.5;overflow-wrap:anywhere}
 .pipeline-metrics.pipeline-storage-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.pipeline-storage-metrics small:empty{display:none}
 @media(max-width:560px){.pipeline-metrics.pipeline-storage-metrics{grid-template-columns:1fr}}
+
+.pipeline-progress{grid-column:1/-1;width:100%;height:8px;appearance:none;border:0;border-radius:4px;background:#e3e9e5;overflow:hidden}.pipeline-progress::-webkit-progress-bar{background:#e3e9e5;border-radius:4px}.pipeline-progress::-webkit-progress-value{background:#39755d;border-radius:4px}.pipeline-progress::-moz-progress-bar{background:#39755d;border-radius:4px}

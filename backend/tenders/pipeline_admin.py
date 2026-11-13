@@ -24,7 +24,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from .models import (Document, PipelineAgent, PipelineAttempt, PipelineControl, PipelineJob, PipelineRun, PipelineRunItem,
-                     IndexedContent, DocumentChunk, PastAward)
+                     IndexedContent, DocumentChunk, PastAward, Tender)
 from .pipeline_runs import create_run
 from . import storage_usage
 
@@ -173,6 +173,7 @@ def overview_view(request):
         'queue': {row['state']: row['count'] for row in PipelineJob.objects.values('state').annotate(count=Count('pk'))},
         'index': {'documents': IndexedContent.objects.count(), 'chunks': DocumentChunk.objects.count()},
         'past_awards': past_award_stats(),
+        'semantic_index': semantic_index_stats(),
         'storage_usage': storage_usage_stats(),
         'schedule': {'enabled': control.schedule_enabled, 'next_run_at': timestamp(control.next_run_at)},
         'agents': [{'id': str(agent.pk), 'role': agent.role, 'hostname': agent.hostname,
@@ -185,6 +186,24 @@ def overview_view(request):
 def storage_usage_stats():
     usage = storage_usage.current()
     return {**usage, 'measured_at': timestamp(usage['measured_at']), 'next_refresh_at': timestamp(usage['next_refresh_at'])}
+
+
+def semantic_index_stats():
+    """Vector coverage per source; the worker fills missing vectors whenever it is idle."""
+    from django.db import connection
+    from . import embeddings
+    extension = False
+    if connection.vendor == 'postgresql':
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
+            extension = cursor.fetchone() is not None
+    sources = (('tenders', 'Razpisi', Tender), ('chunks', 'Odlomki dokumentov', DocumentChunk), ('awards', 'Pretekle oddaje', PastAward))
+    items = []
+    for key, label, model in sources:
+        totals = model.objects.aggregate(total=Count('pk'), embedded=Count('pk', filter=Q(embedding__isnull=False)))
+        items.append({'key': key, 'label': label, **totals})
+    return {'enabled': extension and embeddings.enabled(), 'extension': extension,
+            'model': embeddings.MODEL, 'dimensions': embeddings.DIMENSIONS, 'items': items}
 
 
 def past_award_stats():

@@ -147,6 +147,11 @@ class AdminTests(TestCase):
             {'month': '2026-01', 'notices': 1, 'lots': 2, 'awarded_lots': 1},
         ])
         self.assertFalse(PipelineJob.objects.exists())
+        PastAward.objects.filter(pk=PastAward.objects.order_by('pk').first().pk).update(embedding=[0.5] * 1024)
+        semantic = self.client.get(BASE + '/overview').json()['semantic_index']
+        self.assertFalse(semantic['enabled'])  # SQLite has no pgvector extension.
+        awards = next(item for item in semantic['items'] if item['key'] == 'awards')
+        self.assertEqual((awards['total'], awards['embedded']), (4, 1))
 
     def test_past_award_statistics_are_empty_until_imported(self):
         self.login()
