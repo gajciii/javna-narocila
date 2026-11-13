@@ -46,10 +46,17 @@ class KeywordExpansionTests(TestCase):
     @patch('tenders.keyword_expansion.structured_call')
     def test_unverified_duplicate_and_invalid_sources_are_rejected(self, call, enabled):
         for answer in [self.answer('izmišljena oprema'), self.answer(quote='Izmišljen citat prezračevanje'),
-                       self.answer(passage=12), self.answer('klimatskih naprav'), self.answer('račevanje')]:
+                       self.answer('klimatskih naprav'), self.answer('račevanje')]:
             call.return_value = answer
             result = expand('klimatskih naprav')
             self.assertEqual(result['suggestions'], [])
+
+    @patch('tenders.keyword_expansion.ai_enabled', return_value=True)
+    @patch('tenders.keyword_expansion.structured_call')
+    def test_miscounted_passage_and_letter_case_still_cite_the_real_source(self, call, enabled):
+        call.return_value = self.answer(passage=12, quote='DOBAVA KLIMATSKIH NAPRAV VKLJUČUJE PREZRAČEVANJE')
+        item = expand('klimatske naprave')['suggestions'][0]
+        self.assertEqual((item['term'], item['evidence']['document_id']), ('prezračevanje', self.doc.pk))
 
     @patch('tenders.keyword_expansion.structured_call')
     def test_missing_context_or_credentials_does_not_invent_terms(self, call):

@@ -208,6 +208,15 @@ def award_passages(query, limit=AWARDS):
     return found
 
 
+def source_of(quote, passages, position):
+    """The passage that really contains the quote. Models often miscount the passage index or
+    change letter case, so the claimed passage is tried first and then the others; a quote
+    found nowhere is rejected."""
+    wanted = fold(same_text(quote))
+    order = ([position] if 0 <= position < len(passages) else []) + [i for i in range(len(passages)) if i != position]
+    return next((passages[i] for i in order if wanted in fold(same_text(passages[i]['quote']))), None)
+
+
 def expand(query):
     empty = {'suggestions': [], 'mode': 'unavailable'}
     try:
@@ -235,13 +244,12 @@ def expand(query):
         suggestions = []
         for item in answer['suggestions'][:20]:
             term, quote, position = item['term'].strip(), item['quote'].strip(), item['passage']
-            if isinstance(position, bool) or not 0 <= position < len(passages):
+            if isinstance(position, bool) or not isinstance(position, int):
                 continue
-            passage = passages[position]
+            passage = source_of(quote, passages, position)
             normalized = fold(term)
-            if (not 2 <= len(term) <= 100 or ',' in term or '\n' in term or normalized in seen
-                    or len(quote) < 8 or same_text(quote) not in same_text(passage['quote'])
-                    or not re.search(r'(?<!\w)' + re.escape(normalized) + r'(?!\w)', fold(quote))):
+            if (passage is None or not 2 <= len(term) <= 100 or ',' in term or '\n' in term or normalized in seen
+                    or len(quote) < 8 or not re.search(r'(?<!\w)' + re.escape(normalized) + r'(?!\w)', fold(quote))):
                 continue
             seen.add(normalized)
             suggestions.append({'term': term, 'reason': item['reason'][:500],
