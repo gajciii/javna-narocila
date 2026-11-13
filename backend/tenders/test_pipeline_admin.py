@@ -203,6 +203,11 @@ class CollectionTests(TestCase):
         collect_run(first)
         self.assertIsNotNone(claim_run(schedule=True))
 
+    def test_scheduled_run_collects_only_open_procedures(self):
+        PipelineControl.objects.update_or_create(pk=1, defaults={'next_run_at': timezone.now()})
+        run = claim_run(schedule=True)
+        self.assertEqual((run.source, run.open_only), ('scheduled', True))
+
     def test_interrupted_collection_replays_without_duplicate_memberships(self):
         original = enqueue_index(self.tender)
         create_run(source='cli', mode='existing')

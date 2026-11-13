@@ -45,7 +45,7 @@ services:
       options:
         max-size: 10m
         max-file: "3"
-  worker:
+  worker: &worker
     build:
       context: ./backend
     restart: unless-stopped
@@ -79,6 +79,9 @@ services:
       options:
         max-size: 10m
         max-file: "3"
+  # Extra workers share the PostgreSQL queue; claims use SKIP LOCKED.
+  worker-2: *worker
+  worker-3: *worker
   scheduler:
     build:
       context: ./backend
@@ -156,7 +159,7 @@ services:
         condition: service_started
     volumes:
       - web-media:/data/media
-    mem_limit: 1536m
+    mem_limit: 3g
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"]
       interval: 15s

@@ -65,7 +65,8 @@ def claim_run(schedule=False):
         run = PipelineRun.objects.filter(Q(state='queued') |
             Q(state='collecting', lease_until__lte=now)).order_by('created_at').first()
         if run is None and schedule and control.schedule_enabled and control.next_run_at <= now:
-            run = create_run(source='scheduled')
+            # Closed procedures cannot be bid on; skipping them keeps the daily run small.
+            run = create_run(source='scheduled', open_only=True)
             control.next_run_at = now + timedelta(days=1)
             control.save(update_fields=['next_run_at'])
         if run:
