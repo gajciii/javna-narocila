@@ -5,7 +5,7 @@ from tenders.email_notifications import process
 
 
 class Command(BaseCommand):
-    help = 'Pošlje nova e-poštna obvestila in ponovi neuspele poskuse; --watch preverja vsakih 15 sekund.'
+    help = 'Pošlje spremembe in dnevne/tedenske preglede razpisov ter ponovi neuspele poskuse; --watch preverja vsakih 15 sekund.'
 
     def add_arguments(self, parser):
         parser.add_argument('--watch', action='store_true')

@@ -322,6 +322,18 @@ class ContractSyncState(models.Model):
     synced_until = models.DateField(null=True)
 
 
+class ErarPayment(models.Model):
+    source_id = models.CharField(max_length=120, primary_key=True)
+    paid_on = models.DateField()
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
+    currency = models.CharField(max_length=3)
+    payer = models.CharField(max_length=10, blank=True)
+    recipient = models.CharField(max_length=10, blank=True)
+    procedure = models.CharField(max_length=30, blank=True, db_index=True)
+    award_id = models.CharField(max_length=80, blank=True, db_index=True)
+    exported_on = models.DateField()
+
+
 class SimilarAwardsCache(models.Model):
     """AI-ranked similar awards per tender; reused while tender text and dataset stay the same."""
     tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='similar_awards_cache')
@@ -373,6 +385,10 @@ class EmailNotificationSettings(models.Model):
     email = models.EmailField(blank=True)
     enabled_since = models.DateTimeField(null=True, blank=True)
     types = models.JSONField(default=default_email_types)
+    digest_enabled = models.BooleanField(default=True)
+    digest_frequency = models.CharField(max_length=8, default='daily')
+    digest_cursor_at = models.DateTimeField(null=True, blank=True)
+    digest_next_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
@@ -394,6 +410,28 @@ class NotificationEmail(models.Model):
     class Meta:
         indexes = [models.Index(fields=['state', 'available_at'], name='notification_email_pending')]
         constraints = [models.UniqueConstraint(fields=['notification', 'owner'], name='unique_account_notification_email')]
+
+
+class TenderDigestEmail(models.Model):
+    """One durable, retryable message covering newly discovered tenders in a time window."""
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    recipient = models.EmailField()
+    sender = models.CharField(max_length=320)
+    delivery_key = models.UUIDField(default=uuid.uuid4, editable=False)
+    subject = models.CharField(max_length=250)
+    body = models.TextField()
+    period_start = models.DateTimeField()
+    period_end = models.DateTimeField()
+    tender_ids = models.JSONField(default=list)
+    state = models.CharField(max_length=12, default='pending')
+    attempts = models.PositiveSmallIntegerField(default=0)
+    available_at = models.DateTimeField(default=timezone.now)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    error = models.CharField(max_length=250, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['state', 'available_at'], name='tender_digest_pending')]
 
 
 class TenderFollow(models.Model):

@@ -146,6 +146,22 @@ class PjnAwardTests(TestCase):
 
 
 class SummaryTests(TestCase):
+    def test_value_totals_use_the_same_comparable_awards_for_both_amounts(self):
+        base = {'awarded': True, 'framework': False, 'currency': 'EUR', 'estimated_value': 100,
+                'awarded_value': 80, 'lowest_offer': None, 'highest_offer': None,
+                'tenders_received': None, 'winners': []}
+        summary = summarize([
+            base, {**base, 'estimated_value': 300, 'awarded_value': 360},
+            {**base, 'awarded_value': 100},
+            {**base, 'award_currency': 'EUR', 'estimate_currency': 'USD'},
+            {**base, 'estimated_value': None},
+            {**base, 'awarded': False},
+            {**base, 'framework': True},
+        ])
+        self.assertEqual(summary['price_to_estimate_count'], 3)
+        self.assertEqual(summary['value_totals'], {'estimated': 500, 'contracted': 540, 'difference': 40,
+            'ratio': 1.08, 'below': 1, 'equal': 1, 'above': 1})
+
     def test_framework_and_foreign_currency_are_left_out_of_price_ratios(self):
         base = {'awarded': True, 'framework': False, 'currency': 'EUR', 'estimated_value': 100, 'awarded_value': 90,
                 'lowest_offer': 90, 'highest_offer': 99, 'tenders_received': 2, 'winners': [{'name': 'A', 'registration_number': '1'}]}

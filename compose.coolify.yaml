@@ -142,6 +142,8 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openai/gpt-6-luna}
       SUBMISSION_REVIEW_MODEL: ${SUBMISSION_REVIEW_MODEL:-openai/gpt-6.1-terra}
+      AJPES_LP_API_KEY: ${AJPES_LP_API_KEY:-}
+      AJPES_LP_API_BASE: ${AJPES_LP_API_BASE:-https://wwwa.ajpes.si}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_DECISION_MODEL: ${GEMINI_DECISION_MODEL:-gemini-decision-1}
     command:

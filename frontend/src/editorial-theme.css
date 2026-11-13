@@ -101,6 +101,13 @@
 .app-shell :is(.detail-section, .profile-section) { padding: 30px 0; margin: 0; border-bottom: 1px solid var(--line); }
 .app-shell :is(.reference-editor, .past-award, .impact-card, .partner-candidates > article) { padding: 24px 0; border-bottom: 1px solid var(--line); }
 .app-shell .detail-metrics { border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.app-shell .detail-tabs { gap: 8px; flex-wrap: wrap; overflow-x: visible; }
+.app-shell .detail-tabs > button { min-height: 54px; padding: 13px 18px; border-bottom: 3px solid transparent; border-radius: 4px 4px 0 0; font-size: 18px; line-height: 1.4; font-weight: 500; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
+.app-shell .detail-tabs > button:hover:not(.active) { color: var(--slate); border-bottom-color: var(--dust); }
+.app-shell .detail-tabs > button.active { background: var(--slate); color: #fff; font-weight: 650; border-bottom-color: var(--copper); }
+.app-shell .detail-tabs > button.active::after { display: none; }
+.app-shell .detail-tabs > button:focus-visible { outline: 2px solid var(--slate); outline-offset: 3px; }
+
 .app-shell .detail-header { padding-top: 38px; }
 .app-shell .decision-card { padding: 26px 0 26px 28px; border: 0; border-left: 1px solid var(--line); border-radius: 0; background: #fff; box-shadow: none; color: var(--ink); }
 .app-shell .decision-card :is(.decision-label, .recommendation-title, .detail-content-score, .detail-content-score strong, .checklist > strong, .checklist > label) { color: var(--ink); }

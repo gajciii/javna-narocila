@@ -51,6 +51,20 @@ def profile_view(request):
     return Response(get_profile())
 
 
+@api_view(['GET'])
+def annual_report_view(request, profile_id):
+    from .annual_reports import latest_report
+    profile = get_object_or_404(companies(), pk=profile_id)
+    return Response(latest_report(profile.data.get('registration_number')))
+
+
+@api_view(['GET'])
+def erar_payments_view(request, profile_id):
+    from .erar import recipient_payments
+    profile = get_object_or_404(companies(), pk=profile_id)
+    return Response(recipient_payments(profile.data.get('registration_number')))
+
+
 def validate_unique_company(data, exclude=None):
     from .improvements import company_key
     key = company_key(data)

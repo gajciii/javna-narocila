@@ -81,6 +81,10 @@ def parse_date(value):
         return None
 
 
+def currency_code(value):
+    return value if isinstance(value, str) and re.fullmatch(r'[A-Z]{3}', value) else None
+
+
 def normalize_notice(raw):
     """One PJN award notice -> PastAward field dicts, one per awarded lot."""
     if not isinstance(raw, dict) or not isinstance(raw.get('id'), int):
@@ -95,7 +99,9 @@ def normalize_notice(raw):
             continue
         lot = lots.get(award.get('lotId'), {})
         cpvs = [code for code in (cpv_code(c) for c in lot.get('cpv') or []) if code] or ([notice_cpv] if notice_cpv else [])
-        currency = award.get('currency') or lot.get('currency') or raw.get('currency')
+        award_currency = currency_code(award.get('currency'))
+        estimate_currency = currency_code(lot.get('currency') or raw.get('currency'))
+        currency = award_currency or estimate_currency
         winners = [{'name': clean(w.get('name'), 300), 'registration_number': registration(w.get('registrationNumber'))}
                    for w in award.get('winners') or [] if isinstance(w, dict) and clean(w.get('name'))]
         lot_title = clean(lot.get('title'), 300)
@@ -114,7 +120,9 @@ def normalize_notice(raw):
                 'kind': KINDS.get(lot.get('contractType') or raw.get('contractType')),
                 'cpv': cpvs[:5], 'procedure': clean(raw.get('procedureTypeName'), 120),
                 'framework': framework or lot.get('frameworkAgreement') not in (None, 'none'),
-                'currency': currency if isinstance(currency, str) and re.fullmatch(r'[A-Z]{3}', currency) else None,
+                'currency': currency,
+                'estimate_currency': estimate_currency,
+                'award_currency': award_currency,
                 'estimated_value': number(lot.get('estimatedValue')),
                 'awarded_value': number(award.get('awardedValue')),
                 'lowest_offer': number(award.get('lowestAdmissibleOffer')),
@@ -408,6 +416,9 @@ def serialize(score, award):
     from .participants import participants
     d = award.data
     return {'id': award.pk, 'notice_id': award.notice_id, 'participants': participants(award),
+            'value_comparison': value_comparison(d),
+            'estimate_currency': d.get('estimate_currency', d.get('currency')),
+            'award_currency': d.get('award_currency', d.get('currency')),
             'participant_coverage': 'partial_records' if d.get('participants') else 'winners_only',
             'notice_url': f'https://www.enarocanje.si/#/pregled-objav/{award.notice_id}',
             'published_on': award.published_on.isoformat() if award.published_on else None, 'similarity': round(score, 2),
@@ -419,12 +430,46 @@ def median(values):
     return round(statistics.median(values), 2) if values else None
 
 
+def value_comparison(row):
+    if not row.get('awarded') or row.get('framework'):
+        return None
+    # Older imports stored a single currency. For new imports check both source fields.
+    currency = row.get('award_currency', row.get('currency'))
+    estimate_currency = row.get('estimate_currency', row.get('currency'))
+    if not currency_code(currency) or currency != estimate_currency:
+        return None
+    estimated = number(row.get('estimated_value'))
+    contracted = number(row.get('awarded_value'))
+    if not estimated or not contracted:
+        return None
+    difference = round(contracted - estimated, 2)
+    ratio = contracted / estimated
+    if not math.isfinite(ratio):
+        return None
+    return {'currency': currency, 'estimated': estimated, 'contracted': contracted,
+            'difference': difference, 'ratio': ratio}
+
+
 def summarize(results):
     awarded = [r for r in results if r['awarded']]
     bids = [r['tenders_received'] for r in results if r['tenders_received'] is not None]
     eur = [r for r in awarded if r['currency'] in (None, 'EUR')]
-    ratios = [r['awarded_value'] / r['estimated_value'] for r in eur
-              if not r['framework'] and r['awarded_value'] and r['estimated_value']]
+    comparisons = []
+    for row in awarded:
+        comparison = row.get('value_comparison') if 'value_comparison' in row else value_comparison(row)
+        if comparison and comparison['currency'] == 'EUR':
+            comparisons.append(comparison)
+    ratios = [comparison['ratio'] for comparison in comparisons]
+    estimated_total = sum(item['estimated'] for item in comparisons)
+    contracted_total = sum(item['contracted'] for item in comparisons)
+    value_totals = None
+    if comparisons:
+        value_totals = {'estimated': round(estimated_total, 2), 'contracted': round(contracted_total, 2),
+                        'difference': round(contracted_total - estimated_total, 2),
+                        'ratio': contracted_total / estimated_total,
+                        'below': sum(item['difference'] < 0 for item in comparisons),
+                        'equal': sum(item['difference'] == 0 for item in comparisons),
+                        'above': sum(item['difference'] > 0 for item in comparisons)}
     spreads = [r['highest_offer'] / r['lowest_offer'] - 1 for r in eur
                if r['lowest_offer'] and r['highest_offer'] and (r['tenders_received'] or 0) >= 2]
     winners = Counter()
@@ -437,6 +482,7 @@ def summarize(results):
     return {'count': len(results), 'awarded': len(awarded), 'not_awarded': len(results) - len(awarded),
             'median_tenders': median(bids), 'single_bid_share': round(sum(1 for b in bids if b == 1) / len(bids), 2) if bids else None,
             'median_price_to_estimate': median(ratios), 'price_to_estimate_count': len(ratios),
+            'value_totals': value_totals,
             'median_offer_spread': median(spreads), 'offer_spread_count': len(spreads),
             'top_winners': [{**names[k], 'wins': n} for k, n in winners.most_common(5)]}
 
@@ -478,7 +524,8 @@ def similar_awards(tender):
     if mode == 'text':
         hits = [(score, award) for score, award in found
                 if (score >= VECTOR_THRESHOLD if award.pk in similarity else score >= TEXT_THRESHOLD)][:RESULTS]
-    results = [serialize(score, award) for score, award in hits]
+    from .erar import award_payments
+    results = [{**serialize(score, award), 'erar_payments': award_payments(award)} for score, award in hits]
     message = '' if results else 'V zbirki ni dovolj podobnih preteklih oddaj.'
     return {**base, 'mode': mode, 'matching': 'semantic' if similarity else 'text', 'results': results,
             'summary': summarize(results), 'warning': warning, 'message': message}

@@ -51,6 +51,7 @@ export interface Profile {
     max_value: number | null;
     available_from: string;
     staff_count: number | null;
+    employment_report?: { average: number | null; year: number | null } | null;
     certifications: string[];
     capacity: string;
     source: 'demo' | 'user';
@@ -365,6 +366,10 @@ export interface PastAwardParticipant extends PastAwardWinner {
     provenance: 'award_notice' | 'imported_record';
 }
 export interface PastAward {
+    erar_payments?: { amount: number; count: number; latest_export_on: string; latest_payment_on: string } | null;
+    value_comparison?: { currency: string; estimated: number; contracted: number; difference: number; ratio: number } | null;
+    estimate_currency?: string | null;
+    award_currency?: string | null;
     participants: PastAwardParticipant[];
     participant_coverage: 'partial_records' | 'winners_only';
     id: string; notice_id: string; notice_url: string; notice_number: string; published_on: string | null; similarity: number;
@@ -379,6 +384,7 @@ export interface SimilarAwards {
     summary: {
         count: number; awarded: number; not_awarded: number; median_tenders: number | null; single_bid_share: number | null;
         median_price_to_estimate: number | null; price_to_estimate_count: number; median_offer_spread: number | null; offer_spread_count: number;
+        value_totals?: { estimated: number; contracted: number; difference: number; ratio: number; below: number; equal: number; above: number } | null;
         top_winners: (PastAwardWinner & { wins: number })[];
     };
 }

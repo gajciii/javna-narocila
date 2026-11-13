@@ -53,6 +53,13 @@ def registration_number(value):
     return value + '000' if len(value) == 7 else value
 
 
+def optional_registration_number(value):
+    try:
+        return registration_number(value)
+    except ValueError:
+        return ''
+
+
 def clean(row, key):
     value = row.get(key, '')
     return value.strip() if isinstance(value, str) else ''
