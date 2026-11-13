@@ -32,9 +32,9 @@ def text(value, limit=10000):
     return strip_tags(value).strip()[:limit] if isinstance(value, str) else ''
 
 
-def eur_value(obj):
-    value = obj.get('vrednostOcenjenaBrezDDV')
-    currency = codelists()['currencies'].get(str(obj.get('idSifValutaOcenjenaBrezDDV')), {}).get('koda')
+def eur_value(obj, value_key='vrednostOcenjenaBrezDDV', currency_key='idSifValutaOcenjenaBrezDDV'):
+    value = obj.get(value_key)
+    currency = codelists()['currencies'].get(str(obj.get(currency_key)), {}).get('koda')
     if currency != 'EUR' or isinstance(value, bool) or not isinstance(value, (float, int)) or not math.isfinite(value) or value < 0:
         return None
     return value
@@ -92,7 +92,11 @@ def normalize_notice(raw, notice_id):
         'id': 'ijs-archive' if str(notice_id) == '1144799' else f"pjn-dosje-{raw['idDosje']}",
         'title': title, 'buyer': '; '.join(buyers), 'region': ', '.join(dict.fromkeys(x for x in locations if x)) or 'Ni podatka',
         'kind': kind, 'cpv': [x['code'] for x in classifications], 'topics': [x['label'] for x in classifications],
-        'value': eur_value(raw), 'published_at': published.date().isoformat() if published else None,
+        'value': eur_value(raw),
+        # Use the published notice total, never a potentially incomplete sum of lots.
+        'awarded_value': eur_value(raw, 'vrednostSkupna', 'idSifValutaSkupna')
+            if phase.get('koda') in ('result', 'cont-modif') else None,
+        'published_at': published.date().isoformat() if published else None,
         'deadline': deadline.isoformat() if deadline else None, 'status': status,
         'source_type': 'real', 'source_url': f'https://www.enarocanje.si/#/pregled-objav/{notice_id}',
         'summary': summary, 'description': summary, 'technologies': [], 'is_new': False,

@@ -183,3 +183,19 @@ def award_payments(award):
     return {'amount': float(sum(item.amount for item in payments)), 'count': len(payments),
             'latest_export_on': max(item.exported_on for item in payments).isoformat(),
             'latest_payment_on': max(item.paid_on for item in payments).isoformat()}
+
+
+def tender_payments(tender):
+    """Show payments only for lots from this exact notice, without summing revisions."""
+    meta = tender.data.get('source_metadata') or {}
+    notice_id = meta.get('notice_id')
+    if tender.data.get('source_type') != 'real' or not notice_id:
+        return []
+    result = []
+    for award in PastAward.objects.filter(notice_id=str(notice_id)).order_by('pk'):
+        if meta.get('dossier_id') and award.dossier_id != str(meta['dossier_id']):
+            continue
+        payments = award_payments(award)
+        if payments is not None:
+            result.append({'award_id': award.pk, 'lot_title': award.data.get('lot_title') or '', **payments})
+    return result

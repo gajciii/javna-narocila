@@ -56,6 +56,42 @@ class ImporterTests(TestCase):
         self.assertTrue(data['deadline'].endswith('+01:00'))
         self.assertIsNone(data['criteria'][0]['weight'])
 
+    def test_estimated_and_contracted_values_are_distinct(self):
+        raw = json.loads((FIXTURES / 'pjn-award.json').read_text(encoding='utf-8'))
+        data = normalize_notice(raw, str(raw['id']))
+        self.assertEqual(data['value'], 137000)
+        self.assertEqual(data['awarded_value'], 208976.1)
+        record, _, _ = persist_notice(data)
+        self.assertEqual(serialize_tender(record, get_profile())['awarded_value'], 208976.1)
+
+    def test_contract_value_requires_result_phase_and_valid_eur_total(self):
+        for extra in (
+            {'idSifPostopekFaza': 3, 'vrednostSkupna': 100, 'idSifValutaSkupna': 1},
+            {'vrednostSkupna': 100, 'idSifValutaSkupna': 4},
+            {'vrednostSkupna': None}, {'vrednostSkupna': -1},
+            {'vrednostSkupna': True}, {'vrednostSkupna': float('inf')},
+            {'vrednostSkupna': '100'},
+        ):
+            with self.subTest(extra=extra):
+                raw = self.payload(idSifPostopekFaza=1, idSifValutaSkupna=1)
+                raw.update(extra)
+                self.assertIsNone(normalize_notice(raw, '9999999')['awarded_value'])
+        raw = self.payload(idSifPostopekFaza=1, vrednostSkupna=0, idSifValutaSkupna=1)
+        self.assertEqual(normalize_notice(raw, '9999999')['awarded_value'], 0)
+
+    def test_changed_contract_value_is_persisted_and_versioned(self):
+        raw = self.payload(idSifPostopekFaza=1, vrednostSkupna=100, idSifValutaSkupna=1)
+        record, _, _ = persist_notice(normalize_notice(raw, '9999999'))
+        raw['vrednostSkupna'] = 120
+        record, created, changed = persist_notice(normalize_notice(raw, '9999999'))
+        self.assertFalse(created)
+        self.assertTrue(changed)
+        self.assertEqual(record.data['awarded_value'], 120)
+        self.assertEqual(record.data['version'], 2)
+        self.assertEqual(record.data['changes'][-1]['field'], 'Pogodbena vrednost')
+        _, _, changed = persist_notice(normalize_notice(raw, '9999999'))
+        self.assertFalse(changed)
+
     def test_broad_cpv_does_not_make_cybersecurity_a_high_software_match(self):
         raw = json.loads((FIXTURES / 'pjn-notice.json').read_text(encoding='utf-8'))
         data = normalize_notice(raw, '1229976')

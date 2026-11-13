@@ -198,10 +198,12 @@ def keyword_expansion_view(request):
 
 def tender_detail(tender, profile):
     from .tender_conditions import conditions_payload
+    from .erar import tender_payments
     conditions = conditions_payload(tender, profile)
     unmet = next((item['title'] for item in conditions['items'] if conditions['mode'] == 'live'
                   and (item.get('profile_answer') or {}).get('answer') == 'unmet'), None)
-    return {**serialize_tender(tender, profile, unmet_condition=unmet), 'tender_conditions': conditions}
+    return {**serialize_tender(tender, profile, unmet_condition=unmet), 'tender_conditions': conditions,
+            'erar_payments': tender_payments(tender)}
 
 
 def store_condition_answers(company, answers):

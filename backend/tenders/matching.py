@@ -186,6 +186,7 @@ def effective_status(data):
 def serialize_tender(tender, profile, documents=None, content_result=None, unmet_condition=None):
     """``unmet_condition`` is the title of a tender condition the company marked as not met."""
     data = dict(tender.data)
+    data.setdefault('awarded_value', None)
     docs = active_documents(tender, metadata_only=True) if documents is None else documents
     requirements = [req for doc in docs if doc.status == 'processed' and doc.extraction.get('mode') != 'unprocessed' for req in doc.extraction.get('requirements', [])]
     conditions = [evaluate_requirement(req, profile) for req in requirements]

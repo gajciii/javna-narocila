@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { queryKeys } from './queryClient';
 import { erarRecipient } from './CompanyDataSources';
+import ErarPayments from './ErarPayments';
 import type { PastAward, SimilarAwards } from './types';
 
 const day = (value: string | null) => value ? new Date(value).toLocaleDateString('sl-SI', { day: 'numeric', month: 'numeric', year: 'numeric' }) : 'Ni podatka';
@@ -54,9 +55,9 @@ export function HistoricalAward({ award }: { award: Omit<PastAward, 'similarity'
             <div className="similar-tender-price"><span className="similar-tender-label">Pogodbena vrednost</span><strong>{award.awarded ? amount(award.awarded_value, awardCurrency) : '—'}</strong><span>{award.tenders_received == null ? 'Število ponudb ni objavljeno' : `Prejetih ponudb: ${award.tenders_received}`}</span></div>
             <span className="similar-tender-open"><ExternalLink size={20}/><span>Odpri objavo</span></span>
         </a>
+        {award.erar_payments && <ErarPayments payments={award.erar_payments}/>}
         <details className="similar-tender-details"><summary>Več podatkov<ChevronDown size={16}/></summary><div className="similar-tender-extra">
             <dl><div><dt>Ocenjena vrednost</dt><dd>{amount(award.estimated_value, estimateCurrency)}</dd></div>{comparison && <div><dt>Razlika glede na ocenjeno vrednost</dt><dd>{differenceLabel(comparison.difference, comparison.currency)}{comparison.difference !== 0 && ` (${changePercent.format(comparison.ratio - 1)})`}</dd></div>}<div><dt>Postopek</dt><dd>{award.procedure || 'Ni podatka'}</dd></div>{offers && <div><dt>Razpon dopustnih ponudb</dt><dd>{offers}</dd></div>}{award.cpv.length > 0 && <div><dt>CPV</dt><dd>{award.cpv.join(' · ')}</dd></div>}<div><dt>Obvestilo o oddaji</dt><dd>{award.notice_number || 'Ni podatka'}</dd></div></dl>
-            {award.erar_payments && <div><h5>Izplačano po uvoženih podatkih ERAR</h5><p><strong>{amount(award.erar_payments.amount, 'EUR')}</strong> · {award.erar_payments.count} transakcij</p><p>Zadnje plačilo {day(award.erar_payments.latest_payment_on)} · izvoz {day(award.erar_payments.latest_export_on)}</p></div>}
             {award.winners.flatMap(winner => {
                 const url = erarRecipient(winner.registration_number);
                 return url ? [<p key={url}><a href={url} target="_blank" rel="noopener noreferrer">ERAR · javna plačila podjetju {winner.name}<ExternalLink size={13}/></a></p>] : [];

@@ -24,7 +24,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from .models import (Document, PipelineAgent, PipelineAttempt, PipelineControl, PipelineJob, PipelineRun, PipelineRunItem,
-                     IndexedContent, DocumentChunk, PastAward, Tender)
+                     IndexedContent, DocumentChunk, PastAward, Tender, ErarPayment)
 from .pipeline_runs import create_run
 from . import storage_usage
 
@@ -175,6 +175,7 @@ def overview_view(request):
         'queue': {row['state']: row['count'] for row in PipelineJob.objects.values('state').annotate(count=Count('pk'))},
         'index': {'documents': IndexedContent.objects.count(), 'chunks': DocumentChunk.objects.count()},
         'past_awards': past_award_stats(),
+        **data_source_stats(),
         'semantic_index': semantic_index_stats(),
         'storage_usage': storage_usage_stats(),
         'schedule': {'enabled': control.schedule_enabled, 'next_run_at': timestamp(control.next_run_at)},
@@ -316,3 +317,102 @@ def schedule_view(request):
         return Response({'error': 'Izberite omogočeno ali ustavljeno.'}, status=400)
     PipelineControl.objects.filter(pk=1).update(schedule_enabled=enabled)
     return Response({'enabled': enabled})
+
+
+def admin_documents():
+    from .runtime_data import application_tenders
+    ocr_chunks = DocumentChunk.objects.filter(content_id=OuterRef('indexed_content_id'), locator__endswith='(OCR)')
+    return Document.objects.filter(tender__in=application_tenders()).filter(
+        Q(extraction__mode__isnull=True) | ~Q(extraction__mode='archive')).annotate(
+        has_ocr=Exists(ocr_chunks))
+
+
+def data_source_stats():
+    # The overview polls every five seconds; source totals can refresh less frequently.
+    key = 'pipeline-data-source-stats-v1'
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    erar = ErarPayment.objects.aggregate(transactions=Count('pk'),
+        recipients=Count('recipient', distinct=True, filter=~Q(recipient='')),
+        payers=Count('payer', distinct=True, filter=~Q(payer='')),
+        with_procedure=Count('pk', filter=~Q(procedure='')),
+        with_award=Count('pk', filter=~Q(award_id='')),
+        eur_amount=Sum('amount', filter=Q(currency='EUR')),
+        other_currencies=Count('pk', filter=~Q(currency='EUR')),
+        first_payment_on=Min('paid_on'), last_payment_on=Max('paid_on'), last_export_on=Max('exported_on'))
+    for field in ('first_payment_on', 'last_payment_on', 'last_export_on'):
+        erar[field] = timestamp(erar[field])
+    erar['eur_amount'] = str(erar['eur_amount'] or 0)
+    documents = admin_documents()
+    ocr = documents.aggregate(documents=Count('pk'), indexed=Count('indexed_content_id'),
+                              ocr_documents=Count('pk', filter=Q(has_ocr=True)))
+    ocr_pages = DocumentChunk.objects.filter(content_id__in=documents.values('indexed_content_id'),
+                                             locator__endswith='(OCR)')
+    ocr['ocr_contents'] = ocr_pages.values('content_id').distinct().count()
+    ocr['ocr_pages'] = ocr_pages.values('content_id', 'page').distinct().count()
+    result = {'erar': erar, 'ocr': ocr}
+    cache.set(key, result, 30)
+    return result
+
+
+@admin_endpoint(['GET', 'POST'])
+def erar_view(request):
+    if request.method == 'POST':
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from django.core.management.base import CommandError
+        from .erar import LIMIT
+        from .management.commands.import_erar import load_export
+        upload = request.FILES.get('file')
+        if upload is None or upload.size > LIMIT or Path(upload.name).suffix.lower() not in ('.csv', '.xlsx'):
+            return Response({'error': 'Izberite izvoz ERAR CSV ali XLSX do 20 MB.'}, status=400)
+        try:
+            with TemporaryDirectory(prefix='erar-admin-') as directory:
+                path = Path(directory) / ('export' + Path(upload.name).suffix.lower())
+                with path.open('wb') as handle:
+                    for chunk in upload.chunks():
+                        handle.write(chunk)
+                imported = load_export(str(path), request.data.get('exported_on', ''))
+        except (CommandError, TypeError):
+            return Response({'error': 'Uvoz ERAR ni uspel. Preverite stolpce, zneske in datum izvoza.'}, status=400)
+        except Exception:
+            logging.getLogger(__name__).exception('ERAR upload failed for staff user %s', request.user.pk)
+            return Response({'error': 'Datoteke ERAR ni bilo mogoče prebrati.'}, status=400)
+        cache.delete('pipeline-data-source-stats-v1')
+        logging.getLogger(__name__).info('Staff user %s imported %s ERAR transactions', request.user.pk, imported)
+        return Response({'imported': imported, **data_source_stats()}, status=201)
+    page = page_number(request)
+    if page is None:
+        return Response({'error': 'Neveljavna stran.'}, status=400)
+    query = request.query_params.get('q', '').strip()[:200]
+    payments = ErarPayment.objects.all()
+    if query:
+        payments = payments.filter(Q(source_id__icontains=query) | Q(payer__icontains=query)
+            | Q(recipient__icontains=query) | Q(procedure__icontains=query) | Q(award_id__icontains=query))
+    count = payments.count()
+    rows = payments.order_by('-paid_on', 'pk').values('source_id', 'paid_on', 'amount', 'currency',
+        'payer', 'recipient', 'procedure', 'award_id', 'exported_on')[(page-1)*25:page*25]
+    return Response({'results': list(rows), 'count': count, 'page': page})
+
+
+@admin_endpoint(['GET'])
+def documents_view(request):
+    page = page_number(request)
+    ocr = request.query_params.get('ocr', '1')
+    if page is None or ocr not in ('0', '1'):
+        return Response({'error': 'Neveljavna stran ali filter OCR.'}, status=400)
+    documents = admin_documents()
+    if ocr == '1':
+        documents = documents.filter(has_ocr=True)
+    query = request.query_params.get('q', '').strip()[:200]
+    if query:
+        documents = documents.filter(Q(title__icontains=query) | Q(tender__data__title__icontains=query)
+                                     | Q(tender__id__icontains=query))
+    count = documents.count()
+    rows = documents.order_by('pk').values('id', 'title', 'tender_id', 'tender__data__title',
+        'status', 'error', 'version', 'has_ocr', 'indexed_content_id')[(page-1)*25:page*25]
+    results = [{**row, 'tender_title': row['tender__data__title'] or row['tender_id'],
+        'original_url': f"/api/documents/{row['id']}?download=1",
+        'text_url': f"/api/documents/{row['id']}/text"} for row in rows]
+    return Response({'results': results, 'count': count, 'page': page})
