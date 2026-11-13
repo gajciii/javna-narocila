@@ -1,12 +1,7 @@
-.submission-upload-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:24px 0 16px; }
-.submission-upload { display:flex; flex-direction:column; gap:12px; padding:24px; border:1px dashed #90aaa5; border-radius:12px; background:#f4f8f6; min-width:0; }
-.submission-upload > svg { color:var(--accent); }
-.submission-upload strong { font-size:15px; }
-.submission-upload span, .submission-upload small { font-size:13px; line-height:1.65; color:#596e67; overflow-wrap:anywhere; }
-.submission-upload.secondary { background:#fafbfa; border-color:#cbd5d0; }
-.submission-upload input { width:100%; height:auto; padding:10px; background:white; font-size:12px; }
-.submission-run { display:flex; flex-wrap:wrap; align-items:center; gap:16px; margin:22px 0 8px; }
-.submission-run > span { font-size:12px; color:#65776f; }
+.submission-upload-action { display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:24px; border:1px dashed #90aaa5; border-radius:12px; background:#f4f8f6; margin:24px 0 16px; }
+.submission-upload-action p, .submission-upload-action small { font-size:13px; line-height:1.65; color:#596e67; overflow-wrap:anywhere; }
+.submission-folder { margin:0 0 18px; }
+.submission-folder .field { display:block; margin-top:14px; }
 .submission-progress { padding:18px; background:#edf3f7; border-radius:8px; margin-top:18px; line-height:1.6; }
 .submission-report { margin-top:30px; border-top:1px solid var(--line); padding-top:24px; }
 .submission-result { padding:22px; background:#fff5e5; border:1px solid #ead9b9; border-radius:12px; margin-bottom:12px; }
@@ -33,4 +28,4 @@
 .submission-proof > span { display:flex; flex-wrap:wrap; align-items:center; gap:7px; color:#526d60; font-size:12px; overflow-wrap:anywhere; }
 .submission-proof a { color:var(--accent); text-decoration:underline; }
 .submission-proof blockquote { margin:12px 0 0; border-left:2px solid #b9cdc1; padding-left:12px; font-size:13px; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; }
-@media(max-width:650px) { .submission-upload-grid { grid-template-columns:1fr; } .submission-upload,.submission-item { padding:16px; } .submission-run .button { width:100%; } }
+@media(max-width:650px) { .submission-upload-action,.submission-item { padding:16px; } .submission-upload-action .button { width:100%; } }

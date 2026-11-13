@@ -17,18 +17,19 @@ log = logging.getLogger(__name__)
 @parser_classes([MultiPartParser, FormParser])
 def submission_review_view(request, tender_id):
     tender = get_object_or_404(Tender, pk=tender_id)
+    if any(name != 'submission_files' for name in request.FILES):
+        raise ValidationError('Naložite samo dokumente prijave. Razpisno dokumentacijo dodajte na zavihku Dokumenti.')
     files = request.FILES.getlist('submission_files')
     if not files:
         raise ValidationError('Dodajte dokumente pripravljene prijave (PDF ali ZIP).')
-    if sum(f.size for _, group in request.FILES.lists() for f in group) > MAX_FILE:
-        raise ValidationError('Prijava in dodatni razpisni dokumenti lahko skupaj obsegajo največ 10 MB.')
+    if sum(f.size for f in files) > MAX_FILE:
+        raise ValidationError('Dokumenti prijave lahko skupaj obsegajo največ 50 MB.')
     folder = request.data.get('submission_folder', '')
     if not isinstance(folder, str) or len(folder) > 300:
         raise ValidationError('Neveljavna mapa prijave.')
     submissions, submission_issues, duplicates = read_uploads(files, 'bid', folder=folder)
-    additions, source_issues, _ = read_uploads(request.FILES.getlist('source_files'), 'source')
     try:
-        return Response(review(tender, submissions, additions, source_issues, submission_issues, duplicates))
+        return Response(review(tender, submissions, submission_issues, duplicates))
     except ValidationError:
         raise
     except Exception as exc:

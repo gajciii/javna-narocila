@@ -18,8 +18,8 @@ from .deep_extract import extract_document
 from .documents import active_documents, evidence_valid
 
 log = logging.getLogger(__name__)
-MAX_FILE = 10 * 1024**2
-MAX_EXPANDED = 50 * 1024**2
+MAX_FILE = 50 * 1024**2
+MAX_EXPANDED = 200 * 1024**2
 MAX_FILES = 100
 MAX_TEXT = 220_000
 SUPPORTED = {'.pdf', '.docx', '.xlsx', '.pptx', '.odt', '.ods', '.txt', '.csv', '.xml', '.json'}
@@ -46,7 +46,7 @@ REVIEW_SCHEMA = obj({'items': array(obj({'requirement_id': TEXT,
 def read_uploads(uploads, prefix, folder=''):
     """Read bounded archives without extracting their paths. Flag every unreadable file."""
     if len(uploads) > MAX_FILES or sum(f.size for f in uploads) > MAX_FILE:
-        raise ValidationError('Skupna velikost naloženih datotek je lahko največ 10 MB, največ 100 datotek.')
+        raise ValidationError('Skupna velikost naloženih datotek je lahko največ 50 MB, največ 100 datotek.')
     docs, issues, seen, duplicates = [], [], set(), []
     total, count = 0, 0
     with TemporaryDirectory(prefix='razpizi-review-') as directory:
@@ -55,7 +55,7 @@ def read_uploads(uploads, prefix, folder=''):
             count += 1
             total += len(raw)
             if count > MAX_FILES or len(raw) > MAX_FILE or total > MAX_EXPANDED:
-                raise ValidationError('Arhiv presega omejitev: 100 datotek, 10 MB na datoteko, 50 MB razpakirane vsebine.')
+                raise ValidationError('Arhiv presega omejitev: 100 datotek, 50 MB na datoteko, 200 MB razpakirane vsebine.')
             digest = hashlib.sha256(raw).hexdigest()
             if digest in seen:
                 duplicates.append(name)
@@ -83,7 +83,7 @@ def read_uploads(uploads, prefix, folder=''):
             raw = upload.read(MAX_FILE + 1)
             name = upload.name.replace('\\', '/')
             if len(raw) > MAX_FILE:
-                raise ValidationError('Datoteka presega 10 MB.')
+                raise ValidationError('Datoteka presega 50 MB.')
             if name.lower().endswith('.zip'):
                 try:
                     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
@@ -191,18 +191,14 @@ def validate_review(answer, requirements, submissions, incomplete):
     return output
 
 
-def review(tender, submissions, additions, source_issues, submission_issues, duplicates):
+def review(tender, submissions, submission_issues, duplicates):
     if provider() != 'openrouter':
         raise ValidationError('Za pregled prijave nastavite OPENROUTER_API_KEY na strežniku.')
     sources, issues = tender_sources(tender)
-    if not sources and additions:
-        issues = []  # The user explicitly supplied official sources for this review.
-    sources += additions
-    issues += source_issues
     if sum(len(p.get('text', '')) for d in sources for p in d['pages']) > MAX_TEXT:
         raise ValidationError('Razpisna dokumentacija presega 220.000 znakov; pregledajte posamezen sklop.')
     if not any(p.get('text', '').strip() for d in sources for p in d['pages']):
-        raise ValidationError('Najprej dodajte berljivo uradno razpisno dokumentacijo.')
+        raise ValidationError('Najprej dodajte berljivo razpisno dokumentacijo na zavihku Dokumenti.')
     if not any(p.get('text', '').strip() for d in submissions for p in d['pages']):
         raise ValidationError('Prijava nima berljivega besedila. Potreben je OCR ali drug dokument.')
     model = settings.SUBMISSION_REVIEW_MODEL
