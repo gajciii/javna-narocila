@@ -5,6 +5,7 @@ indexing never waits on (or fails because of) the embedding provider. Passages a
 by content hash, so identical files are embedded once. Tenders and awards keep a digest of
 the embedded text and are re-embedded only when that text changes.
 """
+import functools
 import hashlib
 import logging
 import os
@@ -18,6 +19,7 @@ log = logging.getLogger(__name__)
 MODEL = 'openai/text-embedding-3-large'
 DIMENSIONS = 1024
 BATCH = 96  # Passages are at most ~1800 characters, far below the per-request token limit.
+EF_SEARCH = 400  # pgvector's default of 40 missed clear matches; 400 matched exact search in tests.
 MAX_TEXT = 6000  # Characters; stays below the model's 8191-token input limit.
 
 # Rows the provider permanently rejects are skipped until the worker restarts, so a single
@@ -40,6 +42,22 @@ def embed(texts, timeout=60):
     if len(vectors) != len(texts) or any(len(v) != DIMENSIONS for v in vectors):
         raise ValueError('Ponudnik je vrnil nepričakovano število ali dolžino vektorjev.')
     return vectors
+
+
+@functools.lru_cache(maxsize=512)
+def query_vector(text):
+    """Search queries repeat (same tender, same keywords), so each process keeps recent vectors."""
+    return tuple(embed([text])[0])
+
+
+def nearest(queryset, text, limit):
+    """Rows ordered by cosine distance to ``text``; each row gets a ``distance`` attribute."""
+    from pgvector.django import CosineDistance
+    vector = list(query_vector(text))
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute('SET LOCAL hnsw.ef_search = %s', [EF_SEARCH])
+        return list(queryset.annotate(distance=CosineDistance('embedding', vector)).order_by('distance')[:limit])
 
 
 def digest(text):

@@ -123,3 +123,46 @@ class KeywordExpansionTests(TestCase):
         self.assertTrue(response.data['results'])
         self.assertTrue(all(item['keyword_matches'] for item in response.data['results']))
         self.assertNotIn('keyword_matches', APIClient().get('/api/tenders', {'view': 'all'}).data['results'][0])
+
+
+class VectorPassageTests(TestCase):
+    """Passages by meaning (pgvector in production) plus titles of similar past contracts."""
+    def setUp(self):
+        from .models import PastAward
+        tender = Tender.objects.create(id='vector-test', data={'version': 1})
+        content = IndexedContent.objects.create(id='v' * 64, sha256='b' * 64, extractor_version='shared-v1', pages=[], format='pdf')
+        Document.objects.create(id='pjn-doc-vector', tender=tender, title='Tehnične zahteve.pdf', path='unused.pdf',
+                                version=1, status='processed', indexed_content=content, extraction={'format': 'pdf'})
+        self.text = 'Sistem pnevmatskega transporta vzorcev povezuje laboratorij in oddelke.'
+        self.chunk = DocumentChunk.objects.create(content=content, ordinal=0, page=2, locator='stran 2', text=self.text,
+                                                  normalized_text=fold(self.text), embedding=[0.5] * 1024)
+        self.award = PastAward.objects.create(id='a1', notice_id='77', data={'title': 'Dograditev sistema cevne zračne pošte',
+                                              'notice_number': 'JN000077/2025', 'buyer': 'SB Novo mesto'})
+
+    def nearest(self, queryset, text, limit):
+        return [self.chunk] if queryset.model is DocumentChunk else [self.award]
+
+    @patch('tenders.keyword_expansion.ai_enabled', return_value=True)
+    @patch('tenders.keyword_expansion.structured_call')
+    @patch('tenders.keyword_expansion.lexical_chunks', return_value=[])
+    @patch('tenders.embeddings.enabled', return_value=True)
+    def test_meaning_finds_passages_and_award_titles_without_shared_words(self, enabled, lexical, call, ai):
+        call.return_value = {'suggestions': [
+            {'term': 'pnevmatskega transporta', 'passage': 0, 'quote': self.text, 'reason': 'Druga oblika cevne pošte.'},
+            {'term': 'cevne zračne pošte', 'passage': 1, 'quote': 'Dograditev sistema cevne zračne pošte', 'reason': 'Sopomenka.'}]}
+        with patch('tenders.embeddings.nearest', side_effect=self.nearest):
+            result = expand('cevna pošta')
+        self.assertEqual([s['term'] for s in result['suggestions']], ['pnevmatskega transporta', 'cevne zračne pošte'])
+        self.assertEqual(result['suggestions'][0]['evidence']['document_id'], 'pjn-doc-vector')
+        award = result['suggestions'][1]['evidence']
+        self.assertEqual((award['document_id'], award['document_url']), ('', 'https://www.enarocanje.si/#/pregled-objav/77'))
+        self.assertEqual(call.call_args.kwargs['reasoning'], 'low')
+
+    @patch('tenders.keyword_expansion.ai_enabled', return_value=True)
+    @patch('tenders.keyword_expansion.structured_call', return_value={'suggestions': []})
+    @patch('tenders.embeddings.enabled', return_value=True)
+    def test_vector_failure_falls_back_to_word_search(self, enabled, call, ai):
+        with patch('tenders.embeddings.nearest', side_effect=RuntimeError('provider down')):
+            result = expand('pnevmatskega transporta')
+        self.assertEqual(result['mode'], 'live')
+        self.assertIn(self.text, str(call.call_args.args[2]))

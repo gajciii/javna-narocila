@@ -7,7 +7,7 @@ from .ai import ai_enabled, structured_call
 from .deep_relevance import fold
 from .document_index import search_passages
 from .documents import active_documents
-from .models import Document, DocumentChunk
+from .models import Document, DocumentChunk, PastAward
 
 log = logging.getLogger(__name__)
 SCHEMA = {'type': 'object', 'additionalProperties': False, 'properties': {
@@ -120,10 +120,103 @@ def same_text(value):
     return ' '.join(value.split())
 
 
+PASSAGES = 16
+AWARDS = 6      # titles of past contracts are short and rich in trade terms
+PER_DOCUMENT = 3
+WINDOW = 1000   # characters of a passage shown to the model; shorter prompts answer much faster
+POOL = 80
+FUSION_K = 60
+
+
+def lexical_chunks(stems, limit):
+    """Chunks containing every typed word (prefix match), best ranked first."""
+    from django.contrib.postgres.search import SearchQuery, SearchRank
+    terms = [t for t in stems if re.fullmatch(r'\w+', t)]
+    if not terms:
+        return []
+    query = SearchQuery(' & '.join(f'{term}:*' for term in terms), config='simple', search_type='raw')
+    return list(DocumentChunk.objects.filter(search_vector=query).annotate(rank=SearchRank('search_vector', query))
+                .order_by('-rank', 'pk').values_list('pk', flat=True)[:limit])
+
+
+def window(text, stems, size=WINDOW):
+    """The part of a passage around the first typed word, or its beginning."""
+    if len(text) <= size:
+        return text
+    folded = fold(text)
+    hits = [folded.find(stem) for stem in stems if folded.find(stem) >= 0]
+    start = max(0, min(hits) - size // 3) if hits else 0
+    while start > 0 and not text[start - 1].isspace():
+        start -= 1
+    return text[start:start + size].strip()
+
+
+def ranked_passages(query, limit=PASSAGES):
+    """Passages by meaning and by all typed words, fused by rank; None when vectors are unavailable."""
+    from .embeddings import enabled, nearest
+    if not enabled() or not DocumentChunk.objects.filter(embedding__isnull=False).exists():
+        return None
+    stems = sorted(query_stems(query))
+    scores = defaultdict(float)
+    for rank, chunk in enumerate(nearest(DocumentChunk.objects.only('pk'), query, POOL)):
+        scores[chunk.pk] += 1 / (FUSION_K + rank)
+    for rank, pk in enumerate(lexical_chunks(stems, POOL)):
+        scores[pk] += 1 / (FUSION_K + rank)
+    chunks = DocumentChunk.objects.in_bulk(list(scores))
+    # Only the documents behind the found passages are loaded, not the whole index.
+    contents = {chunk.content_id for chunk in chunks.values()}
+    tender_ids = set(Document.objects.filter(indexed_content_id__in=contents).values_list('tender_id', flat=True))
+    by_content = {}
+    for doc in indexed_documents(tender_ids):
+        by_content.setdefault(doc.indexed_content_id, doc)
+    passages, per_document = [], defaultdict(int)
+    for pk in sorted(scores, key=lambda pk: -scores[pk]):
+        chunk = chunks.get(pk)
+        doc = by_content.get(chunk.content_id) if chunk else None
+        if doc is None or per_document[doc.pk] >= PER_DOCUMENT:
+            continue
+        per_document[doc.pk] += 1
+        passages.append({'document_id': doc.pk, 'document_title': doc.title,
+            'page': chunk.page if doc.extraction.get('format') == 'pdf' else None,
+            'locator': chunk.locator, 'quote': window(chunk.text, stems), 'matched_term': '',
+            'document_url': f'/api/documents/{doc.pk}'})
+        if len(passages) == limit:
+            break
+    return passages + award_passages(query)
+
+
+def award_passages(query, limit=AWARDS):
+    """Titles of the past contracts closest in meaning, cited by their award notice."""
+    from .embeddings import nearest
+    found = []
+    # Award titles name the subject of a contract; phrasing the query the same way keeps short
+    # queries (e.g. "cevna pošta") from matching unrelated postal or vehicle contracts.
+    subject = f'Predmet javnega naročila: {query}'
+    for award in nearest(PastAward.objects.only('pk', 'notice_id', 'published_on', 'data'), subject, limit * 3):
+        d = award.data
+        title = d.get('title') or ''
+        if d.get('lot_title') and d['lot_title'] != title:
+            title = f"{title} – {d['lot_title']}" if title else d['lot_title']
+        if not title or any(p['quote'] == title for p in found):
+            continue
+        found.append({'document_id': '', 'document_title': f"Obvestilo o oddaji {d.get('notice_number') or award.notice_id}",
+            'page': None, 'locator': ' · '.join(x for x in (d.get('buyer'), award.published_on.strftime('%d. %m. %Y') if award.published_on else '') if x),
+            'quote': title[:WINDOW], 'matched_term': '',
+            'document_url': f'https://www.enarocanje.si/#/pregled-objav/{award.notice_id}'})
+        if len(found) == limit:
+            break
+    return found
+
+
 def expand(query):
     empty = {'suggestions': [], 'mode': 'unavailable'}
-    documents = indexed_documents()
-    passages, _ = search_passages(documents, {}, limit=30, terms=query_stems(query))
+    try:
+        passages = ranked_passages(query)
+    except Exception as exc:  # The vector index is an improvement, never a requirement.
+        log.warning('Vector passages unavailable: %s', type(exc).__name__)
+        passages = None
+    if passages is None:
+        passages, _ = search_passages(indexed_documents(), {}, limit=30, terms=query_stems(query))
     if not passages:
         return {**empty, 'message': 'V indeksiranih dokumentih ni ustreznega konteksta za dodatne ključne besede.'}
     if not ai_enabled():
@@ -137,7 +230,7 @@ def expand(query):
             'Ne ponavljaj vnesenih izrazov. passage je ničelni indeks odlomka; quote je kratek dobeseden citat '
             'iz tega odlomka, ki vsebuje term. reason na kratko v slovenščini pojasni povezavo z iskanjem. '
             'Če ni ustreznih izrazov, vrni prazen seznam.',
-            {'query': query, 'passages': passages})
+            {'query': query, 'passages': passages}, reasoning='low')
         seen = {fold(term.strip()) for term in query.split(',')}
         suggestions = []
         for item in answer['suggestions'][:20]:

@@ -28,7 +28,7 @@ def ai_enabled():
     return provider() is not None
 
 
-def structured_call(schema, instruction, payload, timeout=None):
+def structured_call(schema, instruction, payload, timeout=None, reasoning=None):
     from openai import OpenAI
     if provider() == 'openrouter':
         client = OpenAI(api_key=os.environ['OPENROUTER_API_KEY'], base_url=OPENROUTER_BASE_URL, timeout=timeout or 45, max_retries=0,
@@ -42,7 +42,9 @@ def structured_call(schema, instruction, payload, timeout=None):
             response_format={'type': 'json_schema', 'json_schema': {'name': 'radar_response', 'strict': True, 'schema': schema}},
             # Headroom for models that reason before answering; output is still schema-bound.
             max_tokens=8000,
-            extra_body={'provider': {'require_parameters': True, 'data_collection': 'deny'}},
+            extra_body={'provider': {'require_parameters': True, 'data_collection': 'deny'},
+                        # Short extraction tasks answer 2-3x faster without long reasoning.
+                        **({'reasoning': {'effort': reasoning}} if reasoning else {})},
         )
         text = response.choices[0].message.content or ''
         # Some models wrap JSON in a Markdown fence despite response_format.

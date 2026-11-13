@@ -8,7 +8,6 @@ the raw scraper exports are kept next to it for re-import. Retrieval is determin
 is configured, the Gemini Decisions API re-ranks the candidates. Every result links to its official
 notice. Records are untrusted data: only bounded, typed fields are kept.
 """
-import functools
 import gzip
 import hashlib
 import json
@@ -41,7 +40,6 @@ AI_THRESHOLD = 0.5   # P(similar) from Gemini
 TEXT_THRESHOLD = 0.3
 VECTOR_THRESHOLD = 0.5  # cosine similarity shown without AI re-ranking
 VECTOR_POOL = 200       # nearest awards read from the HNSW index before filtering
-EF_SEARCH = 400         # pgvector default (40) misses clear matches; 400 matched exact search in tests
 FUSION_K = 60           # reciprocal rank fusion constant
 STOPWORDS = {
     'naročilo', 'naročila', 'javno', 'javnega', 'izvedba', 'izvedbo', 'dobava', 'dobavo', 'storitve', 'storitev',
@@ -326,28 +324,15 @@ def subject_text(data):
     return '\n'.join(part for part in (title.strip(), description.strip(), ', '.join(data.get('cpv') or [])) if part)
 
 
-@functools.lru_cache(maxsize=512)
-def query_vector(text):
-    from .embeddings import embed
-    return tuple(embed([text])[0])
-
-
 def vector_candidates(data):
     """Nearest awards by meaning; [] when vectors are unavailable so the text match is used alone."""
-    from django.db import connection, transaction
-    from pgvector.django import CosineDistance
-    from .embeddings import enabled
+    from .embeddings import enabled, nearest
     text = subject_text(data)
     if not text or not enabled() or not PastAward.objects.filter(embedding__isnull=False).exists():
         return []
-    vector = list(query_vector(text))
     own_dossier = str((data.get('source_metadata') or {}).get('dossier_id') or '')
     own_procedure = procedure_number((data.get('source_metadata') or {}).get('notice_number'))
-    with transaction.atomic():
-        with connection.cursor() as cursor:
-            cursor.execute('SET LOCAL hnsw.ef_search = %s', [EF_SEARCH])
-        rows = list(PastAward.objects.annotate(distance=CosineDistance('embedding', vector))
-                    .order_by('distance')[:VECTOR_POOL])
+    rows = nearest(PastAward.objects.all(), text, VECTOR_POOL)
     found = []
     for award in rows:
         if (own_dossier and award.dossier_id == own_dossier) or (own_procedure and procedure_number(award.data.get('notice_number')) == own_procedure):
