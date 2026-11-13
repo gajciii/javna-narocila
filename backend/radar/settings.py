@@ -63,6 +63,13 @@ PIPELINE_MAX_DOWNLOAD = int(os.environ.get('PIPELINE_MAX_DOWNLOAD', '').strip() 
 PIPELINE_MAX_EXPANDED = int(os.environ.get('PIPELINE_MAX_EXPANDED', '').strip() or 32 * 1024**3)
 PIPELINE_MAX_DOCUMENT = int(os.environ.get('PIPELINE_MAX_DOCUMENT', '').strip() or 512 * 1024**2)
 PIPELINE_MAX_PAGES = int(os.environ.get('PIPELINE_MAX_PAGES', '').strip() or 10000)
+# Off by default: web requests also extract text and must not wait on OCR. Pipeline workers enable it.
+PIPELINE_OCR = os.environ.get('PIPELINE_OCR', '0') == '1'
+PIPELINE_OCR_LANGUAGES = os.environ.get('PIPELINE_OCR_LANGUAGES', '').strip() or 'slv+eng'
+PIPELINE_OCR_DPI = int(os.environ.get('PIPELINE_OCR_DPI', '').strip() or 200)
+PIPELINE_OCR_MAX_PAGES = int(os.environ.get('PIPELINE_OCR_MAX_PAGES', '').strip() or 40)
+PIPELINE_OCR_PAGE_TIMEOUT = int(os.environ.get('PIPELINE_OCR_PAGE_TIMEOUT', '').strip() or 60)
+PIPELINE_OCR_BUDGET = int(os.environ.get('PIPELINE_OCR_BUDGET', '').strip() or 240)
 PIPELINE_S3_ENDPOINT = os.environ.get('PIPELINE_S3_ENDPOINT', '')
 PIPELINE_S3_BUCKET = os.environ.get('PIPELINE_S3_BUCKET', 'razpizi-documents')
 PIPELINE_S3_ACCESS_KEY = os.environ.get('PIPELINE_S3_ACCESS_KEY', '')

@@ -5,6 +5,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from .documents import extract_pages
+from .ocr import apply_ocr
 from django.conf import settings
 
 MAX_DOCUMENT = 50 * 1024 * 1024
@@ -106,7 +107,7 @@ def extract_document(path, title):
     if pdf:
         pages = extract_pages(path, max_bytes=max_document,
             max_pages=settings.PIPELINE_MAX_PAGES if settings.PIPELINE_REMOTE else 500)
-        return pages, 'pdf'
+        return apply_ocr(path, pages), 'pdf'
     if suffix in ('.docx', '.xlsx', '.pptx', '.odt', '.ods'):
         return extract_office(path, suffix), suffix[1:]
     if suffix in ('.txt', '.csv', '.xml', '.json'):

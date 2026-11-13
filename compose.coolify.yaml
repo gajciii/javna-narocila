@@ -64,6 +64,7 @@ services:
       PIPELINE_MAX_DOWNLOAD: ${PIPELINE_MAX_DOWNLOAD:-8589934592}
       PIPELINE_MAX_EXPANDED: ${PIPELINE_MAX_EXPANDED:-34359738368}
       TMPDIR: /scratch
+      PIPELINE_OCR: "1"
     volumes:
       - scratch:/scratch
     mem_limit: 2g
