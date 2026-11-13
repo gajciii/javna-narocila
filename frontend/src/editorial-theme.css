@@ -137,13 +137,25 @@ main.account-page { padding-inline: var(--page-gutter); }
   .app-shell .detail-metadata > div:last-child { border-bottom: 0; }
 }
 .app-shell .detail-header { padding-top: 38px; }
-.app-shell .decision-card { padding: 26px 0 26px 28px; border: 0; border-left: 1px solid var(--line); border-radius: 0; background: #fff; box-shadow: none; color: var(--ink); }
+.app-shell .decision-card { padding: 26px 28px; border: 0; border-left: 1px solid var(--line); border-radius: 0; background: #fff; box-shadow: none; color: var(--ink); text-align: center; }
+.app-shell .decision-card .decision-label { justify-content: center; }
 @media (max-width: 920px) {
   .app-shell .detail-layout > .detail-aside { grid-row: auto; }
 }
 .app-shell .decision-card :is(.decision-label, .recommendation-title, .detail-content-score, .detail-content-score strong, .checklist > strong, .checklist > label) { color: var(--ink); }
 .app-shell .decision-card > p:not(.score-explanation), .app-shell .decision-card .detail-content-score small { color: var(--muted); }
 .app-shell .decision-card .button:not(.primary) { border-color: var(--line); color: var(--slate); background: #fff; }
+.app-shell .tender-facts .detail-metrics > div,
+.app-shell .detail-aside > .decision-card { transition: background-color 280ms ease; }
+@media (hover: hover) {
+  .app-shell .tender-facts .detail-metrics > div:hover,
+  .app-shell .detail-aside > .decision-card:hover { background-color: rgb(65 113 134 / 9%); }
+}
+.app-shell .detail-aside > .decision-card:focus-within { background-color: rgb(65 113 134 / 9%); }
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .tender-facts .detail-metrics > div,
+  .app-shell .detail-aside > .decision-card { transition: none; }
+}
 .app-shell .profile-savebar { border-radius: 0; border: 0; border-top: 1px solid var(--line); background: #fff; box-shadow: none; padding: 18px 0; }
 .app-shell .past-awards-list, .app-shell .impact-list { gap: 0; }
 .app-shell .past-awards-stats > div { padding-left: 0; background: transparent; border: 0; border-radius: 0; }
@@ -207,7 +219,7 @@ main.account-page { padding-inline: var(--page-gutter); }
   .app-shell .card-metadata > div:first-child strong { font-size: 22px; }
   .app-shell .card-metadata strong { font-size: 18px; }
   .app-shell .card-detail-link { margin: 0; }
-  .app-shell .decision-card { padding: 25px 0; border-left: 0; border-top: 1px solid var(--line); }
+  .app-shell .decision-card { padding: 25px 20px; border-left: 0; border-top: 1px solid var(--line); }
   .app-shell .notification-card, .app-shell .notification-card.unread, .app-shell .notification-card.read { padding: 24px 0; }
   .app-shell .notification-content h3 { font-size: 20px; }
   .app-shell .chat-panel-header { flex-wrap: wrap; gap: 12px; }
@@ -247,6 +259,7 @@ main.account-page { padding-inline: var(--page-gutter); }
 @keyframes results-progress { from { left: -35%; } to { left: 100%; } }
 .app-shell .results-count { display: inline-flex; align-items: center; gap: 8px; }
 .app-shell .is-pending .results-count { color: var(--accent); }
+.app-shell .relevance-pending { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; color: var(--muted); font-size: 12px; font-weight: 400; }
 .app-shell .tender-list.refreshing > .tender-card { opacity: .45; filter: grayscale(.4); pointer-events: none; }
 .app-shell .tender-list.refreshing { opacity: 1; }
 .app-shell .results-stale-note { position: sticky; top: 12px; z-index: 2; display: flex; align-items: center; gap: 8px; align-self: center; margin: 0 0 12px; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 999px; background: #fff; color: var(--accent); font-size: 13px; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }

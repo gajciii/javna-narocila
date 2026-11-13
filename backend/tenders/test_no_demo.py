@@ -23,7 +23,8 @@ class RealWorkspaceTests(TestCase):
         self.assertEqual(data['profile']['source'], 'user')
         for field in ('references', 'certifications', 'technologies', 'keywords'):
             self.assertEqual(data['profile'][field], [])
-        self.assertEqual(data['tenders'], [])
+        self.assertNotIn('tenders', data)
+        self.assertEqual(self.client.get('/api/tenders?view=all').json()['results'], [])
         self.assertEqual(data['notifications'], [])
         self.assertEqual(Tender.objects.count(), 0)
         self.assertEqual(Document.objects.count(), 0)
@@ -60,7 +61,8 @@ class RealWorkspaceTests(TestCase):
             key = company_key()
         partner = Partner.objects.create(company_key=key, source_type='demo', data=demo_profile())
         result = self.client.get('/api/bootstrap').json()
-        self.assertEqual([t['id'] for t in result['tenders']], ['real-notice'])
+        listed = self.client.get('/api/tenders?view=all').json()['results']
+        self.assertEqual([t['id'] for t in listed], ['real-notice'])
         self.assertEqual(result['notifications'], [])
         self.assertEqual(self.client.get('/api/partners').json(), [])
         for path in ('/api/tenders/legacy-fake', '/api/documents/legacy-fake-doc', f'/api/partners/{partner.pk}'):

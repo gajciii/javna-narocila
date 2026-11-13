@@ -36,7 +36,13 @@ class RadarTests(TestCase):
     def test_bootstrap_and_seven_seed_records(self):
         response = self.client.get('/api/bootstrap')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data['tenders']), 7)
+        self.assertNotIn('tenders', response.data)
+        tenders = self.client.get('/api/tenders?view=all').json()
+        self.assertEqual(tenders['count'], 7)
+        self.assertEqual(tenders['counts']['all'], 7)
+        self.assertEqual(tenders['counts']['ignored'], 0)
+        self.assertFalse(tenders['relevance_pending'])
+        self.assertTrue(tenders['facets']['regions'])
         self.assertEqual(response.data['profile']['source'], 'demo')
         self.assertEqual(Document.objects.count(), 5)
 

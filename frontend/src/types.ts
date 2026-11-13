@@ -237,10 +237,18 @@ export interface SavedSearch {
     name: string;
     filters: Filters;
 }
+/** GET /api/tenders: the filtered page plus tab badges and filter options over all tenders. */
+export interface TenderList {
+    results: Tender[];
+    count: number;
+    counts: { recommended: number; all: number; following: number; ignored: number };
+    facets: { regions: string[]; buyers: string[] };
+    /** AI relevance is still being scored in the background; results use rules until it finishes. */
+    relevance_pending: boolean;
+}
 export interface Bootstrap {
     profiles: Pick<Profile, 'id' | 'name' | 'registration_number'>[];
     profile: Profile;
-    tenders: Tender[];
     notifications: Notification[];
     saved_searches: SavedSearch[];
     meta: {

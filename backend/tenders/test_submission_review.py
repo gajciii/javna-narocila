@@ -1,5 +1,6 @@
 import io
 import zipfile
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -8,7 +9,7 @@ from rest_framework.test import APIClient
 from rest_framework.exceptions import ValidationError
 
 from .models import Document, Tender
-from .submission_review import read_uploads, validate_checklist, validate_review
+from .submission_review import MAX_FILE, read_uploads, validate_checklist, validate_review
 
 SOURCE = 'Ponudnik mora predloziti podpisan ponudbeni obrazec.'
 BID = 'Ponudba st. 123: dobava opreme v vrednosti 80.000 EUR.'
@@ -76,6 +77,21 @@ class SubmissionReviewTests(TestCase):
         with self.assertRaises(ValidationError):
             read_uploads([SimpleUploadedFile('many.zip', stream.getvalue())], 'bid')
 
+    def test_upload_limit_is_50_mb(self):
+        with self.assertRaises(ValidationError):
+            read_uploads([SimpleNamespace(size=MAX_FILE + 1)], 'bid')
+
+    @patch('tenders.submission_views.review', return_value={'result': 'covered'})
+    @patch('tenders.submission_views.read_uploads', return_value=([], [], []))
+    def test_multipart_upload_above_old_limit_reaches_review(self, read, review):
+        Tender.objects.create(id='review-test', data={'version': 1})
+        large_file = SimpleUploadedFile('large.pdf', b'%PDF-' + b'x' * (13 * 1024**2))
+        response = APIClient().post('/api/tenders/review-test/submission-review',
+                                    {'submission_files': large_file}, format='multipart')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(read.call_count, 1)
+        self.assertEqual(review.call_count, 1)
+
     def test_alternative_bid_folders_are_never_combined(self):
         stream = io.BytesIO()
         with zipfile.ZipFile(stream, 'w') as archive:
@@ -86,6 +102,26 @@ class SubmissionReviewTests(TestCase):
         docs, _, _ = read_uploads([SimpleUploadedFile('bid.zip', stream.getvalue())], 'bid', folder='PDF')
         self.assertEqual(len(docs), 1)
         self.assertEqual(docs[0]['pages'][0]['text'], BID)
+
+    def test_review_accepts_only_bid_files(self):
+        Tender.objects.create(id='review-test', data={'version': 1})
+        response = APIClient().post('/api/tenders/review-test/submission-review', {
+            'submission_files': SimpleUploadedFile('bid.txt', BID.encode()),
+            'source_files': SimpleUploadedFile('source.txt', SOURCE.encode()),
+        }, format='multipart')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('zavihku Dokumenti', str(response.data))
+
+    @patch('tenders.submission_review.provider', return_value='openrouter')
+    @patch('tenders.submission_review.structured_call')
+    def test_review_requires_stored_tender_documentation(self, call, provider):
+        Tender.objects.create(id='review-test', data={'version': 1})
+        response = APIClient().post('/api/tenders/review-test/submission-review', {
+            'submission_files': SimpleUploadedFile('bid.txt', BID.encode()),
+        }, format='multipart')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('zavihku Dokumenti', str(response.data))
+        call.assert_not_called()
 
     @patch('tenders.submission_review.provider', return_value='openrouter')
     @patch('tenders.submission_review.structured_call')

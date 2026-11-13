@@ -1,6 +1,7 @@
 import gzip
 import json
-from tempfile import NamedTemporaryFile, TemporaryFile
+from pathlib import Path
+from tempfile import TemporaryDirectory, TemporaryFile
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -68,10 +69,10 @@ class DatabaseExportTests(TestCase):
         self.pipeline_run.delete()
         self.document.delete()
         self.tender.delete()
-        with NamedTemporaryFile(suffix='.json.gz') as fixture:
-            fixture.write(content)
-            fixture.flush()
-            call_command('loaddata', fixture.name, verbosity=0)
+        with TemporaryDirectory() as directory:
+            fixture = Path(directory) / 'export.json.gz'
+            fixture.write_bytes(content)
+            call_command('loaddata', str(fixture), verbosity=0)
         tender = Tender.objects.get(pk=tender_id)
         self.assertEqual(tender.data['title'], 'Občina Škofja Loka')
         self.assertEqual(Document.objects.get(pk=document_id).tender_id, tender.pk)

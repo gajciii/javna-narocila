@@ -15,9 +15,14 @@ def serialize_notification(item):
             'improvement': item.payload if item.type == 'improvement' else None}
 
 
-def all_notifications():
+def all_notifications(fresh=False):
+    """Stored notifications. Improvement suggestions are recomputed synchronously only when
+    `fresh`; otherwise a throttled background refresh keeps them current (snapshot() takes seconds)."""
     from .improvements import refresh_suggestions, visible_notifications
-    refresh_suggestions()
+    if fresh:
+        refresh_suggestions()
+    else:
+        schedule_suggestions()
     rows = list(visible_notifications())
     if not test_fixtures_enabled():
         rows = [row for row in rows if not row.is_demo]
@@ -30,9 +35,45 @@ def all_notifications():
     return [serialize_notification(n) for n in rows]
 
 
+SUGGESTIONS_EVERY = timedelta(minutes=5)
+_suggestions_at = {}
+
+
+def schedule_suggestions(force=False):
+    """Recompute improvement suggestions for the current account in the background.
+
+    Polling refreshes at most every SUGGESTIONS_EVERY; changes to the profile, plans or
+    documents pass force=True so their effect shows on the next notifications poll.
+    """
+    from django.utils import timezone
+    from .accounts import account_scope
+    from .background import run_once
+    from .improvements import refresh_suggestions
+    from django.conf import settings
+    owner = account_id()
+    now = timezone.now()
+    throttled = not force and not settings.BACKGROUND_TASKS_INLINE
+    if throttled and now - _suggestions_at.get(owner, now - SUGGESTIONS_EVERY) < SUGGESTIONS_EVERY:
+        return
+    _suggestions_at[owner] = now
+
+    def run():
+        with account_scope(owner):
+            refresh_suggestions()
+    run_once(f'suggestions:{owner}', run)
+
+
 def all_tenders(profile=None):
+    return scored_tenders(profile)[0]
+
+
+def scored_tenders(profile=None, wait=True):
+    """Serialized tenders for the profile and whether AI relevance is still being scored.
+
+    With wait=False uncached tenders use rules now and Gemini scores them in the background.
+    """
     profile = profile or get_profile()
-    from .relevance import resolve_matches
+    from .relevance import resolve_matches, resolve_matches_nowait
     from .documents import document_metadata
     tenders = list(application_tenders().prefetch_related(Prefetch('document_records',
         queryset=document_metadata().order_by('id'), to_attr='_document_metadata')))
@@ -45,8 +86,11 @@ def all_tenders(profile=None):
     hidden = set(TenderIgnore.objects.filter(owner_id=account_id()).values_list('tender_id', flat=True))
     for tender in tenders:
         tender._account_ignored = tender.pk in hidden
-    matches = resolve_matches(tenders, profile)
-    return [serialize_tender(t, profile, content_result=matches[t.pk]) for t in tenders]
+    if wait:
+        matches, pending = resolve_matches(tenders, profile), False
+    else:
+        matches, pending = resolve_matches_nowait(tenders, profile)
+    return [serialize_tender(t, profile, content_result=matches[t.pk]) for t in tenders], pending
 
 
 def serialize_search(item):
@@ -61,7 +105,9 @@ def bootstrap():
     return {'profiles': [{'id': item.pk, 'name': item.data.get('name', ''),
                           'registration_number': item.data.get('registration_number', '')}
                          for item in companies().order_by('pk')],
-            'profile': profile, 'tenders': all_tenders(profile), 'notifications': all_notifications(),
+            # Tenders come from /api/tenders (with tab counts and facets); scoring them here made
+            # every workspace refresh, e.g. after saving the profile, wait for all ~1000 tenders.
+            'profile': profile, 'notifications': all_notifications(),
             'saved_searches': [serialize_search(s) for s in searches()],
             'meta': {'demo': test_fixtures_enabled(), 'ai_mode': 'live' if ai_enabled() else rules_mode(), 'today': today().isoformat(),
                      'last_sync': latest.created_at.isoformat() if latest else None,
@@ -75,7 +121,7 @@ def trigger_event(event_type):
     _, created = DemoEvent.objects.get_or_create(key=event_type)
     if not created:
         return {'message': 'Ta demo dogodek je že prikazan. Za ponovitev ponastavite demo.', 'created': False,
-                'notifications': all_notifications(), 'tenders': all_tenders()}
+                'notifications': all_notifications(fresh=True), 'tenders': all_tenders()}
     profile = get_profile()
     tender = Tender.objects.select_for_update().get(pk='satellite' if event_type == 'correction' else 'energy-iot')
     before = serialize_tender(tender, profile)
@@ -119,4 +165,4 @@ def trigger_event(event_type):
         Notification.objects.get_or_create(event_key=f'demo:{event_type}', defaults={
             'tender': tender, 'type': event_type, 'title': title, 'body': body, 'is_demo': True})
     return {'message': 'Demo dogodek je prikazan.' if notify else 'Dogodek je obdelan; razpis ni ustrezna odprta priložnost, zato novo obvestilo ni ustvarjeno.',
-            'created': True, 'notifications': all_notifications(), 'tenders': all_tenders()}
+            'created': True, 'notifications': all_notifications(fresh=True), 'tenders': all_tenders()}
