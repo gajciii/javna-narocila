@@ -283,9 +283,26 @@ export interface Partner {
     capability_evidence: CapabilityEvidence;
     updated_at: string;
 }
+/** A tender condition as used in partner comparisons: an extracted condition or a legacy requirement. */
+export interface PartnerTenderCondition {
+    id: string;
+    category: TenderCondition['category'];
+    category_label: string;
+    title: string;
+    requirement: string;
+    quote: string;
+    document_id: string | null;
+    document_title: string;
+    page: number | null;
+    status: ConditionState | 'manual';
+    company_value: string;
+    /** Whether the partner can be marked as meeting it (extracted conditions only). */
+    answerable: boolean;
+}
+export interface PartnerConditionAnswer { answer: 'met' | 'unmet'; tender_id: string; tender_title: string; inherited: boolean }
 export interface PartnerCondition {
-    condition: Condition;
-    partner_condition: Condition;
+    condition: PartnerTenderCondition;
+    partner_condition: { status: ConditionState | 'manual'; company_value: string; answer: PartnerConditionAnswer | null };
     state: 'already_met' | 'potential' | 'unresolved';
     label: string;
     explanation: string;
@@ -295,20 +312,49 @@ export interface PartnerComparison {
     partner: Partner;
     supported_conditions: number;
     remaining_conditions: number;
+    /** Exclusion grounds the partner was marked as not meeting. */
+    blocked_by: string[];
     content_score: number;
     content_level: MatchLevel;
     conditions: PartnerCondition[];
     documentation_incomplete: boolean;
     disclaimer: string;
 }
+export interface PartnerSummary { id: number; name: string; supported_conditions: number; remaining_conditions: number; blocked_by: string[] }
 export interface PartnerResults {
     tender_id: string;
     source_type: 'demo' | 'real';
-    missing_conditions: Condition[];
+    missing_conditions: PartnerTenderCondition[];
     candidates: PartnerComparison[];
+    /** Every partner of the company, best first. */
+    partners: PartnerSummary[];
     comparison: PartnerComparison | null;
     message: string;
 }
+export interface SuggestedPartnerWin {
+    award_id: string;
+    title: string;
+    lot_title: string;
+    buyer: string;
+    published_on: string | null;
+    value: number | null;
+    joint: boolean;
+    similarity: number;
+    notice_url: string;
+}
+/** A company that won similar public contracts, suggested as a partner. */
+export interface SuggestedPartner {
+    registration_number: string;
+    name: string;
+    wins_count: number;
+    total_value: number | null;
+    latest_win: string | null;
+    joint_bids: number;
+    wins: SuggestedPartnerWin[];
+    /** Set when the company is already one of your partners. */
+    partner_id: number | null;
+}
+export interface PartnerSuggestions { tender_id: string; items: SuggestedPartner[]; message: string; reference_gaps: string[]; source: string }
 export interface CertificationOption { key: string; label: string; required: boolean }
 export interface WebsiteEvidence {
     url: string;

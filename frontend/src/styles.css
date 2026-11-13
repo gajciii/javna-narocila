@@ -8829,3 +8829,13 @@ div.account-page {
 .email-notification-settings .checkbox-row input[type="checkbox"]:checked::after {
   transform: translateX(16px);
 }
+
+/* Partner list on the tender page: partners without suggested support, each with a comparison. */
+.partner-others { display: grid; gap: 8px; margin-top: 22px; }
+.partner-others h3 { margin: 0 0 4px; font-size: 16px; }
+.partner-other-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line, #e3e6e1); }
+.partner-other-row > div { display: grid; gap: 3px; min-width: 0; }
+.partner-other-row small { color: var(--muted, #5f655e); font-size: 13px; }
+.partner-comparison .condition-answer { margin: 4px 0 2px; }
+.partner-suggestions { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line, #e3e6e1); }
+.partner-suggestions .partner-proof { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; margin-top: 8px; }

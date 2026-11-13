@@ -27,6 +27,7 @@ export const queryKeys = {
     incumbents: (tenderId: string) => ['incumbents', tenderId] as const,
     expectedTenders: (query: string) => ['expected-tenders', query] as const,
     tenderPartners: (tenderId: string, companyId: string) => ['tender-partners', tenderId, companyId] as const,
+    partnerSuggestions: (tenderId: string, companyId: string) => ['tender-partners', 'suggestions', tenderId, companyId] as const,
     attachmentOpportunities: (tenderId: string, revision: string) => ['attachment-opportunities', tenderId, revision] as const,
     awardReferences: (registrationNumber: string) => ['award-references', registrationNumber] as const,
     certifications: ['certifications'] as const,
