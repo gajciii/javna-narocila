@@ -1,6 +1,7 @@
 from django.urls import path
 from tenders import views, partner_views, espd_views, opportunities, pipeline_admin
 from tenders.health import health_view
+from tenders.submission_views import submission_review_view
 
 urlpatterns = [
     path('api/health', health_view),
@@ -18,6 +19,7 @@ urlpatterns = [
     path('api/partners/<int:partner_id>', partner_views.partner_view),
     path('api/tenders/<slug:tender_id>/partners', partner_views.tender_partners_view),
     path('api/tenders/<slug:tender_id>/espd', espd_views.tender_espd_view),
+    path('api/tenders/<slug:tender_id>/submission-review', submission_review_view),
     path('api/tenders/<slug:tender_id>/buyer-history', views.buyer_history_view),
     path('api/tenders/<slug:tender_id>/faq', views.tender_faq_view),
     path('api/tenders/<slug:tender_id>/similar-awards', views.similar_awards_view),

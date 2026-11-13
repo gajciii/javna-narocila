@@ -54,6 +54,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4.1-mini')
 OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'openai/gpt-6-luna')
+SUBMISSION_REVIEW_MODEL = os.environ.get('SUBMISSION_REVIEW_MODEL', 'openai/gpt-6.1-terra')
 DEMO_DATE = os.environ.get('DEMO_DATE', '')
 PIPELINE_REMOTE = os.environ.get('PIPELINE_REMOTE', '0') == '1'
 PIPELINE_MAX_DOWNLOAD = int(os.environ.get('PIPELINE_MAX_DOWNLOAD', str(8 * 1024**3)))

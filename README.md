@@ -232,3 +232,22 @@ Zgodovino z razlagami pregledate z `git log` (brez `--oneline`).
 ## Meje prototipa
 
 Gre za lokalno aplikacijo za enega uporabnika. Vsebinsko ujemanje je razložljiva hevristika, ne verjetnost uspeha. Neznani pogoji ostanejo neznani; presoja zajema samo obdelano dokumentacijo. Produkcijska prijava in izolacija uporabnikov, OCR, pošiljanje e-pošte ter celovit zajem vseh objav niso vključeni.
+
+
+## Pregled pripravljene prijave z AI
+
+V podrobnostih razpisa odprite **Pregled prijave**. Naložite ZIP ali več dokumentov ponudbe, po potrebi tudi uradno razpisno dokumentacijo, ki še ni shranjena. Skupna omejitev je 10 MB. Razpisni viri in dokumenti ponudnika so ločeni.
+
+AI iz dokumentacije in shranjenih pojasnil naročnika izlušči kontrolni seznam zahtev: obrazci, priloge, dokazila, tehnični elementi, zavarovanja in navodila. Nato zahteve primerja s prijavo. Rezultat pokaže **pokrito z dokazom / delno pokrito / manjka / ročno preveri / ni relevantno**, dokument, stran, citat in naslednji korak. Citati se preverijo proti dejanskemu besedilu; odsotnost dokaza ob neberljivih prilogah ostane neznana.
+
+Potreben je `OPENROUTER_API_KEY` iz `.env`. Ločena nastavitev `SUBMISSION_REVIEW_MODEL` je privzeto `openai/gpt-6.1-terra`. Po spremembi nastavitev znova zaženite backend. Pregled opravi dva klica modela in lahko traja do tri minute. Napaka povezave ne vrne izmišljenega poročila.
+
+Podprti so PDF, DOCX, XLSX, PPTX, ODT, ODS, TXT, CSV, XML in JSON. ZIP ima omejitve: 100 datotek, 10 MB na datoteko in 50 MB razpakirane vsebine. Njegove poti se ne uporabljajo za zapis datotek. Enake datoteke se upoštevajo enkrat; macOS sistemske datoteke se prezrejo. Omejitev besedila je 220.000 znakov za vsako stran primerjave; presežek vrne napako.
+
+Če ZIP vsebuje različne prijave z istoimenskimi dokumenti, izberite **Mapa prijave v ZIP-u**. Pri uporabnikovem vzorcu izberite `PDF` ali `PDF/BREZ`; upoštevajo se samo datoteke neposredno v izbrani mapi. Tako se dokazila različnih različic ne združijo v eno prijavo.
+
+Skeni in neberljive strani so označeni za OCR ali ročni pregled. Funkcija ne preverja kriptografskih podpisov, žigov, veljavnosti dokazil ali dejanske oddaje. Seznam zahtev in ugotovitve so predhodna analiza razpoložljivih virov; popolnost in pravno dopustnost preveri človek.
+
+Naložene datoteke se obdelajo začasno in po branju odstranijo; njihovo besedilo se pošlje modelu prek OpenRouterja. Prijava se ne zapiše med razpisne vire. Poročilo je v pomnilniku zavihka; pred odhodom ga prenesite kot JSON. `PDF.zip` je uporabnikov vzorec in se ne dodaja v Git.
+
+API: `POST /api/tenders/<id>/submission-review`, multipart polji `submission_files` in neobvezno `source_files`, ter besedilno polje `submission_folder`. Odziv vsebuje model, različico razpisa, čas pregleda, ugotovitve, števce, dokaze in seznam nepreverjenih dokumentov. Funkcija ne potrebuje nove migracije.

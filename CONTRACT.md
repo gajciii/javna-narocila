@@ -1,5 +1,13 @@
 # RazpIzi - implementation contract
 
+## Bid completeness review
+
+`POST /api/tenders/<id>/submission-review` accepts multipart `submission_files` (required), `source_files` (optional official sources), and `submission_folder` (optional exact ZIP directory). Total upload limit is 10 MB; archives allow 100 members, 10 MB per member and 50 MB expanded. Alternative bid folders with repeated filenames require explicit folder selection. Uploaded bids never become source Documents and are not persisted. Temporary extraction files are removed before calling AI.
+
+OpenRouter uses `SUBMISSION_REVIEW_MODEL` (default `openai/gpt-6.1-terra`) independently of the assistant model. Step one extracts requirements from current tender documents and stored clarifications plus supplied official sources. Step two compares the submitted documents. Both sides are limited to 220,000 characters; exceeding this rejects the request. Requirements need validated source citations; positive/partial/not-applicable findings need validated bid citations. Missing evidence with unreadable attachments becomes unknown. Signature-related coverage requires manual review.
+
+The response contains `mode:live`, model, tender/version, review timestamp, `items`, status counts, document manifest, source/submission issues, duplicate filenames and limitations. Item states: `covered`, `partial`, `missing`, `unknown`, `not_applicable`. Overall result: `covered` only when all extracted items are covered/not-applicable and inputs have no known gaps, otherwise `needs_work` or `incomplete`. This does not guarantee exhaustive extraction or legal admissibility. Validation errors return 400; provider/grounding errors return 503 without a fabricated review. No migration is needed. UI reports can be downloaded as JSON and disappear on leaving the tab.
+
 Local single-user hackathon app. Slovenian UI. React/TypeScript/Vite frontend, Django/DRF/SQLite backend. General product; no PRIOT or GIC branding. All invented inputs explicitly demo. Dates relative to Europe/Ljubljana today for demo notices. Real IJS archive remains fixed/closed.
 
 ## API, no trailing slash

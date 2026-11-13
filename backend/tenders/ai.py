@@ -28,7 +28,7 @@ def ai_enabled():
     return provider() is not None
 
 
-def structured_call(schema, instruction, payload, timeout=None):
+def structured_call(schema, instruction, payload, timeout=None, model=None, max_tokens=None):
     from openai import OpenAI
     if provider() == 'openrouter':
         client = OpenAI(api_key=os.environ['OPENROUTER_API_KEY'], base_url=OPENROUTER_BASE_URL, timeout=timeout or 45, max_retries=0,
@@ -36,12 +36,12 @@ def structured_call(schema, instruction, payload, timeout=None):
         # Chat Completions is OpenRouter's stable API. require_parameters routes only to
         # providers that honour structured output; data_collection=deny skips providers that train on prompts.
         response = client.chat.completions.create(
-            model=settings.OPENROUTER_MODEL,
+            model=model or settings.OPENROUTER_MODEL,
             messages=[{'role': 'system', 'content': instruction + GUARD},
                       {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}],
             response_format={'type': 'json_schema', 'json_schema': {'name': 'radar_response', 'strict': True, 'schema': schema}},
             # Headroom for models that reason before answering; output is still schema-bound.
-            max_tokens=8000,
+            max_tokens=max_tokens or 8000,
             extra_body={'provider': {'require_parameters': True, 'data_collection': 'deny'}},
         )
         text = response.choices[0].message.content or ''
@@ -50,11 +50,11 @@ def structured_call(schema, instruction, payload, timeout=None):
     else:
         client = OpenAI(api_key=os.environ['OPENAI_API_KEY'], timeout=timeout or 25, max_retries=0)
         response = client.responses.create(
-            model=settings.OPENAI_MODEL, store=False,
+            model=model or settings.OPENAI_MODEL, store=False,
             instructions=instruction + GUARD,
             input=json.dumps(payload, ensure_ascii=False),
             text={'format': {'type': 'json_schema', 'name': 'radar_response', 'strict': True, 'schema': schema}},
-            max_output_tokens=3500,
+            max_output_tokens=max_tokens or 3500,
         )
         text = response.output_text
     data = json.loads(text)
