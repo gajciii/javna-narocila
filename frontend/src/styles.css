@@ -8546,3 +8546,269 @@ button, a {
 .ov-col + .ov-col .ov-row dt {
   font-size: 12px;
 }
+
+/* Account page: minimal */
+.account-page {
+  max-width: 680px;
+  gap: 28px;
+}
+
+.account-summary.surface, .email-notification-settings.surface {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.account-summary {
+  padding-bottom: 20px !important;
+  border-bottom: 1px solid #e4e8e3 !important;
+}
+
+.email-notification-settings h2 {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #1f2a2e;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #3f6f87;
+  margin-bottom: 12px;
+}
+
+.email-lead {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #5b6262;
+}
+
+.email-notification-settings form {
+  gap: 0;
+  margin-top: 8px;
+}
+
+.email-notification-settings form > * {
+  padding: 18px 0;
+  border-bottom: 1px solid #e4e8e3;
+}
+
+.email-notification-settings form > :last-child {
+  border-bottom: 0;
+}
+
+/* switches */
+.email-notification-settings .checkbox-row {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.email-notification-settings .checkbox-row input[type="checkbox"] {
+  appearance: none;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background: #c9cfcb;
+  position: relative;
+  cursor: pointer;
+  transition: background-color .2s ease;
+}
+
+.email-notification-settings .checkbox-row input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+  transition: transform .2s cubic-bezier(.2, .7, .2, 1);
+}
+
+.email-notification-settings .checkbox-row input[type="checkbox"]:checked {
+  background: #3f6f87;
+}
+
+.email-notification-settings .checkbox-row input[type="checkbox"]:checked::after {
+  transform: translateX(16px);
+}
+
+.email-notification-settings .checkbox-row input[type="checkbox"]:focus-visible {
+  outline: 2px solid #3f6f87;
+  outline-offset: 2px;
+}
+
+.email-notification-settings .checkbox-row input:checked + span {
+  color: inherit;
+}
+
+.email-notification-settings .checkbox-row strong {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.email-notification-settings .email-types {
+  gap: 14px;
+}
+
+.email-notification-settings .email-types legend {
+  float: left;
+  width: 100%;
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #5b6262;
+}
+
+.email-notification-settings .email-types legend + * {
+  clear: both;
+}
+
+.email-notification-settings .email-types:disabled {
+  opacity: .45;
+}
+
+.email-notification-settings .email-types .checkbox-row + .checkbox-row {
+  margin-top: 0;
+}
+
+.email-notification-settings .email-types small {
+  font-size: 12px;
+  color: #5b6262;
+  margin: 0;
+}
+
+.email-notification-settings .section-help {
+  font-size: 12px;
+  color: #5b6262;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* recipient + inline test */
+.email-recipient {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.email-recipient .field {
+  flex: 1;
+  max-width: 420px;
+}
+
+.email-test {
+  flex: none;
+  color: #3f6f87;
+}
+
+.email-notes {
+  font-size: 12px;
+  color: #5b6262;
+}
+
+.email-notes > summary {
+  cursor: pointer;
+  width: fit-content;
+  color: #3f6f87;
+  font-weight: 600;
+}
+
+.email-notes > p {
+  margin: 8px 0 0 !important;
+  line-height: 1.6;
+}
+
+.email-notification-settings .info-box {
+  font-size: 13px;
+}
+
+.email-actions {
+  border-bottom: 0 !important;
+}
+
+/* Account page: start-aligned, ignore the login-page centering */
+div.account-page {
+  display: grid;
+  align-items: start;
+  justify-content: stretch;
+  justify-items: stretch;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+}
+
+div.account-page .account-summary {
+  width: 100%;
+  padding-top: 0 !important;
+}
+
+/* Account page: spacing under the header and centered control text */
+div.account-page {
+  padding-top: 40px;
+}
+
+.email-notification-settings form > .info-box {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border: 1px solid #d5d9d3;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  line-height: 1.6;
+}
+
+.email-notification-settings .field input,
+.email-notification-settings .field select {
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0 16px;
+  line-height: 48px;
+}
+
+.email-notification-settings .field select {
+  line-height: normal;
+}
+
+.email-notification-settings .email-test {
+  align-self: flex-end;
+  height: 48px;
+}
+
+/* Switch fix: neutralize the global checkbox look so the knob stays inside the track */
+.email-notification-settings .checkbox-row input[type="checkbox"] {
+  box-sizing: border-box;
+  display: block;
+  width: 36px;
+  min-width: 36px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+}
+
+.email-notification-settings .checkbox-row input[type="checkbox"]::after,
+.email-notification-settings .checkbox-row input[type="checkbox"]:checked::after {
+  box-sizing: border-box;
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.email-notification-settings .checkbox-row input[type="checkbox"]:not(:checked)::after {
+  transform: translateX(0);
+}
+
+.email-notification-settings .checkbox-row input[type="checkbox"]:checked::after {
+  transform: translateX(16px);
+}
