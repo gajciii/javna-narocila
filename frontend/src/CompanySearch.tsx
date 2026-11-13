@@ -22,7 +22,7 @@ export default function CompanySearch({ onSelect, selecting }: { onSelect: (numb
         finally { if (id === requestId.current) setBusy(false); }
     };
     return <div className="company-lookup">
-        <div className="company-lookup-heading"><Building2 size={21}/><div><strong>Poiščite podjetje v AJPES</strong><p>Uvozite naziv, matično številko in naslov.</p></div></div>
+        <div className="company-lookup-heading"><Building2 size={21}/><div><small className="lookup-step">Korak 1</small><strong>Poiščite podjetje v AJPES</strong><p>Uvozite naziv, matično številko in naslov.</p></div></div>
         <label className="field"><span>Ime podjetja ali matična številka</span><div className="company-lookup-input"><input value={query} maxLength={160} placeholder="Naziv podjetja ali matična številka" onChange={e => { setQuery(e.target.value); setResult(null); setError(''); requestId.current++; setBusy(false); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); search(); } }}/><button className="button primary" type="button" onClick={search} disabled={busy || selecting || query.trim().length < 2}>{busy ? <LoaderCircle size={17} className="spin"/> : <Search size={17}/>}Išči</button></div></label>
         {error && <div className="info-box company-lookup-error" role="alert"><AlertCircle size={17}/><p>{error} Podatke lahko vnesete ročno.</p></div>}
         {result && <div className="company-lookup-results" aria-live="polite">

@@ -13,8 +13,9 @@ function Evidence({ item }: { item: WebsiteSuggestion }) {
     return <details className="website-evidence"><summary>Vir</summary>{item.evidence.map((e, i) => <p key={i}>{e.kind === 'code' ? <em>{e.quote}</em> : <>»{e.quote}«</>} <a href={e.url} target="_blank" rel="noreferrer">{path(e.url)}<ExternalLink size={11}/></a></p>)}</details>;
 }
 
-export default function WebsiteImport({ initial, onApply, registrationNumber, onRegistry, registryBusy }: {
+export default function WebsiteImport({ initial, onUrlChange, onApply, registrationNumber, onRegistry, registryBusy }: {
     initial: string;
+    onUrlChange?: (url: string) => void;
     onApply: (patch: WebsitePatch) => void;
     /** Current form identity (10 digits); a number already in the form is not offered again. */
     registrationNumber: string;
@@ -54,8 +55,8 @@ export default function WebsiteImport({ initial, onApply, registrationNumber, on
     const s = result?.suggestions;
     const empty = s && !s.activity && !s.description && groups.every(([k]) => !s[k].length);
     return <div className="company-lookup website-import">
-        <div className="company-lookup-heading"><Globe size={21}/><div><strong>Preberite svojo spletno stran</strong><p>Iz javne spletne strani predlagamo dejavnost, opis, področja in tehnologije. Vsak predlog ima citat in povezavo do vira.</p></div></div>
-        <label className="field"><span>Spletna stran podjetja</span><div className="company-lookup-input"><input value={url} maxLength={500} placeholder="https://podjetje.si" onChange={e => { setUrl(e.target.value); setError(''); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); run(); } }}/><button className="button primary" type="button" onClick={run} disabled={busy || url.trim().length < 4}>{busy ? <LoaderCircle size={17} className="spin"/> : <Sparkles size={17}/>}{busy ? 'Berem …' : 'Preberi stran'}</button></div></label>
+        <div className="company-lookup-heading"><Globe size={21}/><div><small className="lookup-step">Korak 2</small><strong>Preberite svojo spletno stran</strong><p>Iz javne spletne strani predlagamo dejavnost, opis, področja in tehnologije. Vsak predlog ima citat in povezavo do vira.</p></div></div>
+        <label className="field"><span>Spletna stran podjetja</span><div className="company-lookup-input"><input value={url} maxLength={500} placeholder="https://podjetje.si" onChange={e => { setUrl(e.target.value); onUrlChange?.(e.target.value); setError(''); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); run(); } }}/><button className="button primary" type="button" onClick={run} disabled={busy || url.trim().length < 4}>{busy ? <LoaderCircle size={17} className="spin"/> : <Sparkles size={17}/>}{busy ? 'Berem …' : 'Preberi stran'}</button></div></label>
         {error && <div className="info-box company-lookup-error" role="alert"><AlertCircle size={17}/><p>{error}</p></div>}
         {result && s && <div className="website-results" aria-live="polite">
             <p className="company-result-count">{result.message}</p>

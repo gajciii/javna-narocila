@@ -141,7 +141,7 @@ export default function NotificationsPage({ data, refresh, notify }: Props) {
                         <NotificationPreview notification={notification}/>
                         <div className="notification-actions">
                             {notification.type === 'improvement' && notification.improvement ? <>
-                                {needsProfile && <button className="button primary small" disabled={busy} onClick={() => run(async () => { if (!notification.read) await post('/notifications/read', { id: notification.id }); await refresh(); window.location.hash = '/profil'; })}>Dopolni profil<ArrowRight size={15}/></button>}
+                                {needsProfile && <button className="button primary small" disabled={busy} onClick={() => run(async () => { if (!notification.read) await post('/notifications/read', { id: notification.id }); await refresh(); window.location.hash = '/profil/uredi'; })}>Dopolni profil<ArrowRight size={15}/></button>}
                                 <button className={needsProfile ? 'text-link' : 'button primary small'} disabled={busy} onClick={() => show([notification])}>{needsProfile ? 'Poglej povezane razpise' : 'Poglej učinek'}<ArrowRight size={15}/></button>
                             </> : notification.tender_id && <button className="button primary small" disabled={busy} onClick={() => run(async () => {
                                 if (!notification.read) await post('/notifications/read', { id: notification.id });
