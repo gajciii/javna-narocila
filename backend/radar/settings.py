@@ -1,3 +1,4 @@
+import sys
 import os
 from urllib.parse import urlsplit, parse_qs, unquote
 from pathlib import Path
@@ -80,7 +81,8 @@ EMAIL_TIMEOUT = 10
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', '')
 
 # Set to 0 only for an explicitly public, anonymous demo. Accounts are required by default.
-ACCOUNT_REQUIRE_LOGIN = os.environ.get('ACCOUNT_REQUIRE_LOGIN', '1') == '1'
+# Tests call the API anonymously unless they enable accounts with override_settings.
+ACCOUNT_REQUIRE_LOGIN = os.environ.get('ACCOUNT_REQUIRE_LOGIN', '0' if 'test' in sys.argv[1:2] else '1') == '1'
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
