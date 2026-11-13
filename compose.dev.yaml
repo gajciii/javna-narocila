@@ -3,7 +3,7 @@
 name: razpizi-local
 services:
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:pg17-trixie
     environment:
       POSTGRES_DB: razpizi_local
       POSTGRES_USER: razpizi

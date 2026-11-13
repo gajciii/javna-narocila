@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 
@@ -5,6 +6,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections, connection
 
+from tenders.embeddings import embed_pending
 from tenders.pipeline_jobs import claim, execute, renew
 from tenders.pipeline_runs import register_agent, beat_agent
 
@@ -23,6 +25,7 @@ class Command(BaseCommand):
             raise CommandError('--poll mora biti vsaj 0.1.')
         agent = register_agent('worker')
         last_beat = 0
+        embed_after = 0
         try:
             while True:
                 close_old_connections()
@@ -57,6 +60,18 @@ class Command(BaseCommand):
                 if time.monotonic() - last_beat >= 15:
                     beat_agent(agent)
                     last_beat = time.monotonic()
+                if not job and time.monotonic() >= embed_after:
+                    # Idle time fills semantic vectors; jobs always come first.
+                    try:
+                        filled = embed_pending()
+                    except Exception as exc:
+                        logging.getLogger(__name__).warning('Embedding batch failed: %s', type(exc).__name__)
+                        filled = 0
+                        embed_after = time.monotonic() + 120
+                    else:
+                        embed_after = 0 if filled else time.monotonic() + 300
+                    if filled:
+                        continue
                 if not job:
                     time.sleep(options['poll'])
         finally:

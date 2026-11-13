@@ -1,4 +1,5 @@
 from django.db import models
+from pgvector.django import HalfVectorField
 from django.contrib.postgres.search import SearchVectorField
 from django.conf import settings
 from django.utils import timezone
@@ -22,6 +23,18 @@ class Tender(models.Model):
     following = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    embedding = HalfVectorField(dimensions=1024, null=True, blank=True)
+    embedding_digest = models.CharField(max_length=32, blank=True)
+
+    EMBEDDING_FIELDS = ('embedding', 'embedding_digest')
+
+    def save(self, *args, **kwargs):
+        # The worker writes vectors in the background; a full save of an older in-memory
+        # copy must not overwrite them. Vectors are written only through queryset updates.
+        if not self._state.adding and kwargs.get('update_fields') is None and not kwargs.get('force_insert'):
+            kwargs['update_fields'] = [f.name for f in self._meta.concrete_fields
+                                       if not f.primary_key and f.name not in self.EMBEDDING_FIELDS]
+        super().save(*args, **kwargs)
 
 
 class Document(models.Model):
@@ -82,6 +95,7 @@ class DocumentChunk(models.Model):
     text = models.TextField()
     normalized_text = models.TextField()
     search_vector = SearchVectorField(null=True)
+    embedding = HalfVectorField(dimensions=1024, null=True, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['content', 'ordinal'], name='unique_content_chunk')]
@@ -265,6 +279,8 @@ class PastAward(models.Model):
     published_on = models.DateField(null=True)
     data = models.JSONField(default=dict)
     imported_at = models.DateTimeField(auto_now=True)
+    embedding = HalfVectorField(dimensions=1024, null=True, blank=True)
+    embedding_digest = models.CharField(max_length=32, blank=True)
 
 
 class SimilarAwardsCache(models.Model):

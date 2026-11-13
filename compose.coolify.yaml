@@ -4,7 +4,7 @@
 # the Coolify host. Every service has a memory limit: the host has no swap.
 services:
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:pg17-trixie
     restart: unless-stopped
     command: [postgres, -c, shared_buffers=256MB, -c, effective_cache_size=768MB]
     environment:

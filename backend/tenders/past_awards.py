@@ -23,6 +23,7 @@ import requests
 from django.db import transaction
 from django.db.models import Max, Min
 
+from .embeddings import award_invalidation
 from .models import PastAward, SimilarAwardsCache
 
 GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/decisions'
@@ -196,7 +197,8 @@ def import_notices(records):
             old = PastAward.objects.filter(pk=row['id']).first()
             if old and old.data.get('participants'):
                 row['data']['participants'] = old.data['participants']
-            PastAward.objects.update_or_create(pk=row['id'], defaults={k: v for k, v in row.items() if k != 'id'})
+            defaults = {k: v for k, v in row.items() if k != 'id'}
+            PastAward.objects.update_or_create(pk=row['id'], defaults={**defaults, **award_invalidation(old, row['data'])})
     _index['revision'] = None
     return {'notices': len({r['notice_id'] for r in rows}), 'lots': len(rows),
             'created': len({r['id'] for r in rows} - existing), 'updated': len(existing)}

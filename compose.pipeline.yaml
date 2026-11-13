@@ -2,7 +2,7 @@
 name: razpizi-pipeline
 services:
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:pg17-trixie
     restart: unless-stopped
     environment:
       POSTGRES_DB: razpizi
