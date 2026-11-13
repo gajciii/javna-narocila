@@ -7911,6 +7911,10 @@ button, a {
 .keyword-gain strong { font-size: 20px; line-height: 1.2; }
 .keyword-gain.positive strong { color: #23784a; }
 .keyword-gain span { color: var(--muted, #5f655e); }
+.keyword-counts { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; padding: 0; list-style: none; }
+.keyword-counts li { border: 1px solid var(--border, #d5d9d3); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
+.keyword-counts li span { color: var(--muted, #5f655e); }
+.keyword-counts li.empty { opacity: .6; }
 .keyword-evidence-list { display: grid; gap: 12px; margin-top: 12px; }
 .keyword-evidence-list > div { border-top: 1px solid var(--border, #d5d9d3); padding-top: 10px; }
 .keyword-evidence-list p { margin: 4px 0; }

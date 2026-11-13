@@ -46,10 +46,26 @@ class KeywordExpansionTests(TestCase):
     @patch('tenders.keyword_expansion.structured_call')
     def test_unverified_duplicate_and_invalid_sources_are_rejected(self, call, enabled):
         for answer in [self.answer('izmišljena oprema'), self.answer(quote='Izmišljen citat prezračevanje'),
+                       self.answer('Dobava klimatskih naprav vključuje prezračevanje'),
+                       self.answer('Dobava klimatskih naprav'),
                        self.answer('klimatskih naprav'), self.answer('račevanje')]:
             call.return_value = answer
             result = expand('klimatskih naprav')
             self.assertEqual(result['suggestions'], [])
+
+    @patch('tenders.keyword_expansion.ai_enabled', return_value=True)
+    @patch('tenders.keyword_expansion.structured_call')
+    def test_longer_variant_of_a_suggested_term_is_dropped(self, call, enabled):
+        quote = 'Dograditev sistema cevne zračne pošte in optimizacija delujoče cevne zračne pošte.'
+        passage = {'document_id': self.doc.pk, 'quote': quote}
+        items = [self.answer(term, quote=quote)['suggestions'][0] for term in
+                 ['cevne zračne pošte', 'sistema cevne zračne pošte', 'delujoče cevne zračne pošte']]
+        with patch('tenders.keyword_expansion.ranked_passages', return_value=[passage]):
+            for ordered in [items, list(reversed(items))]:
+                with self.subTest(order=[item['term'] for item in ordered]):
+                    call.return_value = {'suggestions': ordered}
+                    self.assertEqual([s['term'] for s in expand('cevna pošta, ')['suggestions']],
+                                     ['cevne zračne pošte'])
 
     @patch('tenders.keyword_expansion.ai_enabled', return_value=True)
     @patch('tenders.keyword_expansion.structured_call')

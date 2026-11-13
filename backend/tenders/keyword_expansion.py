@@ -126,6 +126,7 @@ PER_DOCUMENT = 3
 WINDOW = 1000   # characters of a passage shown to the model; shorter prompts answer much faster
 POOL = 80
 FUSION_K = 60
+MAX_WORDS = 4   # longer terms are whole titles of one contract and match nothing else
 
 
 def lexical_chunks(stems, limit):
@@ -208,6 +209,11 @@ def award_passages(query, limit=AWARDS):
     return found
 
 
+def contains_words(text, term):
+    """Whether folded `term` occurs in folded `text` as whole words."""
+    return re.search(r'(?<!\w)' + re.escape(term) + r'(?!\w)', text) is not None
+
+
 def source_of(quote, passages, position):
     """The passage that really contains the quote. Models often miscount the passage index or
     change letter case, so the claimed passage is tried first and then the others; a quote
@@ -232,15 +238,18 @@ def expand(query):
         return {**empty, 'message': 'AI trenutno ni povezan. Ključne besede ostajajo nespremenjene.'}
     try:
         answer = structured_call(SCHEMA,
-            'Razširi ključne besede za iskanje javnih naročil. Izberi največ 8 kratkih izrazov, '
+            'Razširi ključne besede za iskanje javnih naročil. Izberi največ 8 kratkih izrazov (1 do 3 besede), '
             'ki se DOBESEDNO pojavijo v priloženih odlomkih in so vsebinsko povezani z uporabnikovim iskanjem. '
             'Upoštevaj pomen celotnega izraza, ne zgolj skupne besede. Izberi strokovne sopomenke, '
-            'poimenovanja opreme, storitev ali postopkov. Izpusti splošne razpisne izraze in nepovezane postavke. '
+            'poimenovanja opreme, storitev ali postopkov. Izraz je samo jedro pojma: iz naslova, kot je '
+            '"vzdrževanje cevne zračne pošte", vzemi "cevne zračne pošte"; izpusti dejanja (dobava, vzdrževanje, '
+            'dograditev, nadgradnja, izvedba), kraje in naročnike, sicer izraz ne najde novih razpisov. '
+            'Izpusti splošne razpisne izraze in nepovezane postavke. '
             'Ne ponavljaj vnesenih izrazov. passage je ničelni indeks odlomka; quote je kratek dobeseden citat '
             'iz tega odlomka, ki vsebuje term. reason na kratko v slovenščini pojasni povezavo z iskanjem. '
             'Če ni ustreznih izrazov, vrni prazen seznam.',
             {'query': query, 'passages': passages}, reasoning='low')
-        seen = {fold(term.strip()) for term in query.split(',')}
+        seen = {fold(term.strip()) for term in query.split(',') if term.strip()}
         suggestions = []
         for item in answer['suggestions'][:20]:
             term, quote, position = item['term'].strip(), item['quote'].strip(), item['passage']
@@ -248,14 +257,19 @@ def expand(query):
                 continue
             passage = source_of(quote, passages, position)
             normalized = fold(term)
-            if (passage is None or not 2 <= len(term) <= 100 or ',' in term or '\n' in term or normalized in seen
-                    or len(quote) < 8 or not re.search(r'(?<!\w)' + re.escape(normalized) + r'(?!\w)', fold(quote))):
+            if (passage is None or not 2 <= len(term) <= 100 or len(term.split()) > MAX_WORDS
+                    or ',' in term or '\n' in term or normalized in seen
+                    or len(quote) < 8 or not contains_words(fold(quote), normalized)
+                    # "sistema cevne zračne pošte" finds only what "cevne zračne pošte" already finds.
+                    or any(contains_words(normalized, known) for known in seen)):
                 continue
             seen.add(normalized)
             suggestions.append({'term': term, 'reason': item['reason'][:500],
                 'evidence': {**passage, 'quote': quote}})
-            if len(suggestions) == 8:
-                break
+        # Keep the shortest verified phrase regardless of the model's response order.
+        suggestions = [item for item in suggestions if not any(
+            other is not item and contains_words(fold(item['term']), fold(other['term']))
+            for other in suggestions)][:8]
         return {'suggestions': suggestions, 'mode': 'live', 'message':
                 'Dodani izrazi iz indeksiranih dokumentov.' if suggestions else
                 'V dokumentih ni dodatnih izrazov s potrjenim citatom.'}
