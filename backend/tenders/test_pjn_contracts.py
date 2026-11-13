@@ -77,3 +77,34 @@ class ContractTests(TestCase):
         fetch.side_effect = [self.forms, self.contract]
         sync_contracts(self.tender)
         self.assertNotEqual(first, index_identity(self.tender))
+
+    @patch('tenders.pjn_contracts.fetch_json', return_value=[])
+    def test_no_contracts_preserve_existing_job_identity(self, fetch):
+        from .pipeline_jobs import digest
+        from .document_index import EXTRACTOR_VERSION
+        original = digest(['index', self.tender.pk, 1, None, EXTRACTOR_VERSION, []])
+        self.assertEqual(index_identity(self.tender), original)
+        sync_contracts(self.tender)
+        self.assertEqual(index_identity(self.tender), original)
+
+    def test_reindex_reuses_existing_chunks_and_vectors(self):
+        from .models import Document
+        document = Document.objects.create(pk='contract-reuse', tender=self.tender,
+            title='Pogodba.txt', path='unused', sha256='b' * 64)
+        index_document(document, pages=[{'page': 1, 'text': 'Podpisnik pogodbe ANICA UŽMAH.'}])
+        chunks = document.indexed_content.chunks
+        chunks.update(embedding=[0.5] * 1024)
+        original_ids = list(chunks.values_list('pk', flat=True))
+        index_document(document)
+        self.assertEqual(list(chunks.values_list('pk', flat=True)), original_ids)
+        self.assertEqual(chunks.filter(embedding__isnull=False).count(), len(original_ids))
+
+    @patch('tenders.pipeline_download.fetch_file')
+    def test_previous_archive_download_is_not_repeated(self, fetch):
+        from .models import Document
+        from .pipeline_download import download_file
+        self.tender.data['source_metadata']['pipeline_download_key'] = hashlib.sha256(f'1:{URL}'.encode()).hexdigest()
+        Document.objects.create(pk='index-doc-existing', tender=self.tender, title='Archive.zip',
+                                path='unused', version=1, status='processed')
+        download_file(self.tender, {'url': URL})
+        fetch.assert_not_called()

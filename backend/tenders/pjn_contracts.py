@@ -40,7 +40,9 @@ def sync_contracts(tender):
     manifest = sorted(files.values(), key=lambda item: item['url'])
     digest = hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
     tender.refresh_from_db()
+    previous = tender.data.get('source_metadata', {})
     tender.data = {**tender.data, 'source_metadata': {**tender.data.get('source_metadata', {}),
+        'contracts_seen': bool(manifest or previous.get('contract_files') or previous.get('contracts_seen')),
         'contract_files': manifest, 'contracts_digest': digest, 'contracts_synced_at': timezone.now().isoformat()}}
     tender.save(update_fields=['data'])
     return manifest

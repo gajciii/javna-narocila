@@ -77,6 +77,12 @@ def download(tender):
 def download_file(tender, item):
     url = item['url']
     version = tender.data.get('version', 1)
+    # Preserve completed downloads made before the per-file cache was introduced.
+    legacy_key = hashlib.sha256(f'{version}:{url}'.encode()).hexdigest()
+    if ('contract_id' not in item
+            and tender.data.get('source_metadata', {}).get('pipeline_download_key') == legacy_key
+            and tender.document_records.filter(version=version).exists()):
+        return
     # Cache each source separately: adding a contract must not re-download a large archive.
     if tender.document_records.filter(version=version, extraction__source_url=url,
                                        extraction__download_complete=True).exists():
