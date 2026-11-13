@@ -78,3 +78,12 @@ EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', '1') == '1'
 EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', '0') == '1'
 EMAIL_TIMEOUT = 10
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', '')
+
+# Set to 0 only for an explicitly public, anonymous demo. Accounts are required by default.
+ACCOUNT_REQUIRE_LOGIN = os.environ.get('ACCOUNT_REQUIRE_LOGIN', '1') == '1'
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]

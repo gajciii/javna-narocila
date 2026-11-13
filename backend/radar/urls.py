@@ -1,8 +1,12 @@
 from django.urls import path
-from tenders import views, partner_views, espd_views, opportunities, pipeline_admin
+from tenders import views, partner_views, espd_views, opportunities, pipeline_admin, auth_views
 from tenders.health import health_view
 
 urlpatterns = [
+    path('api/auth/session', auth_views.session_view),
+    path('api/auth/register', auth_views.register_view),
+    path('api/auth/login', auth_views.login_view),
+    path('api/auth/logout', auth_views.logout_view),
     path('api/health', health_view),
     path('api/admin/pipeline/session', pipeline_admin.session_view),
     path('api/admin/pipeline/login', pipeline_admin.login_view),
@@ -25,6 +29,8 @@ urlpatterns = [
     path('api/certifications', partner_views.certifications_view),
     path('api/bootstrap', views.bootstrap_view),
     path('api/profile', views.profile_view),
+    path('api/profiles', views.profiles_view),
+    path('api/profiles/<int:profile_id>/activate', views.activate_profile_view),
     path('api/profile/prefill', views.prefill_view),
     path('api/profile/award-references', views.award_references_view),
     path('api/profile/website', views.website_profile_view),

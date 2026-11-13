@@ -10,9 +10,10 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from .accounts import account_id, companies, searches, lock_account
 from .analytics import capture
 from .models import CompanyProfile, Tender, SavedSearch, Notification, Document
-from .seed import ensure_seed, get_profile, demo_profile
+from .seed import ensure_seed, get_profile, demo_profile, get_active_company
 from .matching import serialize_tender
 from .filtering import apply_filters, keyword_matches, validate_filters
 from .validation import validate_profile
@@ -39,9 +40,47 @@ def profile_view(request):
     ensure_seed()
     if request.method == 'PUT':
         with transaction.atomic():
-            record = CompanyProfile.objects.select_for_update().get(pk=1)
+            lock_account()
+            record = get_active_company()
+            if request.data.get('id', record.pk) != record.pk:
+                return Response({'message': 'Izbrano podjetje se je spremenilo. Osvežite stran.'}, status=409)
             record.data = validate_profile(request.data, record.data)
+            validate_unique_company(record.data, exclude=record.pk)
             record.save()
+    return Response(get_profile())
+
+
+def validate_unique_company(data, exclude=None):
+    from .improvements import company_key
+    key = company_key(data)
+    if any(company_key(item.data) == key for item in companies().exclude(pk=exclude)):
+        raise ValidationError('To podjetje je že shranjeno. Izberite ga med shranjenimi podjetji.')
+
+
+@api_view(['POST'])
+def profiles_view(request):
+    ensure_seed()
+    with transaction.atomic():
+        lock_account()
+        # Start with empty fields; a new company must never inherit demo capabilities.
+        empty = {key: ([] if isinstance(value, list) else None if isinstance(value, (int, float)) or value is None else '')
+                 for key, value in demo_profile().items() if key not in ('id', 'registry_source')}
+        data = validate_profile(request.data, empty)
+        validate_unique_company(data)
+        companies().filter(is_active=True).update(is_active=False)
+        CompanyProfile.objects.create(owner_id=account_id(), data=data, is_active=True)
+    return Response(get_profile(), status=201)
+
+
+@api_view(['POST'])
+def activate_profile_view(request, profile_id):
+    ensure_seed()
+    with transaction.atomic():
+        lock_account()
+        record = get_object_or_404(companies(), pk=profile_id)
+        companies().filter(is_active=True).update(is_active=False)
+        record.is_active = True
+        record.save(update_fields=['is_active'])
     return Response(get_profile())
 
 
@@ -142,8 +181,15 @@ def follow_view(request, tender_id):
     following = request.data.get('following')
     if not isinstance(following, bool):
         raise ValidationError({'following': 'Pričakovana je logična vrednost.'})
-    tender.following = following
-    tender.save(update_fields=['following'])
+    if account_id() is None:
+        tender.following = following
+        tender.save(update_fields=['following'])
+    else:
+        from .models import TenderFollow
+        if following:
+            TenderFollow.objects.get_or_create(owner_id=account_id(), tender=tender)
+        else:
+            TenderFollow.objects.filter(owner_id=account_id(), tender=tender).delete()
     return Response(tender_detail(tender, get_profile()))
 
 
@@ -155,14 +201,14 @@ def searches_view(request):
         if not isinstance(name, str) or not name.strip() or len(name) > 100:
             raise ValidationError({'name': 'Vnesite ime iskanja do 100 znakov.'})
         filters = validate_filters(request.data.get('filters', {}))
-        item = SavedSearch.objects.create(name=name.strip(), filters=filters)
+        item = SavedSearch.objects.create(owner_id=account_id(), name=name.strip(), filters=filters)
         return Response(serialize_search(item), status=201)
-    return Response([serialize_search(s) for s in SavedSearch.objects.all()])
+    return Response([serialize_search(s) for s in searches()])
 
 
 @api_view(['DELETE'])
 def search_view(request, search_id):
-    get_object_or_404(SavedSearch, pk=search_id).delete()
+    get_object_or_404(searches(), pk=search_id).delete()
     return Response(status=204)
 
 
@@ -202,7 +248,14 @@ def notifications_read_view(request):
     if request.data.get('id') is not None:
         item = get_object_or_404(queryset, pk=request.data['id'])
         queryset = queryset.filter(pk=item.pk)
-    queryset.update(read=True)
+    if account_id() is None:
+        queryset.update(read=True)
+    else:
+        from .models import NotificationRead
+        queryset.filter(type='improvement').update(read=True)
+        queryset = queryset.exclude(type='improvement')
+        NotificationRead.objects.bulk_create([NotificationRead(owner_id=account_id(), notification_id=pk)
+                                             for pk in queryset.values_list('pk', flat=True)], ignore_conflicts=True)
     return Response(all_notifications())
 
 

@@ -282,7 +282,7 @@ export default function PipelineAdmin() {
         {message && <div className="pipeline-message" role="status"><CheckCircle2 size={18}/>{message}</div>}
         <section className="surface pipeline-panel">
             <div className="section-heading"><h2><Database size={18}/>Izvoz podatkovne baze</h2></div>
-            <p className="section-help">Prenesite podatke aplikacije za uvoz v lokalno razvojno okolje. Izvoz vsebuje tudi profil podjetja in shranjene vnose; podatki niso anonimizirani. Uporabniški računi, gesla, prijavne seje in datoteke dokumentov niso vključeni.</p>
+            <p className="section-help">Prenesite podatke aplikacije za uvoz v lokalno razvojno okolje. Izvoz vsebuje skupne podatke in stare vnose brez lastnika; podatki niso anonimizirani. Zasebni vnosi uporabniških računov niso vključeni. Uporabniški računi, gesla, prijavne seje in datoteke dokumentov niso vključeni.</p>
             <a className="button" href="/api/admin/pipeline/database-export" target="_blank" rel="noopener noreferrer" download><Download size={16}/>Prenesi izvoz baze (.json.gz)</a>
             <p className="section-help">Pri večji bazi lahko priprava traja nekaj časa. Dokumente iz S3 je treba prenesti ločeno.</p>
         </section>

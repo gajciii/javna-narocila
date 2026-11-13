@@ -23,7 +23,10 @@ def company_key(profile=None):
     number = ''.join(profile.get('registration_number', '').split()).casefold()
     if number.isdigit() and len(number) == 7:
         number += '000'
-    return digest(number or [text_normalize(profile.get('name', '')), text_normalize(profile.get('address', ''))])
+    from .accounts import account_id
+    identity = digest(number or [text_normalize(profile.get('name', '')), text_normalize(profile.get('address', ''))])
+    owner = profile.get('owner_id', account_id())
+    return digest(['account', owner, identity]) if owner is not None else identity
 
 
 def action_key(action):

@@ -5,23 +5,34 @@ from rest_framework.authentication import CSRFCheck
 
 
 class HostedAccessMiddleware:
-    """The hosted single-company application uses the existing staff login."""
-    public_paths = {'/api/health', '/api/admin/pipeline/session', '/api/admin/pipeline/login', '/api/admin/pipeline/logout'}
+    """Require an account for app data and bind its scope for downstream services."""
+    public_paths = {'/api/health', '/api/auth/session', '/api/auth/register', '/api/auth/login', '/api/auth/logout',
+                    '/api/admin/pipeline/session', '/api/admin/pipeline/login', '/api/admin/pipeline/logout'}
+    staff_mutations = {'/api/demo/reset', '/api/demo/event', '/api/import', '/api/sources/pjn/sync'}
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if settings.HOSTED_REQUIRE_LOGIN and request.path.startswith('/api/') and request.path not in self.public_paths:
-            user = request.user
-            if not (user.is_authenticated and user.is_active and user.is_staff):
+        from .accounts import account_scope
+        user = request.user
+        authenticated = user.is_authenticated and user.is_active
+        protected = request.path.startswith('/api/') and request.path not in self.public_paths
+        if protected:
+            if (settings.ACCOUNT_REQUIRE_LOGIN or settings.HOSTED_REQUIRE_LOGIN) and not authenticated:
                 return JsonResponse({'code': 'login_required', 'error': 'Za dostop do aplikacije se prijavite.'}, status=401)
-            if request.method not in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
+            if request.path in self.staff_mutations and authenticated and not user.is_staff:
+                return JsonResponse({'error': 'To dejanje je na voljo samo skrbnikom.'}, status=403)
+            if authenticated and request.method not in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
                 check = CSRFCheck(lambda request: None)
                 check.process_request(request)
                 if check.process_view(request, None, (), {}):
                     return JsonResponse({'error': 'Varnostni žeton ni veljaven. Osvežite stran in ponovite zahtevo.'}, status=403)
-        return self.get_response(request)
+        with account_scope(user.pk if authenticated else None):
+            response = self.get_response(request)
+        if protected:
+            response['Cache-Control'] = 'private, no-store'
+        return response
 
 
 class LocalOnlyMutationMiddleware:

@@ -235,6 +235,7 @@ export interface SavedSearch {
     filters: Filters;
 }
 export interface Bootstrap {
+    profiles: Pick<Profile, 'id' | 'name' | 'registration_number'>[];
     profile: Profile;
     tenders: Tender[];
     notifications: Notification[];

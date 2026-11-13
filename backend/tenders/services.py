@@ -3,6 +3,7 @@ from django.db import transaction
 from django.db.models import Prefetch
 from .models import Tender, CompanyProfile, Notification, DemoEvent, TenderVersion, SavedSearch, SyncAttempt
 from .seed import get_profile, today
+from .accounts import account_id, companies, searches
 from .matching import serialize_tender
 from .ai import ai_enabled
 
@@ -16,7 +17,14 @@ def serialize_notification(item):
 def all_notifications():
     from .improvements import refresh_suggestions, visible_notifications
     refresh_suggestions()
-    return [serialize_notification(n) for n in visible_notifications()]
+    rows = list(visible_notifications())
+    if account_id() is not None:
+        from .models import NotificationRead
+        read_ids = set(NotificationRead.objects.filter(owner_id=account_id()).values_list('notification_id', flat=True))
+        for row in rows:
+            if row.type != 'improvement':
+                row.read = row.pk in read_ids
+    return [serialize_notification(n) for n in rows]
 
 
 def all_tenders(profile=None):
@@ -25,6 +33,11 @@ def all_tenders(profile=None):
     from .documents import document_metadata
     tenders = list(Tender.objects.prefetch_related(Prefetch('document_records',
         queryset=document_metadata().order_by('id'), to_attr='_document_metadata')))
+    if account_id() is not None:
+        from .models import TenderFollow
+        followed = set(TenderFollow.objects.filter(owner_id=account_id()).values_list('tender_id', flat=True))
+        for tender in tenders:
+            tender._account_following = tender.pk in followed
     matches = resolve_matches(tenders, profile)
     return [serialize_tender(t, profile, content_result=matches[t.pk]) for t in tenders]
 
@@ -38,8 +51,11 @@ def bootstrap():
     from .ajpes import status as ajpes_status
     profile = get_profile()
     latest = SyncAttempt.objects.filter(success=True, error='').order_by('-created_at').first()
-    return {'profile': profile, 'tenders': all_tenders(profile), 'notifications': all_notifications(),
-            'saved_searches': [serialize_search(s) for s in SavedSearch.objects.all()],
+    return {'profiles': [{'id': item.pk, 'name': item.data.get('name', ''),
+                          'registration_number': item.data.get('registration_number', '')}
+                         for item in companies().order_by('pk')],
+            'profile': profile, 'tenders': all_tenders(profile), 'notifications': all_notifications(),
+            'saved_searches': [serialize_search(s) for s in searches()],
             'meta': {'demo': True, 'ai_mode': 'live' if ai_enabled() else 'demo', 'today': today().isoformat(),
                      'last_sync': latest.created_at.isoformat() if latest else None,
                      'integrations': {'pjn': pjn_status(), 'ajpes': ajpes_status()}}}
