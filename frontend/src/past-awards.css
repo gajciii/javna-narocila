@@ -46,3 +46,9 @@
   .past-award-price { grid-column:2; text-align:left; }
 }
 .past-awards-note, .past-awards-source { margin:0; font-size:12px; color:var(--muted); line-height:1.6; }
+
+/* Signed contracts: incumbents and expected tenders */
+.contract-links { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; }
+.contract-links small { color: var(--muted, #667085); }
+.expected-count { display: flex; align-items: center; gap: .5rem; margin: 1rem 0 .5rem; }
+.incumbent-summary p { margin: .25rem 0; }

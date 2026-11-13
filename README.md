@@ -11,9 +11,10 @@ Prototip za **hackathon, izziv št. 2: podatkovno inženirstvo in AI za javna na
 - **Razložljiva presoja:** vsebinsko ujemanje 0–100, ločen pregled obveznih pogojev in dokazi z navedbo dokumenta ter strani.
 - **Gemini Decision 1 (izbirno):** ob nastavljenem ključu oceni vsebinsko primernost predmeta razpisa za profil podjetja. Ocena se shrani glede na profil, razpis in model. Če ključ manjka ali storitev ni dosegljiva, je uporaba obstoječih pravil vidno označena. Končno priporočilo še vedno ločeno preveri pogoje in stanje razpisa.
 - **Profil podjetja:** osnovni podatki iz AJPES prek OPSI; reference, znanja, certifikati in ekipa so uporabniški vnosi. Dejavnost, opis, znanja in tehnologije lahko predlaga branje spletne strani podjetja, vsak predlog z dobesednim virom.
-- **AI pomočnik:** priporočila, preverjanje pogojev, primerjava razpisov in predlogi filtrov oziroma dopolnitve profila, ki jih uporabnik potrdi.
 - **Spremljanje:** spremembe pogojev, podaljšanja rokov in nove priložnosti brez podvajanja istega dogodka. Razpis, ki vas ne zanima, lahko skrijete; ostane v zavihku Skriti, od koder ga lahko vrnete.
 - **Pretekle oddaje:** zavihek na resničnem razpisu pokaže podobna že oddana naročila z izbranimi ponudniki, številom ponudb, pogodbeno in ocenjeno vrednostjo ter razponom ponudb.
+- **Trenutni izvajalec:** iz objavljenih pogodb in aneksov naročnika s sorodnim CPV pokaže, kdo ima veljavno pogodbo in do kdaj; aneksi, ki podaljšajo rok, so upoštevani.
+- **Pričakovani razpisi:** pogodbe, ki potečejo v 3 do 24 mesecih in se ujemajo s ključnimi besedami profila, kot napoved naročil, ki bodo morda znova razpisana. Register pogodb dopolnjuje dnevni zajem; za nazaj ga napolni `manage.py sync_contract_list --from 2024-01-01`.
 - **Partnerji in razvoj:** potencialna dopolnitev pogojev s partnerjem ter shranjeni načrti za razvoj kompetenc.
 
 Vmesnik uporablja stalno navigacijo, berljive kartice in vidno utemeljitev ocene ter se prilagaja manjšim zaslonom. Oblikovalski referenci sta preglednost poslovnih platform [PRIOT](https://www.priot.io/) in poenostavitev vsakodnevnih opravil v [Telesporju](https://www.priot.io/projects/telespor-user-portal). Projekt ni povezan s podjetjem PRIOT.
@@ -82,7 +83,7 @@ Običajni zagon ne sproži zunanjega zajema. `init_workspace` pripravi prazen pr
 1. Prijavite se in v **Profil podjetja** izberite podjetje v AJPES. Dopolnite njegove dejanske reference, znanja, certifikate in kapacitete.
 2. V **Razpisi** uvozite objave e-Naročanja, preglejte priporočila in uporabite napredne filtre.
 3. Odprite pogoje razpisa in izvorne dokaze. Manjkajoči podatki ostanejo neznani.
-4. V **AI pomočnik** primerjajte razpise in pripravite seznam korakov za prijavo.
+4. V **Pregled prijave** preverite pripravljene prijavne dokumente glede na pogoje razpisa.
 5. Preverite **Partnerje**, **Pretekle oddaje**, **Zgodovino naročnika** in **Obvestila → Predlogi za razvoj**.
 
 Aplikacija nima demo računa, menija za izmišljene dogodke ali ponastavljanja profila. Stari izmišljeni zapisi so iz aplikacije izločeni; resnični podatki ostanejo ohranjeni. Brez povezave z AI se lahko prikaže jasno označen pregled po pravilih nad dejanskimi shranjenimi podatki.
@@ -208,7 +209,7 @@ Ločeni strežnik za prenos, skupno indeksiranje prilog in opravila v PostgreSQL
 
 | Pot | Vsebina |
 | --- | --- |
-| `frontend/src/App.tsx` | Navigacija, iskanje, podrobnosti, profil in pomočnik |
+| `frontend/src/App.tsx` | Navigacija, iskanje, podrobnosti in profil podjetja |
 | `frontend/src/OpportunityOverview.tsx` | Pregled priložnosti, spremljani roki in naslednji koraki |
 | `frontend/src/NotificationsPage.tsx` | Obvestila in razvojni načrti |
 | `frontend/src/Partners.tsx` | Partnerji in primerjava pogojev |

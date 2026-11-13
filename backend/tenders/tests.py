@@ -16,7 +16,6 @@ from .matching import serialize_tender, evaluate_requirement
 from .documents import evidence_valid, validated_extraction
 from .filtering import apply_filters
 from .validation import validate_profile
-from .ai import demo_chat, chat
 
 
 class RadarTests(TestCase):
@@ -204,28 +203,11 @@ class RadarTests(TestCase):
             extraction={'mode': 'unprocessed', 'requirements': [], 'criteria': []})
         self.assertEqual(self.detail('energy-iot')['match']['recommendation'], 'review')
 
-    @patch.dict(os.environ, {'OPENAI_API_KEY': '', 'OPENROUTER_API_KEY': ''})
-    def test_chat_demo_uses_current_profile_and_has_evidence(self):
-        response = self.client.post('/api/chat', {'message': 'Katere reference moramo dopolniti?', 'tender_ids': ['sport-portal']}, format='json')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['mode'], 'demo')
-        self.assertIn('Manjka', response.data['answer'])
-        self.assertEqual(response.data['citations'][0]['document_id'], 'sport-v1')
-
-    def test_profile_chat_proposal_does_not_mutate_until_apply(self):
+    def test_removed_assistant_endpoint_is_unavailable_and_does_not_change_profile(self):
         before = get_profile()
-        response = self.client.post('/api/chat', {'message': 'Razvijamo tudi rešitve za senzorje. Posodobi profil.'}, format='json')
-        self.assertIn('profile_patch', response.data)
+        response = self.client.post('/api/chat', {'message': 'Posodobi profil.'}, format='json')
+        self.assertEqual(response.status_code, 404)
         self.assertEqual(before, get_profile())
-
-    def test_named_comparison_resolves_requested_notices(self):
-        result = demo_chat('Primerjaj razpisa za IoT in športno platformo.', all_tenders(), get_profile())
-        self.assertEqual({c['tender_id'] for c in result['citations']}, {'energy-iot', 'sport-portal'})
-
-    def test_license_question_explains_low_fit_instead_of_unrelated_recommendations(self):
-        result = demo_chat('Zakaj ne priporočaš podaljšanja licenc?', all_tenders(), get_profile())
-        self.assertEqual(result['citations'][0]['tender_id'], 'office-licenses')
-        self.assertIn('slabo ujema', result['answer'])
 
     def test_prefill_is_explicit_demo_and_does_not_mutate(self):
         before = get_profile()

@@ -1,4 +1,4 @@
-import { ArrowRight, Bookmark, CalendarDays, CheckCircle2, ChevronRight, CircleHelp, Radar, Sparkles } from 'lucide-react';
+import { ArrowRight, Bookmark, CalendarDays, CheckCircle2, ChevronRight, CircleHelp, Radar } from 'lucide-react';
 import type { Bootstrap, Filters, Tender } from './types';
 
 const recommended = (t: Tender) => !t.ignored && t.status === 'open' && t.match.level !== 'low' && ['recommended', 'review'].includes(t.match.recommendation);
@@ -24,18 +24,11 @@ export function OpportunityOverview({ data, onView }: { data: Bootstrap; onView:
     </section>;
 }
 
-export function OpportunityAside({ data, goChat }: { data: Bootstrap; goChat: () => void }) {
+export function OpportunityAside({ data }: { data: Bootstrap }) {
     const deadlines = data.tenders.filter(t => t.following && t.status === 'open' && t.deadline)
         .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime()).slice(0, 3);
     const incomplete = data.profile.references.filter(r => !r.confirmed || r.value == null || r.year == null).length;
     return <aside className="opportunity-aside" aria-label="Naslednji koraki">
-        <section className="assistant-invite">
-            <span className="aside-eyebrow"><Sparkles size={16}/>VAŠ RAZPISNI POMOČNIK</span>
-            <h2>Od dolgega razpisa<br/>do jasne odločitve.</h2>
-            <p>Preverite pogoje, poiščite dokaze ali primerjajte priložnosti za svoje podjetje.</p>
-            <button className="button" onClick={goChat}>Vprašaj pomočnika<ArrowRight size={16}/></button>
-            <span className="assistant-mode">{data.meta.ai_mode === 'live' ? 'AI je povezan' : 'AI ni povezan · pregled po pravilih'}</span>
-        </section>
         <section className="deadline-agenda">
             <div className="aside-heading"><h2>Prihajajoči roki</h2><CalendarDays size={18}/></div>
             <p>Odprti razpisi, ki jih spremljate</p>

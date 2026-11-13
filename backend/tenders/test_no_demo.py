@@ -81,9 +81,6 @@ class RealWorkspaceTests(TestCase):
         self.assertEqual(response.json()['certifications'], [])
         self.assertEqual(response.json()['technologies'], [])
 
-    def test_rules_based_assistance_uses_real_runtime_label(self):
-        from .ai import demo_chat, suggest_filters
+    def test_rule_based_filters_use_real_runtime_label(self):
+        from .ai import suggest_filters
         self.assertEqual(suggest_filters('Iščemo spletne aplikacije')['mode'], 'rules')
-        answer = demo_chat('Kateri razpisi so za nas?', [], {'name': 'Podjetje'})
-        self.assertEqual(answer['mode'], 'rules')
-        self.assertNotIn('demo', answer['answer'].lower())

@@ -12,6 +12,7 @@ from .models import PipelineAgent, PipelineControl, PipelineRun, PipelineRunItem
 from .monthly_pipeline import grid_entries, month_dates
 from .pipeline_jobs import close_processed_runs, enqueue_index, index_identity
 from .pjn_sync import collect_notice, sync_awards
+from .pjn_transport import safe_error
 
 
 def register_agent(role):
@@ -138,8 +139,16 @@ def collect_run(run, agent=None):
                 if try_sync(tender).get('changed'):
                     tender.refresh_from_db()
                 time.sleep(0.3)
-            from .pjn_contracts import sync_contracts
+            from .pjn_contracts import sync_contracts, sync_tender_buyers
             sync_contracts(tender)
+            if deadline_ahead(tender.data):
+                # The buyer's related contracts show the incumbent; repeated buyers are skipped for a week.
+                try:
+                    for buyer in sync_tender_buyers(tender):
+                        if buyer['errors']:
+                            log.append({'notice_id': tender.pk, 'message': f"Pogodb naročnika, ki jih ni bilo mogoče prenesti: {len(buyer['errors'])}."})
+                except Exception as exc:  # noqa: BLE001 - the incumbent lookup must not stop collection
+                    log.append({'notice_id': tender.pk, 'message': f'Zajem pogodb naročnika ni uspel: {safe_error(exc)}'})
             from .models import PipelineJob
             reused = PipelineJob.objects.filter(key=index_identity(tender)).exists()
             job = enqueue_index(tender, retry=True)
@@ -154,6 +163,14 @@ def collect_run(run, agent=None):
                     log.append({'notice_id': 'oddaje', 'message': f"Obvestil o oddaji, ki jih ni bilo mogoče prenesti: {len(awards['errors'])}."})
             except ValueError as exc:
                 log.append({'notice_id': 'oddaje', 'message': f'Zajem obvestil o oddaji ni uspel: {str(exc)[:200]}'})
+            # Signed contracts published since the last completed day feed the expected-tenders forecast.
+            try:
+                from .pjn_contracts import sync_contract_list
+                contracts = sync_contract_list(progress=progress)
+                if contracts['errors']:
+                    log.append({'notice_id': 'pogodbe', 'message': f"Pogodb, ki jih ni bilo mogoče prenesti: {len(contracts['errors'])}."})
+            except Exception as exc:  # noqa: BLE001 - the contract register must not fail the run
+                log.append({'notice_id': 'pogodbe', 'message': f'Zajem pogodb ni uspel: {safe_error(exc)}'})
         owned().update(state='partial' if errors else 'collected', finished_at=timezone.now(),
                        lease=None, lease_until=None, listed_count=listed, skipped_count=skipped, error_count=errors,
                        error_log=log[-20:], error='')

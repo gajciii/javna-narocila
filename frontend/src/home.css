@@ -38,7 +38,7 @@
 .home-bottom-note { color: #fff; font-size: 12px; }
 .home-scroll { display: flex; flex-direction: column; align-items: center; gap: 13px; border: 0; background: none; padding: 8px; color: #fff; font-size: 10px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; }
 .home-motion-toggle { justify-self: end; display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgb(255 255 255 / 45%); border-radius: 24px; padding: 9px 12px; background: none; color: #fff; font-size: 11px; }
-.home-navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); min-height: 92px; padding: 0 48px; background: #fff; border-bottom: 1px solid var(--line); }
+.home-navigation { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-height: 92px; padding: 0 48px; background: #fff; border-bottom: 1px solid var(--line); }
 .home-navigation > a { display: flex; align-items: center; gap: 13px; min-height: 92px; padding: 18px 24px; border-right: 1px solid var(--line); color: var(--ink); font-size: 15px; font-weight: 500; }
 .home-navigation > a:first-child { border-left: 1px solid var(--line); }
 .home-nav-number { color: var(--muted); font-size: 11px; font-weight: 400; }

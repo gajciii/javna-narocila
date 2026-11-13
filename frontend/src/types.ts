@@ -251,28 +251,6 @@ export interface Bootstrap {
         integrations?: { pjn: { state: string; last_success: string | null; runs_remaining: number; real_count: number }; ajpes: { state: string; last_success: string | null; message: string; url: string } };
     };
 }
-export interface Citation {
-    tender_id: string;
-    title: string;
-    document_id?: string;
-    page?: number;
-    quote?: string;
-}
-export interface ChatResponse {
-    answer: string;
-    mode: 'rules' | 'live';
-    citations: Citation[];
-    profile_patch?: Partial<Profile>;
-    filters?: Filters;
-    warning?: string;
-}
-export interface ChatMessage extends Partial<ChatResponse> {
-    role: 'user' | 'assistant';
-    content: string;
-    id: string;
-    applied?: boolean;
-}
-
 export interface CapabilityEvidence { source: string; url: string; confirmed: boolean }
 export interface Partner {
     id: number;
@@ -432,4 +410,29 @@ export interface AwardReferences {
     items: { reference: CompanyReference; buyer: string; published_on: string | null; joint: boolean; added: boolean }[];
     covered_from?: string | null;
     message?: string;
+}
+
+export interface ContractParty { name: string; registration_number: string }
+export interface SignedContract {
+    id: number; title: string; procurement_title: string; buyer: string; buyer_registration: string;
+    contractors: ContractParty[]; cpv: string; cpv_label: string; kind: string; framework: boolean; value: number | null;
+    concluded_on: string | null; valid_from: string | null; valid_to: string | null; effective_end: string | null;
+    extended: boolean; addenda_count: number; days_left: number | null; status: 'active' | 'ended' | 'unknown';
+    notice_number: string; procurement_number: string; files: { title: string; url: string }[];
+}
+export interface ContractDataset {
+    attribution: string; contracts: number; with_end: number;
+    coverage_from: string | null; coverage_to: string | null; register_synced_until: string | null;
+}
+export interface Incumbents {
+    mode: 'data' | 'empty'; message: string; buyers: string[]; synced_at: string | null; complete: boolean; total?: number;
+    headline: { kind: 'active' | 'recent'; cpv_level: number; end: string | null; contractors: (ContractParty & { contracts: number })[] } | null;
+    results: (SignedContract & { cpv_level: number })[];
+    dataset: ContractDataset;
+    refresh: { fetched: number; remaining: number; errors: number; skipped: boolean } | null;
+}
+export interface ExpectedTenders {
+    mode: 'data' | 'empty' | 'profile_missing'; message: string; months: number; terms: string[]; cpv: string;
+    results: (SignedContract & { matched_terms: string[]; newer_contract: { id: number; title: string; concluded_on: string | null; contractors: string[] } | null })[];
+    count: number; page: number; page_size: number; dataset: ContractDataset;
 }

@@ -30,12 +30,14 @@ def submission_url(value):
     return value.strip()
 
 
-def fetch(path, body=None, max_bytes=2 * 1024 * 1024):
+def fetch(path, body=None, max_bytes=2 * 1024 * 1024, session=None):
+    """``session`` reuses one HTTPS connection across many requests (bulk collection)."""
     url = path if path.startswith('https://') else BASE + '/api/' + path.lstrip('/')
     for redirect in range(3):
         if not official_url(url):
             raise ValueError('Vir ali preusmeritev ni uradna domena e-Naročanja.')
-        call = requests.get if body is None else requests.post
+        client = session or requests
+        call = client.get if body is None else client.post
         kwargs = dict(timeout=(5, 25), allow_redirects=False, stream=True, headers=HEADERS)
         if body is not None:
             kwargs['json'] = body
@@ -57,8 +59,8 @@ def fetch(path, body=None, max_bytes=2 * 1024 * 1024):
     raise ValueError('Preveč preusmeritev vira.')
 
 
-def fetch_json(path, body=None):
-    raw, _ = fetch(path, body)
+def fetch_json(path, body=None, session=None):
+    raw, _ = fetch(path, body, session=session)
     try:
         return json.loads(raw)
     except (ValueError, UnicodeDecodeError):

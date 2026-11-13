@@ -76,6 +76,15 @@ class TenderQuestion(models.Model):
         constraints = [models.UniqueConstraint(fields=['tender', 'source_id'], name='unique_tender_question')]
 
 
+class TenderOverview(models.Model):
+    """A short, source-backed summary shared by all readers of a notice."""
+    tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='overview_cache')
+    fingerprint = models.CharField(max_length=64)
+    sentences = models.JSONField(default=list)
+    citations = models.JSONField(default=list)
+    generated_at = models.DateTimeField(auto_now=True)
+
+
 class TenderConditions(models.Model):
     """All participation conditions of a tender, extracted from its current indexed documents."""
     tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='condition_list')
@@ -295,6 +304,33 @@ class PastAward(models.Model):
     embedding_digest = models.CharField(max_length=32, blank=True)
 
 
+class Contract(models.Model):
+    """One signed contract or addendum published on PJN; public data, never demo.
+
+    ``effective_end`` is set on contracts only: the latest end date of the contract and its
+    addenda, because an addendum that extends a contract carries the new end date."""
+    id = models.PositiveIntegerField(primary_key=True)  # PJN pogodba id
+    is_addendum = models.BooleanField(default=False)
+    parent_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    dossier_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    buyer_registration = models.CharField(max_length=10, blank=True, db_index=True)
+    cpv = models.CharField(max_length=8, blank=True, db_index=True)
+    published_at = models.DateTimeField(null=True, db_index=True)
+    valid_to = models.DateField(null=True)
+    effective_end = models.DateField(null=True, db_index=True)
+    addenda_count = models.PositiveIntegerField(default=0)
+    data = models.JSONField(default=dict)
+    fetched_at = models.DateTimeField(auto_now=True)
+
+
+class ContractSyncState(models.Model):
+    """Progress of contract collection: ``list`` for the daily register, ``buyer:…`` per buyer and CPV groups."""
+    key = models.CharField(primary_key=True, max_length=120)
+    synced_at = models.DateTimeField(null=True)
+    attempted_at = models.DateTimeField(null=True)
+    synced_until = models.DateField(null=True)
+
+
 class ErarPayment(models.Model):
     source_id = models.CharField(max_length=120, primary_key=True)
     paid_on = models.DateField()
@@ -358,6 +394,10 @@ class EmailNotificationSettings(models.Model):
     email = models.EmailField(blank=True)
     enabled_since = models.DateTimeField(null=True, blank=True)
     types = models.JSONField(default=default_email_types)
+    digest_enabled = models.BooleanField(default=True)
+    digest_frequency = models.CharField(max_length=8, default='daily')
+    digest_cursor_at = models.DateTimeField(null=True, blank=True)
+    digest_next_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
@@ -379,6 +419,28 @@ class NotificationEmail(models.Model):
     class Meta:
         indexes = [models.Index(fields=['state', 'available_at'], name='notification_email_pending')]
         constraints = [models.UniqueConstraint(fields=['notification', 'owner'], name='unique_account_notification_email')]
+
+
+class TenderDigestEmail(models.Model):
+    """One durable, retryable message covering newly discovered tenders in a time window."""
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    recipient = models.EmailField()
+    sender = models.CharField(max_length=320)
+    delivery_key = models.UUIDField(default=uuid.uuid4, editable=False)
+    subject = models.CharField(max_length=250)
+    body = models.TextField()
+    period_start = models.DateTimeField()
+    period_end = models.DateTimeField()
+    tender_ids = models.JSONField(default=list)
+    state = models.CharField(max_length=12, default='pending')
+    attempts = models.PositiveSmallIntegerField(default=0)
+    available_at = models.DateTimeField(default=timezone.now)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    error = models.CharField(max_length=250, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['state', 'available_at'], name='tender_digest_pending')]
 
 
 class TenderFollow(models.Model):
