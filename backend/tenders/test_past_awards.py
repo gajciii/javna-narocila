@@ -184,6 +184,28 @@ class SimilarTextTests(TestCase):
         self.assertIn('demo', result['message'])
 
 
+@patch.dict('os.environ', {'GEMINI_API_KEY': ''})
+class SimilarSemanticTests(TestCase):
+    def setUp(self):
+        import_notices([notice(1), notice(5, title='Izdelava promocijskih tiskovin', cpv='22462000 - Reklamni material', dossier=50,
+                                         number='JN000005/2026-SL4/01'),
+                        notice(3, title='Tiskarske storitve', dossier=99, number='JN000099/2026-EUe29/01')])
+
+    def test_meaning_adds_awards_without_shared_words(self):
+        nearest = lambda data: [(0.82, PastAward.objects.get(notice_id='5'))]  # noqa: E731
+        with patch('tenders.past_awards.vector_candidates', side_effect=nearest):
+            result = similar_awards(real_tender())
+        self.assertEqual(result['matching'], 'semantic')
+        # Notice 1 matches by words and the exact CPV code, notice 5 only by meaning; the own procedure stays out.
+        self.assertEqual([r['notice_id'] for r in result['results']], ['1', '5'])
+        self.assertEqual(result['results'][1]['similarity'], 0.82)
+
+    def test_vector_failure_keeps_word_matches(self):
+        with patch('tenders.past_awards.vector_candidates', side_effect=RuntimeError('provider down')):
+            result = similar_awards(real_tender())
+        self.assertEqual((result['matching'], [r['notice_id'] for r in result['results']]), ('text', ['1']))
+
+
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'test-never-sent', 'GEMINI_DECISION_MODEL': ''})
 class SimilarAiTests(TestCase):
     def setUp(self):

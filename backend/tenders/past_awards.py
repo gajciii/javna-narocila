@@ -8,9 +8,11 @@ the raw scraper exports are kept next to it for re-import. Retrieval is determin
 is configured, the Gemini Decisions API re-ranks the candidates. Every result links to its official
 notice. Records are untrusted data: only bounded, typed fields are kept.
 """
+import functools
 import gzip
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -26,6 +28,8 @@ from django.db.models import Max, Min
 from .embeddings import award_invalidation
 from .models import PastAward, SimilarAwardsCache
 
+log = logging.getLogger(__name__)
+
 GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/decisions'
 KINDS = {'SERVICES': 'services', 'SUPPLIES': 'goods', 'WORKS': 'works'}
 SOURCE = {'label': 'Portal javnih naročil (obvestila o oddaji)', 'license': 'CC BY 4.0',
@@ -35,6 +39,10 @@ RESULTS = 8
 PER_NOTICE = 2       # a 40-lot notice must not fill the whole list
 AI_THRESHOLD = 0.5   # P(similar) from Gemini
 TEXT_THRESHOLD = 0.3
+VECTOR_THRESHOLD = 0.5  # cosine similarity shown without AI re-ranking
+VECTOR_POOL = 200       # nearest awards read from the HNSW index before filtering
+EF_SEARCH = 400         # pgvector default (40) misses clear matches; 400 matched exact search in tests
+FUSION_K = 60           # reciprocal rank fusion constant
 STOPWORDS = {
     'naročilo', 'naročila', 'javno', 'javnega', 'izvedba', 'izvedbo', 'dobava', 'dobavo', 'storitve', 'storitev',
     'predmet', 'sklop', 'sklopa', 'skladu', 'zahtevami', 'dokumentacije', 'dokumentacijo', 'naročnika', 'naročnik',
@@ -292,7 +300,7 @@ def procedure_number(notice_number):
     return match.group(1) if match else None
 
 
-def candidates(data, idx):
+def candidates(data, idx, limit=CANDIDATES):
     title, description = query_text(data)
     query = vector(title, description, idx['idf'])
     own_dossier = str((data.get('source_metadata') or {}).get('dossier_id') or '')
@@ -309,7 +317,64 @@ def candidates(data, idx):
         kind = 0.03 if data.get('kind') and award.data.get('kind') == data.get('kind') else 0.0
         scored.append((min(1.0, 0.75 * text_score + bonus + kind), award))
     scored.sort(key=lambda item: (-item[0], -(item[1].published_on or date.min).toordinal()))
-    return diverse(scored, CANDIDATES)
+    return diverse(scored, limit)
+
+
+def subject_text(data):
+    """Subject of the tender without the buyer, so the buyer's unrelated purchases do not rank high."""
+    title, description = query_text(data)
+    return '\n'.join(part for part in (title.strip(), description.strip(), ', '.join(data.get('cpv') or [])) if part)
+
+
+@functools.lru_cache(maxsize=512)
+def query_vector(text):
+    from .embeddings import embed
+    return tuple(embed([text])[0])
+
+
+def vector_candidates(data):
+    """Nearest awards by meaning; [] when vectors are unavailable so the text match is used alone."""
+    from django.db import connection, transaction
+    from pgvector.django import CosineDistance
+    from .embeddings import enabled
+    text = subject_text(data)
+    if not text or not enabled() or not PastAward.objects.filter(embedding__isnull=False).exists():
+        return []
+    vector = list(query_vector(text))
+    own_dossier = str((data.get('source_metadata') or {}).get('dossier_id') or '')
+    own_procedure = procedure_number((data.get('source_metadata') or {}).get('notice_number'))
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute('SET LOCAL hnsw.ef_search = %s', [EF_SEARCH])
+        rows = list(PastAward.objects.annotate(distance=CosineDistance('embedding', vector))
+                    .order_by('distance')[:VECTOR_POOL])
+    found = []
+    for award in rows:
+        if (own_dossier and award.dossier_id == own_dossier) or (own_procedure and procedure_number(award.data.get('notice_number')) == own_procedure):
+            continue
+        found.append((1 - award.distance, award))
+    return found
+
+
+def fused_candidates(data, idx, semantic):
+    """Reciprocal rank fusion of meaning and word matches; CPV agreement breaks near ties."""
+    text = candidates(data, idx, limit=VECTOR_POOL)
+    if not semantic:
+        return diverse(text, CANDIDATES), {}
+    codes = [c for c in data.get('cpv') or [] if isinstance(c, str)]
+    scores, awards, similarity = Counter(), {}, {}
+    for rank, (score, award) in enumerate(semantic):
+        scores[award.pk] += 1 / (FUSION_K + rank)
+        awards[award.pk], similarity[award.pk] = award, score
+    for rank, (score, award) in enumerate(text):
+        scores[award.pk] += 1 / (FUSION_K + rank)
+        awards.setdefault(award.pk, award)
+    for pk, award in awards.items():
+        scores[pk] += cpv_bonus(codes, award.data.get('cpv') or []) / FUSION_K
+    ordered = sorted(awards.values(), key=lambda a: (-scores[a.pk], -(a.published_on or date.min).toordinal()))
+    text_score = {award.pk: score for score, award in text}
+    # Shown score: semantic similarity when known, otherwise the word-match score.
+    return diverse([(similarity.get(a.pk, text_score.get(a.pk, 0.0)), a) for a in ordered], CANDIDATES), similarity
 
 
 def diverse(scored, limit):
@@ -403,7 +468,12 @@ def similar_awards(tender):
         return {**base, 'mode': 'empty', 'message': 'Pretekle oddaje primerjamo samo z resničnimi objavami. Ta razpis je demo primer.'}
     if not idx['awards']:
         return {**base, 'mode': 'empty', 'message': 'Zbirka preteklih oddaj je prazna. Uvozite jo z ukazom import_past_awards.'}
-    found = candidates(data, idx)
+    try:
+        semantic = vector_candidates(data)
+    except Exception as exc:  # The provider or index being unavailable must not hide word matches.
+        log.warning('Vector candidates unavailable: %s', type(exc).__name__)
+        semantic = []
+    found, similarity = fused_candidates(data, idx, semantic)
     api_key, model = gemini_settings()
     mode, warning = 'text', None
     if api_key and found:
@@ -418,9 +488,12 @@ def similar_awards(tender):
                 SimilarAwardsCache.objects.update_or_create(tender=tender, defaults={'key': key, 'payload': {'ranked': [[a.pk, p] for p, a in ranked]}})
             hits, mode = ranked[:RESULTS], 'ai'
         except (requests.RequestException, RuntimeError, ValueError) as exc:
-            warning = f'AI razvrščanje ni uspelo ({exc if isinstance(exc, RuntimeError) else type(exc).__name__}). Prikazano je besedilno ujemanje.'
+            fallback = 'pomensko in besedilno ujemanje' if similarity else 'besedilno ujemanje'
+            warning = f'AI razvrščanje ni uspelo ({exc if isinstance(exc, RuntimeError) else type(exc).__name__}). Prikazano je {fallback}.'
     if mode == 'text':
-        hits = [(score, award) for score, award in found if score >= TEXT_THRESHOLD][:RESULTS]
+        hits = [(score, award) for score, award in found
+                if (score >= VECTOR_THRESHOLD if award.pk in similarity else score >= TEXT_THRESHOLD)][:RESULTS]
     results = [serialize(score, award) for score, award in hits]
     message = '' if results else 'V zbirki ni dovolj podobnih preteklih oddaj.'
-    return {**base, 'mode': mode, 'results': results, 'summary': summarize(results), 'warning': warning, 'message': message}
+    return {**base, 'mode': mode, 'matching': 'semantic' if similarity else 'text', 'results': results,
+            'summary': summarize(results), 'warning': warning, 'message': message}

@@ -370,7 +370,7 @@ export interface PastAward {
     lowest_offer: number | null; highest_offer: number | null; tenders_received: number | null; awarded: boolean; winners: PastAwardWinner[];
 }
 export interface SimilarAwards {
-    tender_id: string; mode: 'ai' | 'text' | 'empty'; message: string; warning: string | null;
+    tender_id: string; mode: 'ai' | 'text' | 'empty'; matching?: 'semantic' | 'text'; message: string; warning: string | null;
     dataset: { label: string; license: string; attribution: string; lots: number; coverage_from: string | null; coverage_to: string | null; imported_at: string | null };
     results: PastAward[];
     summary: {

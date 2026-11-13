@@ -34,7 +34,7 @@ export default function PastAwardsPanel({ tenderId }: { tenderId: string }) {
     const error = query.isFetching ? '' : query.error?.message ?? '';
     const s = data?.summary;
     return <section className="surface detail-section past-awards">
-        <div className="section-heading"><div><h2><History size={19}/>Podobna pretekla naročila</h2><p className="section-help">Kdo je zmagal pri podobnih naročilih, koliko ponudb je prejel naročnik in po kakšni ceni.</p></div>{data && data.mode !== 'empty' && <span className="badge purple">{data.mode === 'ai' ? 'Podobnost presodil Gemini' : 'Besedilno ujemanje'}</span>}</div>
+        <div className="section-heading"><div><h2><History size={19}/>Podobna pretekla naročila</h2><p className="section-help">Kdo je zmagal pri podobnih naročilih, koliko ponudb je prejel naročnik in po kakšni ceni.</p></div>{data && data.mode !== 'empty' && <span className="badge purple">{data.mode === 'ai' ? 'Podobnost presodil Gemini' : data.matching === 'semantic' ? 'Pomensko ujemanje' : 'Besedilno ujemanje'}</span>}</div>
         {error && <div role="alert" className="error-banner">{error}<button className="button small" onClick={() => query.refetch()}>Poskusi znova</button></div>}
         {!data && !error && <div className="past-awards-loading"><LoaderCircle className="spin"/>Iščemo podobne oddaje …</div>}
         {data && <>
