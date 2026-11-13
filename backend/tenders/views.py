@@ -507,6 +507,27 @@ def buyer_history_view(request, tender_id):
     return Response(history(get_object_or_404(application_tenders(), pk=tender_id), request.query_params))
 
 
+@api_view(['GET', 'POST'])
+def incumbents_view(request, tender_id):
+    """GET reads stored contracts; POST first refreshes the buyer's related contracts from PJN (bounded)."""
+    from .contract_insights import incumbents
+    tender = get_object_or_404(application_tenders(), pk=tender_id)
+    refresh = None
+    if request.method == 'POST':
+        from .pjn_contracts import sync_tender_buyers
+        results = sync_tender_buyers(tender, max_details=15)
+        refresh = {'fetched': sum(r['fetched'] for r in results), 'remaining': sum(r['remaining'] for r in results),
+                   'errors': sum(len(r['errors']) for r in results),
+                   'skipped': bool(results) and all(r['mode'] in ('fresh', 'skipped') for r in results)}
+    return Response({**incumbents(tender), 'refresh': refresh})
+
+
+@api_view(['GET'])
+def expected_tenders_view(request):
+    from .contract_insights import expected_tenders
+    return Response(expected_tenders(get_profile(), request.query_params))
+
+
 @api_view(['POST'])
 def notification_email_test_view(request):
     from django.core.cache import cache

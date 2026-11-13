@@ -14,6 +14,8 @@ Prototip za **hackathon, izziv št. 2: podatkovno inženirstvo in AI za javna na
 - **AI pomočnik:** priporočila, preverjanje pogojev, primerjava razpisov in predlogi filtrov oziroma dopolnitve profila, ki jih uporabnik potrdi.
 - **Spremljanje:** spremembe pogojev, podaljšanja rokov in nove priložnosti brez podvajanja istega dogodka. Razpis, ki vas ne zanima, lahko skrijete; ostane v zavihku Skriti, od koder ga lahko vrnete.
 - **Pretekle oddaje:** zavihek na resničnem razpisu pokaže podobna že oddana naročila z izbranimi ponudniki, številom ponudb, pogodbeno in ocenjeno vrednostjo ter razponom ponudb.
+- **Trenutni izvajalec:** iz objavljenih pogodb in aneksov naročnika s sorodnim CPV pokaže, kdo ima veljavno pogodbo in do kdaj; aneksi, ki podaljšajo rok, so upoštevani.
+- **Pričakovani razpisi:** pogodbe, ki potečejo v 3 do 24 mesecih in se ujemajo s ključnimi besedami profila, kot napoved naročil, ki bodo morda znova razpisana. Register pogodb dopolnjuje dnevni zajem; za nazaj ga napolni `manage.py sync_contract_list --from 2024-01-01`.
 - **Partnerji in razvoj:** potencialna dopolnitev pogojev s partnerjem ter shranjeni načrti za razvoj kompetenc.
 
 Vmesnik uporablja stalno navigacijo, berljive kartice in vidno utemeljitev ocene ter se prilagaja manjšim zaslonom. Oblikovalski referenci sta preglednost poslovnih platform [PRIOT](https://www.priot.io/) in poenostavitev vsakodnevnih opravil v [Telesporju](https://www.priot.io/projects/telespor-user-portal). Projekt ni povezan s podjetjem PRIOT.

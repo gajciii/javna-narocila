@@ -189,6 +189,10 @@ class AdminTests(TestCase):
 
 class CollectionTests(TestCase):
     def setUp(self):
+        # Collection must never reach the portal from tests.
+        self.contract_list = patch('tenders.pjn_contracts.sync_contract_list', return_value={'errors': []}).start()
+        self.buyer_contracts = patch('tenders.pjn_contracts.sync_tender_buyers', return_value=[]).start()
+        self.addCleanup(patch.stopall)
         self.tender = Tender.objects.create(pk='collection-test', data={'version': 1,
             'source_metadata': {'notice_id': '1001'}})
 
@@ -234,6 +238,7 @@ class CollectionTests(TestCase):
         self.assertEqual(run.error_log[0]['notice_id'], '1002')
         self.assertEqual(run.jobs.count(), 1)
         awards.assert_called_once()
+        self.contract_list.assert_called_once()
         self.assertEqual(run.error_log[-1]['notice_id'], 'oddaje')
 
     @patch('tenders.pipeline_runs.sync_awards', return_value={'errors': []})
@@ -255,6 +260,8 @@ class CollectionTests(TestCase):
         self.assertEqual(run.state, 'collected')
         self.assertEqual((run.listed_count, run.skipped_count, run.error_count), (4, 3, 0))
         self.assertEqual([job.tender_id for job in run.jobs.all()], [fresh.pk])
+        # Only the open tender looks up its buyer's contracts.
+        self.assertEqual([c.args[0].pk for c in self.buyer_contracts.call_args_list], [fresh.pk])
         collect.assert_called_once()
         self.assertEqual(collect.call_args.args, ('1003',))
         accept = collect.call_args.kwargs['accept']

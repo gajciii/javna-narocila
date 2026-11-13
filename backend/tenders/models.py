@@ -295,6 +295,33 @@ class PastAward(models.Model):
     embedding_digest = models.CharField(max_length=32, blank=True)
 
 
+class Contract(models.Model):
+    """One signed contract or addendum published on PJN; public data, never demo.
+
+    ``effective_end`` is set on contracts only: the latest end date of the contract and its
+    addenda, because an addendum that extends a contract carries the new end date."""
+    id = models.PositiveIntegerField(primary_key=True)  # PJN pogodba id
+    is_addendum = models.BooleanField(default=False)
+    parent_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    dossier_id = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    buyer_registration = models.CharField(max_length=10, blank=True, db_index=True)
+    cpv = models.CharField(max_length=8, blank=True, db_index=True)
+    published_at = models.DateTimeField(null=True, db_index=True)
+    valid_to = models.DateField(null=True)
+    effective_end = models.DateField(null=True, db_index=True)
+    addenda_count = models.PositiveIntegerField(default=0)
+    data = models.JSONField(default=dict)
+    fetched_at = models.DateTimeField(auto_now=True)
+
+
+class ContractSyncState(models.Model):
+    """Progress of contract collection: ``list`` for the daily register, ``buyer:…`` per buyer and CPV groups."""
+    key = models.CharField(primary_key=True, max_length=120)
+    synced_at = models.DateTimeField(null=True)
+    attempted_at = models.DateTimeField(null=True)
+    synced_until = models.DateField(null=True)
+
+
 class SimilarAwardsCache(models.Model):
     """AI-ranked similar awards per tender; reused while tender text and dataset stay the same."""
     tender = models.OneToOneField(Tender, on_delete=models.CASCADE, primary_key=True, related_name='similar_awards_cache')
