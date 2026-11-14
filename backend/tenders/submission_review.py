@@ -1,5 +1,6 @@
 """Evidence-backed review of an uploaded bid. Bid files never become tender sources."""
 import hashlib
+import html
 import io
 import logging
 import re
@@ -22,6 +23,10 @@ MAX_FILE = 50 * 1024**2
 MAX_EXPANDED = 200 * 1024**2
 MAX_FILES = 100
 MAX_TEXT = 220_000
+# Tender documentation goes only into the checklist call; the model has a ~1M token context.
+MAX_SOURCE_TEXT = 600_000
+# ESPD/UBL XML is mostly markup; the human-readable criteria live in Name/Description elements.
+XML_TEXT = re.compile(r'<(?:[\w-]+:)?(?:Name|Description)\b[^>]*>([^<]+)</')
 SUPPORTED = {'.pdf', '.docx', '.xlsx', '.pptx', '.odt', '.ods', '.txt', '.csv', '.xml', '.json'}
 
 
@@ -120,6 +125,16 @@ def read_uploads(uploads, prefix, folder=''):
     return docs, issues, duplicates
 
 
+def readable_pages(record, pages):
+    fmt = record.indexed_content.format if record.indexed_content_id else ''
+    if fmt != 'xml' and Path(record.title).suffix.lower() != '.xml':
+        return pages
+    readable = [{**p, 'text': '\n'.join(dict.fromkeys(
+        line for line in (html.unescape(m).strip() for m in XML_TEXT.findall(p.get('text', ''))) if line))}
+        for p in pages]
+    return [p for p in readable if len(p['text']) >= 20]  # Pages of pure markup carry no requirement.
+
+
 def tender_sources(tender):
     docs, issues = [], []
     records = active_documents(tender)
@@ -128,7 +143,7 @@ def tender_sources(tender):
             if record.status != 'processed':
                 issues.append({'name': record.title, 'message': 'Razpisni arhiv ni v celoti obdelan.'})
             continue
-        pages = record.indexed_content.pages if record.indexed_content_id else record.pages
+        pages = readable_pages(record, record.indexed_content.pages if record.indexed_content_id else record.pages)
         if not pages or record.status != 'processed':
             issues.append({'name': record.title, 'message': 'Razpisni dokument ni v celoti berljiv.'})
         elif any(len(p.get('text', '').strip()) < 20 for p in pages):
@@ -195,14 +210,16 @@ def review(tender, submissions, submission_issues, duplicates):
     if provider() != 'openrouter':
         raise ValidationError('Za pregled prijave nastavite OPENROUTER_API_KEY na strežniku.')
     sources, issues = tender_sources(tender)
-    if sum(len(p.get('text', '')) for d in sources for p in d['pages']) > MAX_TEXT:
-        raise ValidationError('Razpisna dokumentacija presega 220.000 znakov; pregledajte posamezen sklop.')
+    if sum(len(p.get('text', '')) for d in sources for p in d['pages']) > MAX_SOURCE_TEXT:
+        raise ValidationError('Razpisna dokumentacija je za samodejni pregled predolga (več kot 600.000 znakov). '
+                              'Na zavihku Dokumenti odstranite priloge, ki ne določajo zahtev za ponudbo (npr. risbe, popise), in poskusite znova.')
     if not any(p.get('text', '').strip() for d in sources for p in d['pages']):
         raise ValidationError('Najprej dodajte berljivo razpisno dokumentacijo na zavihku Dokumenti.')
     if not any(p.get('text', '').strip() for d in submissions for p in d['pages']):
         raise ValidationError('Prijava nima berljivega besedila. Potreben je OCR ali drug dokument.')
     model = settings.SUBMISSION_REVIEW_MODEL
-    call = dict(model=model, max_tokens=16000, timeout=90)
+    call = dict(model=model, max_tokens=16000, timeout=120)
+    # Both calls must finish within the 300 s proxy timeout; the checklist reads the long tender text.
     checklist = structured_call(CHECKLIST_SCHEMA,
         'Sestavi kontrolni seznam VSEH izrecnih zahtev za popolnost oddane ponudbe iz uradne dokumentacije '
         'in pojasnil naročnika. Vključi zahtevane obrazce, priloge, dokazila, podpis/potrditev, izpolnjena polja, '
@@ -210,7 +227,7 @@ def review(tender, submissions, submission_issues, duplicates):
         'priloženo ob oddaji in kaj šele po izboru. Zapiši pogoje uporabe (npr. samo s podizvajalci), sklope '
         'in izjeme. Pojasnila lahko spremenijo prvotne zahteve. Vsaka zahteva mora imeti dobeseden citat, '
         'document_id in page iz priloženih virov. Piši slovensko. Ne izmišljaj zahtev.',
-        {'tender': tender.data.get('title', ''), 'sources': sources}, **call)
+        {'tender': tender.data.get('title', ''), 'sources': sources}, **{**call, 'timeout': 160})
     requirements = validate_checklist(checklist, sources)
     result = structured_call(REVIEW_SCHEMA,
         'Primerjaj kontrolni seznam z dejansko pripravljeno prijavo. Vrni natanko eno vrstico za vsak '
