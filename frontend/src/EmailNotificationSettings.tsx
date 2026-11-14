@@ -2,6 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { LoaderCircle, Mail, Save, Send } from 'lucide-react';
 import { api, post } from './api';
 
+type TestKind = 'connection' | 'daily' | 'weekly';
+const TESTS: { kind: TestKind; label: string }[] = [
+    { kind: 'connection', label: 'Pošlji test povezave' },
+    { kind: 'daily', label: 'Pošlji testni dnevni pregled' },
+    { kind: 'weekly', label: 'Pošlji testni tedenski pregled' },
+];
+
 type EmailType = 'correction' | 'deadline';
 type EmailSettings = {
     provider: 'smtp' | 'resend' | 'unavailable'; enabled: boolean; email: string; account_email: string; types: EmailType[];
@@ -25,13 +32,13 @@ export default function EmailNotificationSettings() {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [revision, setRevision] = useState(0);
-    const [testing, setTesting] = useState(false);
+    const [testing, setTesting] = useState<TestKind | null>(null);
     const [testResult, setTestResult] = useState<{ sent: boolean; message: string } | null>(null);
-    const sendTest = async () => {
-        setTesting(true); setTestResult(null);
-        try { setTestResult(await post<{ sent: boolean; message: string }>('/notifications/email-test')); }
+    const sendTest = async (kind: TestKind) => {
+        setTesting(kind); setTestResult(null);
+        try { setTestResult(await post<{ sent: boolean; message: string }>('/notifications/email-test', { kind })); }
         catch (e) { setTestResult({ sent: false, message: (e as Error).message }); }
-        finally { setTesting(false); }
+        finally { setTesting(null); }
     };
     const apply = (value: EmailSettings) => {
         // A new account starts with its login address as the recipient.
@@ -57,6 +64,8 @@ export default function EmailNotificationSettings() {
         } catch (e) { setError((e as Error).message); }
         finally { setBusy(false); }
     };
+    const testRecipient = settings?.email || settings?.account_email || '';
+    const recipientChanged = email.trim() !== testRecipient;
     return <section className="surface email-notification-settings" aria-labelledby="email-settings-title">
         <h2 id="email-settings-title"><Mail size={18}/>E-poštna obvestila</h2>
         <p className="email-lead">Spremembe spremljanih razpisov in pregled novih primernih razpisov.</p>
@@ -65,7 +74,7 @@ export default function EmailNotificationSettings() {
         {settings && <form onSubmit={save}>
             <div className="email-cols"><div className="email-col">
             <label className="checkbox-row email-master"><input type="checkbox" checked={enabled} disabled={busy} onChange={e => { setEnabled(e.target.checked); setMessage(''); }}/><span><strong>Pošiljaj e-poštna obvestila</strong></span></label>
-            <div className="email-recipient"><label className="field"><span>E-poštni naslov prejemnika</span><input type="email" autoComplete="email" maxLength={254} required={enabled} value={email} disabled={busy} onChange={e => { setEmail(e.target.value); setMessage(''); }} placeholder="ime@podjetje.si"/></label><button type="button" className="button ghost small email-test" disabled={busy || testing || (!settings.email && !settings.account_email)} onClick={() => void sendTest()} title={`Pošlje sporočilo na ${settings.email || settings.account_email}`}>{testing ? <LoaderCircle size={16} className="spin"/> : <Send size={16}/>}Pošlji test</button></div>
+            <div className="email-recipient"><label className="field"><span>E-poštni naslov prejemnika</span><input type="email" autoComplete="email" maxLength={254} required={enabled} value={email} disabled={busy} onChange={e => { setEmail(e.target.value); setMessage(''); }} placeholder="ime@podjetje.si"/></label></div>
             <fieldset className="email-types" disabled={busy || !enabled}>
                 <legend>Sprotna obvestila o spremljanih razpisih</legend>
                 {TYPES.map(type => <label className="checkbox-row" key={type.value}><input type="checkbox" checked={types.includes(type.value)} onChange={e => toggleType(type.value, e.target.checked)}/><span><strong>{type.label}</strong><small>{type.help}</small></span></label>)}
@@ -88,11 +97,22 @@ export default function EmailNotificationSettings() {
                         {settings.last_sent_at && <p className="section-help">Zadnje obvestilo predano v pošiljanje: {new Date(settings.last_sent_at).toLocaleString('sl-SI')}.</p>}
             </details>
             </div></div>
+            <div className="email-test-section">
+                <h3>Testna obvestila</h3>
+                <p className="section-help">Preverite povezavo ali si pošljite dnevni oziroma tedenski pregled primernih razpisov iz zadnjih 24 ur oziroma 7 dni. Test lahko pošljete tudi ob izključenih obvestilih; urnik ostane nespremenjen.</p>
+                {testRecipient && <p className="section-help">Prejemnik testa: <strong>{testRecipient}</strong>.</p>}
+                {recipientChanged && <p className="section-help">Za pošiljanje na spremenjeni naslov najprej shranite nastavitve.</p>}
+                <div className="email-test-buttons">
+                    {TESTS.map(test => <button key={test.kind} type="button" className="button ghost small" disabled={busy || testing !== null || !testRecipient || recipientChanged} onClick={() => void sendTest(test.kind)}>
+                        {testing === test.kind ? <LoaderCircle size={16} className="spin"/> : <Send size={16}/>}{test.label}
+                    </button>)}
+                </div>
+                {testResult && <p role="status" className={testResult.sent ? 'email-test-ok' : 'info-box'}>{testResult.message}</p>}
+            </div>
             <div className="email-actions">
                 <button className="button primary small" disabled={busy || (enabled && !types.length && !digestEnabled)}>{busy ? <LoaderCircle size={16} className="spin"/> : <Save size={16}/>}Shrani nastavitve</button>
             </div>
             {message && <p role="status">{message}</p>}
-            {testResult && <p role="status" className={testResult.sent ? 'email-test-ok' : 'info-box'}>{testResult.message}</p>}
         </form>}
     </section>;
 }
