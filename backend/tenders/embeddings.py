@@ -31,11 +31,11 @@ def enabled():
     return connection.vendor == 'postgresql' and bool(os.environ.get('OPENROUTER_API_KEY'))
 
 
-def embed(texts, timeout=60):
+def embed(texts, timeout=60, retries=2):
     from openai import OpenAI
     from .ai import OPENROUTER_BASE_URL
     client = OpenAI(api_key=os.environ['OPENROUTER_API_KEY'], base_url=OPENROUTER_BASE_URL, timeout=timeout,
-                    max_retries=2, default_headers={'X-Title': 'RazpIzi'})
+                    max_retries=retries, default_headers={'X-Title': 'RazpIzi'})
     response = client.embeddings.create(model=MODEL, input=[t[:MAX_TEXT] for t in texts], dimensions=DIMENSIONS,
                                         extra_body={'provider': {'data_collection': 'deny'}})
     vectors = [item.embedding for item in sorted(response.data, key=lambda item: item.index)]
@@ -45,9 +45,19 @@ def embed(texts, timeout=60):
 
 
 @functools.lru_cache(maxsize=512)
-def query_vector(text):
+def query_vector(text, timeout=60, retries=2):
     """Search queries repeat (same tender, same keywords), so each process keeps recent vectors."""
-    return tuple(embed([text])[0])
+    return tuple(embed([text], timeout=timeout, retries=retries)[0])
+
+
+def similarities(model, text, ids, timeout=6):
+    """Cosine similarity of ``text`` to each listed row that has a vector. Exact, not approximate:
+    a search compares against every listed row, so the best match per query is always known."""
+    from pgvector.django import CosineDistance
+    vector = list(query_vector(text, timeout, 1))
+    rows = (model.objects.filter(pk__in=list(ids), embedding__isnull=False)
+            .annotate(distance=CosineDistance('embedding', vector)).values_list('pk', 'distance'))
+    return {pk: 1 - distance for pk, distance in rows}
 
 
 def nearest(queryset, text, limit):

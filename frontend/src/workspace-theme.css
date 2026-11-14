@@ -602,6 +602,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline-color: va
 .card-keyword-links > a.added { border-style: dashed; border-color: var(--accent); background: #fff; }
 .card-keyword-links > a > small { color: #5b7a88; font-size: 11px; white-space: nowrap; }
 .card-keyword-links > a > svg { flex: none; color: var(--accent); }
+.card-keyword-links > .semantic-match { padding: 2px 8px; border: 1px dashed var(--line); border-radius: 999px; color: var(--muted); font-size: 12px; cursor: help; }
+.tender-keywords-semantic { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .card-keyword-quotes { margin-top: 8px; font-size: 13px; }
 .card-keyword-quotes > summary {
   display: inline-flex; align-items: center; gap: 4px; color: var(--accent); cursor: pointer; list-style: none;

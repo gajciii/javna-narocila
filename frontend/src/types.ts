@@ -151,6 +151,8 @@ export interface Tender {
     version: number;
     /** Present in search results and on a detail page opened from a search: every search term found in the tender. */
     keyword_matches?: KeywordMatch[];
+    /** Present when the tender matches a search term only by meaning, not by its words. */
+    semantic_match?: { term: string; similarity: number } | null;
     match: {
         level: MatchLevel;
         score: number;

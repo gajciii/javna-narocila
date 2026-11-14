@@ -158,13 +158,13 @@ def company_search_view(request):
 def tenders_view(request):
     ensure_seed()
     filters = {key: ','.join(request.query_params.getlist(key)) for key in request.query_params}
-    hits = {}
+    hits, semantic = {}, {}
     # Uncached AI relevance is scored in the background; the client refetches while pending.
     tenders, pending = scored_tenders(wait=False)
-    results = apply_filters(tenders, filters, keyword_hits=hits)
+    results = apply_filters(tenders, filters, keyword_hits=hits, semantic_hits=semantic)
     if filters.get('q', '').strip():
-        results = [{**tender, 'keyword_matches': keyword_matches(tender, filters['q'], hits.get(tender['id'], {}))}
-                   for tender in results]
+        results = [{**tender, 'keyword_matches': keyword_matches(tender, filters['q'], hits.get(tender['id'], {})),
+                    'semantic_match': semantic.get(tender['id'])} for tender in results]
     return Response({'results': results, 'count': len(results), 'counts': tab_counts(tenders, filters),
                      'facets': {'regions': unique_values(tenders, 'region'), 'buyers': unique_values(tenders, 'buyer')},
                      'relevance_pending': pending})
@@ -268,6 +268,11 @@ def tender_view(request, tender_id):
         from .keyword_expansion import document_keyword_hits
         hits = document_keyword_hits(list(search_terms(query)), [data['id']]).get(data['id'], {})
         data['keyword_matches'] = keyword_matches(data, query, hits)
+        if not data['keyword_matches']:
+            # Same rule as the list: the best match of each term is measured over all tenders.
+            from .semantic_search import semantic_matches
+            ids = list(application_tenders().values_list('pk', flat=True))
+            data['semantic_match'] = semantic_matches(list(search_terms(query).values()), ids).get(data['id'])
     return Response(data)
 
 

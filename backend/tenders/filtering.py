@@ -89,8 +89,11 @@ def keyword_matches(tender, query, document_hits):
     return found
 
 
-def apply_filters(tenders, filters, keyword_hits=None):
-    """Filter and sort tenders. Pass a dict as keyword_hits to receive document matches per tender."""
+def apply_filters(tenders, filters, keyword_hits=None, semantic_hits=None):
+    """Filter and sort tenders. Pass a dict as keyword_hits to receive document matches per tender.
+
+    Pass a dict as semantic_hits to also keep tenders that match a search term only by meaning;
+    it receives {tender_id: {'term', 'similarity'}} for those tenders."""
     filters = validate_filters(filters)
     include_unknown = filters.get('include_unknown', True)
     view = filters.get('view', 'recommended')
@@ -102,6 +105,11 @@ def apply_filters(tenders, filters, keyword_hits=None):
         document_matches = document_keyword_hits(words, [t['id'] for t in tenders])
         if keyword_hits is not None:
             keyword_hits.update(document_matches)
+    semantic = {}
+    if words and semantic_hits is not None:
+        from .semantic_search import semantic_matches
+        semantic = semantic_matches(list(search_terms(filters.get('q', '')).values()), [t['id'] for t in tenders])
+    meaning_only = set()
     for tender in tenders:
         # Ignored tenders appear only in their own view, so they stop resurfacing in every list.
         if (view == 'ignored') != bool(tender.get('ignored')):
@@ -121,7 +129,9 @@ def apply_filters(tenders, filters, keyword_hits=None):
         haystack = text_normalize(' '.join([tender['title'], tender.get('summary', ''), tender['buyer']] + tender.get('topics', []) + tender.get('technologies', [])))
         excluded = [text_normalize(w.strip()) for w in filters.get('exclude', '').split(',') if w.strip()]
         if words and tender['id'] not in document_matches and not any(word in haystack for word in words):
-            continue
+            if tender['id'] not in semantic:
+                continue
+            meaning_only.add(tender['id'])
         if any(word in haystack for word in excluded):
             continue
         if filters.get('cpv') and not any(code.startswith(query.split('-')[0].rstrip('0')) for code in tender.get('cpv', []) for query in filters['cpv']):
@@ -160,6 +170,8 @@ def apply_filters(tenders, filters, keyword_hits=None):
                 break
         if keep:
             output.append(tender)
+            if tender['id'] in meaning_only:
+                semantic_hits[tender['id']] = semantic[tender['id']]
     sort = filters.get('sort', 'match')
     if sort == 'deadline':
         output.sort(key=lambda t: t.get('deadline') or '9999')
@@ -168,5 +180,6 @@ def apply_filters(tenders, filters, keyword_hits=None):
     elif sort == 'value':
         output.sort(key=lambda t: t.get('value') if t.get('value') is not None else -1, reverse=True)
     else:
-        output.sort(key=lambda t: (-t['match']['score'], t.get('deadline') or '9999'))
+        # Tenders containing the typed words come first; matches by meaning only follow them.
+        output.sort(key=lambda t: (t['id'] in meaning_only, -t['match']['score'], t.get('deadline') or '9999'))
     return output

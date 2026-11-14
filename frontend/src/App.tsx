@@ -438,6 +438,9 @@ function QuoteWithMatch({ evidence }: { evidence: NonNullable<KeywordMatch['evid
 }
 function CardKeywords({ tender, addedTerms, search }: { tender: Tender; addedTerms: Set<string>; search: string }) {
     const matches = tender.keyword_matches || [];
+    if (!matches.length && tender.semantic_match) return <div className="card-keywords">
+      <div className="card-keyword-links" role="group" aria-label="Podobnost z iskanjem"><span className="card-keywords-label">Podobno po vsebini:</span><span className="semantic-match" title="Razpis te besede ne vsebuje, po vsebini pa je blizu iskanju. Preverite, ali ustreza.">{tender.semantic_match.term}</span></div>
+    </div>;
     if (!matches.length) return null;
     const cited = matches.filter(item => item.evidence);
     return <div className="card-keywords">
@@ -463,6 +466,7 @@ function TenderKeywords({ tender, search }: { tender: Tender; search: string }) 
           : <p className="muted small-text">Najdeno v podatkih objave ({item.fields.join(', ')}), ne v obdelani dokumentaciji.{tender.source_url && <> <a href={tender.source_url} target="_blank" rel="noreferrer">Odpri objavo<ExternalLink size={11}/></a></>}</p>}
       </div>)}</div>}
       {missing.length > 0 && <p className="tender-keywords-missing"><CircleHelp size={14}/>Ni najdeno: {missing.join(', ')}</p>}
+      {tender.semantic_match && <p className="tender-keywords-semantic"><Sparkles size={14}/>Razpis besede »{tender.semantic_match.term}« ne vsebuje, po vsebini pa je blizu temu iskanju, zato je med rezultati.</p>}
       </>}
     </section>;
 }
@@ -565,7 +569,7 @@ function TenderDetail({ id, data, refresh, notify }: Shared & {
         setAnswering(item.id);
         try {
             const result = await post<{ tender: Tender; profile: Profile }>(`/tenders/${encodeURIComponent(id)}/conditions/${encodeURIComponent(item.id)}/answer`, { answer, profile_id: data.profile.id });
-            queryClient.setQueryData(queryKeys.tender(id, search), { ...result.tender, keyword_matches: tender.keyword_matches });
+            queryClient.setQueryData(queryKeys.tender(id, search), { ...result.tender, keyword_matches: tender.keyword_matches, semantic_match: tender.semantic_match });
             applyConditionAnswers(result.profile, id);
             track('condition_answered', { tender_id: id, category: item.category, answer: answer ?? 'removed', inherited: !!item.profile_answer?.inherited });
             notify(answer === null ? 'Oznaka je odstranjena iz profila podjetja.' : 'Shranjeno v profil podjetja. Upoštevamo ga tudi pri drugih razpisih s podobnim pogojem.');
@@ -583,7 +587,7 @@ function TenderDetail({ id, data, refresh, notify }: Shared & {
             message: string;
         }[];
         message?: string;
-    }>(`/tenders/${id}/analyze`); queryClient.setQueryData(queryKeys.tender(id, search), { ...result, keyword_matches: tender.keyword_matches }); await refresh(); notify(result.analysis?.map(item => item.message).filter(Boolean).join(' ') || result.message || 'Analiza je osvežena. Preverite pogoje in navedene vire.'); });
+    }>(`/tenders/${id}/analyze`); queryClient.setQueryData(queryKeys.tender(id, search), { ...result, keyword_matches: tender.keyword_matches, semantic_match: tender.semantic_match }); await refresh(); notify(result.analysis?.map(item => item.message).filter(Boolean).join(' ') || result.message || 'Analiza je osvežena. Preverite pogoje in navedene vire.'); });
     return <>
     <a className="back-link" href="#/razpisi"><ArrowLeft size={16}/>Nazaj na razpise</a>
     <div className="detail-header"><div><div className="card-tags"><Badge>{labels[tender.kind]}</Badge><Badge tone={tender.status === 'open' ? 'green' : 'neutral'}>{labels[tender.status]}</Badge><span className="detail-version">Različica {tender.version}</span></div><h1>{tender.title}</h1><div className="tender-buyer"><Building2 size={15}/>{tender.buyer}<i /><MapPin size={15}/>{tender.region}</div>{tender.source_type === 'real' && <div className="tender-source-links">{tender.source_metadata?.submission_url && ['open', 'unconfirmed'].includes(tender.status) && <a className="button primary small" href={tender.source_metadata.submission_url} target="_blank" rel="noopener noreferrer" title="Ponudbo oddate v sistemu e-JN; potrebna je prijava v e-JN.">Oddaj ponudbo na e-JN<ExternalLink size={14}/></a>}{tender.source_url && <a className="text-link" href={tender.source_url} target="_blank" rel="noopener noreferrer">Objava na e-Naročanju<ExternalLink size={13}/></a>}</div>}</div><div className="detail-actions"><button className={`button ${tender.following ? 'following' : ''}`} disabled={!!busy} onClick={follow}>{busy === 'follow' ? <Spinner small/> : <Bookmark size={17} fill={tender.following ? 'currentColor' : 'none'}/>}{tender.following ? 'Spremljam razpis' : 'Spremljaj razpis'}</button><button className="button" disabled={!!busy} onClick={ignore} title={tender.ignored ? 'Razpis bo spet prikazan v seznamih' : 'Razpis ne bo več prikazan v seznamih'}>{busy === 'ignore' ? <Spinner small/> : tender.ignored ? <Eye size={17}/> : <EyeOff size={17}/>}{tender.ignored ? 'Prikaži znova' : 'Skrij razpis'}</button></div></div>
