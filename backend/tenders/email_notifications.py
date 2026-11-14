@@ -185,14 +185,32 @@ def digest_message(matches, frequency):
     return subject[:250], '\n'.join(lines)
 
 
+def digest_matches(period_start, period_end):
+    """Use the current account's profile and exclusions for both scheduled and test digests."""
+    from .accounts import companies
+    from .matching import serialize_tender
+    from .seed import serialize_profile
+
+    profile_record = companies().filter(is_active=True).first() or companies().order_by('pk').first()
+    profile = serialize_profile(profile_record) if profile_record else None
+    matches = []
+    if profile:
+        candidates = Tender.objects.filter(data__source_type='real', created_at__gte=period_start,
+                                           created_at__lt=period_end).order_by('created_at', 'pk')
+        for tender in candidates.iterator():
+            result = serialize_tender(tender, profile, content_result={'mode': 'rules'})
+            if (result['status'] == 'open' and result['match']['level'] != 'low'
+                    and result['match']['recommendation'] != 'unsuitable' and not result['ignored']):
+                matches.append(result)
+    return matches
+
+
 @transaction.atomic
 def enqueue_digests(now=None):
     """Queue at most one digest per account when its local daily or weekly slot is due."""
     if not transport_ready():
         return 0
-    from .accounts import account_scope, companies
-    from .matching import serialize_tender
-    from .seed import serialize_profile
+    from .accounts import account_scope
 
     now = now or timezone.now()
     count = 0
@@ -209,17 +227,7 @@ def enqueue_digests(now=None):
         if config.digest_next_at > now:
             continue
         with account_scope(config.owner_id):
-            profile_record = companies().filter(is_active=True).first() or companies().order_by('pk').first()
-            profile = serialize_profile(profile_record) if profile_record else None
-            matches = []
-            if profile:
-                candidates = Tender.objects.filter(data__source_type='real', created_at__gte=config.digest_cursor_at,
-                                                   created_at__lt=now).order_by('created_at', 'pk')
-                for tender in candidates.iterator():
-                    result = serialize_tender(tender, profile, content_result={'mode': 'rules'})
-                    if (result['status'] == 'open' and result['match']['level'] != 'low'
-                            and result['match']['recommendation'] != 'unsuitable' and not result['ignored']):
-                        matches.append(result)
+            matches = digest_matches(config.digest_cursor_at, now)
         if matches:
             subject, body = digest_message(matches, config.digest_frequency)
             TenderDigestEmail.objects.create(owner_id=config.owner_id, recipient=config.email,
@@ -299,9 +307,11 @@ def missing_settings():
     return missing
 
 
-def send_test():
+def send_test(kind='connection'):
     """Send one test message to the saved recipient (or the login address) and say what happened."""
     from uuid import uuid4
+    if kind not in ('connection', *DIGEST_FREQUENCIES):
+        raise ValidationError({'kind': 'Izberite test povezave, dnevnega ali tedenskega pregleda.'})
     config, _ = EmailNotificationSettings.objects.get_or_create(owner_id=account_id())
     recipient = config.email or (config.owner.email if config.owner else '')
     if not recipient:
@@ -315,8 +325,18 @@ def send_test():
     body = (f'To je testno sporočilo iz aplikacije RazpIzi.\n\n'
             f'Če ga berete, pošiljanje prek {provider} deluje in boste prejemali izbrana obvestila '
             f'o spremembah in novih primernih razpisih.\n\nNastavitve: {settings.PUBLIC_APP_URL}/#/racun\n')
+    subject = 'RazpIzi · Testno sporočilo'
+    if kind in DIGEST_FREQUENCIES:
+        now = timezone.now()
+        matches = digest_matches(now - timedelta(days=1 if kind == 'daily' else 7), now)
+        subject, body = digest_message(matches, kind)
+        subject = f'[TEST] {subject}'
+        body = ('To je testni pregled za zadnjih ' + ('24 ur' if kind == 'daily' else '7 dni')
+                + '. Redni urnik pošiljanja ostaja nespremenjen.\n\n' + body)
+        if not matches:
+            body += '\n\nV tem obdobju ni novih primernih razpisov za vaš aktivni profil. Redni pregled se v tem primeru ne pošlje.'
     try:
-        transmit(settings.DEFAULT_FROM_EMAIL, recipient, 'RazpIzi · Testno sporočilo', body,
+        transmit(settings.DEFAULT_FROM_EMAIL, recipient, subject, body,
                  {'Message-ID': f'<razpizi-test-{token}@{host}>'}, f'test/{token}')
     except requests.HTTPError as exc:
         status_code = exc.response.status_code if exc.response is not None else ''
@@ -326,7 +346,8 @@ def send_test():
     except Exception as exc:
         log.warning('Test email failed: %s', type(exc).__name__)
         return {'sent': False, 'message': f'Pošiljanje prek {provider} ni uspelo ({type(exc).__name__}). Preverite nastavitve na strežniku.'}
-    return {'sent': True, 'message': f'Testno sporočilo je poslano na {recipient}.'}
+    label = {'connection': 'Testno sporočilo', 'daily': 'Testni dnevni pregled', 'weekly': 'Testni tedenski pregled'}[kind]
+    return {'sent': True, 'message': f'{label}: sporočilo je predano v pošiljanje na {recipient}. Preverite tudi vsiljeno pošto.'}
 
 
 @transaction.atomic

@@ -9063,3 +9063,8 @@ div.account-page {
 .partner-comparison .condition-answer { margin: 4px 0 2px; }
 .partner-suggestions { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line, #e3e6e1); }
 .partner-suggestions .partner-proof { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; margin-top: 8px; }
+
+
+.email-test-section h3 { margin: 0 0 8px; font-size: 15px; }
+.email-test-section .section-help { margin: 8px 0; }
+.email-test-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }

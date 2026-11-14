@@ -346,6 +346,29 @@ class TestEmailTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertFalse(NotificationEmail.objects.exists())
 
+    def test_daily_and_weekly_empty_previews_send_independently_and_limit_repeats(self):
+        save_settings({'enabled': False, 'email': 'user@example.com'})
+        client = APIClient()
+        for kind, label in [('daily', 'dnevni'), ('weekly', 'tedenski')]:
+            response = client.post(self.url, {'kind': kind}, format='json')
+            self.assertEqual((response.status_code, response.data['sent']), (200, True))
+            message = mail.outbox[-1]
+            self.assertIn(f'[TEST] RazpIzi · {label} pregled', message.subject)
+            self.assertIn('ni novih primernih razpisov', message.body)
+            self.assertEqual(message.to, ['user@example.com'])
+            self.assertEqual(client.post(self.url, {'kind': kind}, format='json').status_code, 429)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertFalse(TenderDigestEmail.objects.exists())
+        self.assertFalse(EmailNotificationSettings.objects.get().enabled)
+
+    def test_invalid_kind_is_rejected_without_sending_or_consuming_valid_test(self):
+        save_settings({'enabled': False, 'email': 'user@example.com'})
+        client = APIClient()
+        for kind in ['monthly', '', None, [], {}]:
+            self.assertEqual(client.post(self.url, {'kind': kind}, format='json').status_code, 400)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertTrue(client.post(self.url).data['sent'])
+
     def test_reports_missing_settings_and_recipient(self):
         self.assertIn('naslov', APIClient().post(self.url).data['message'])
         save_settings({'enabled': False, 'email': 'user@example.com'})
@@ -444,6 +467,44 @@ class TenderDigestTests(TestCase):
         next_at = EmailNotificationSettings.objects.get(owner=self.ana).digest_next_at
         local_next = timezone.localtime(next_at)
         self.assertEqual((local_next.weekday(), local_next.hour), (0, 8))
+
+    def test_test_digests_use_account_profile_and_window_without_advancing_schedule(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.enable(self.ana)
+        self.enable(self.bor, 'weekly')
+        today = self.tender('today', 'Razvoj spletne platforme')
+        earlier = self.tender('earlier', 'Razvoj spletne aplikacije')
+        expired = self.tender('expired', 'Razvoj stare platforme')
+        hidden = self.tender('hidden-preview', 'Razvoj skrite platforme')
+        TenderIgnore.objects.create(owner=self.ana, tender=hidden)
+        self.tender('demo-preview', 'Razvoj demo platforme', source_type='demo')
+        self.tender('closed-preview', 'Razvoj zaključene platforme', status='closed')
+        construction = self.tender('construction', 'Gradnja mostu', kind='works')
+        Tender.objects.filter(pk=earlier.pk).update(created_at=timezone.now() - timedelta(days=3))
+        Tender.objects.filter(pk=expired.pk).update(created_at=timezone.now() - timedelta(days=8))
+        before = list(EmailNotificationSettings.objects.order_by('pk').values())
+        client = APIClient()
+        client.force_login(self.ana)
+        for kind in ['daily', 'weekly']:
+            response = client.post('/api/notifications/email-test', {'kind': kind}, format='json')
+            self.assertEqual((response.status_code, response.data['sent']), (200, True))
+            message = mail.outbox[-1]
+            self.assertEqual(message.to, [self.ana.email])
+            self.assertIn(f'/#/razpisi/{today.pk}', message.body)
+            self.assertEqual(f'/#/razpisi/{earlier.pk}' in message.body, kind == 'weekly')
+            for excluded in [expired, hidden, construction]:
+                self.assertNotIn(f'/#/razpisi/{excluded.pk}', message.body)
+            self.assertNotIn('demo platforme', message.body)
+            self.assertNotIn('zaključene platforme', message.body)
+        client.force_login(self.bor)
+        self.assertTrue(client.post('/api/notifications/email-test', {'kind': 'daily'}, format='json').data['sent'])
+        self.assertEqual(mail.outbox[-1].to, [self.bor.email])
+        self.assertIn(f'/#/razpisi/{construction.pk}', mail.outbox[-1].body)
+        self.assertNotIn(f'/#/razpisi/{today.pk}', mail.outbox[-1].body)
+        self.assertEqual(list(EmailNotificationSettings.objects.order_by('pk').values()), before)
+        self.assertFalse(TenderDigestEmail.objects.exists())
+        self.assertFalse(NotificationEmail.objects.exists())
 
     def test_empty_digest_advances_window_without_sending(self):
         self.enable(self.ana)

@@ -630,10 +630,13 @@ def notification_email_test_view(request):
     from django.core.cache import cache
     from .accounts import account_id
     from .email_notifications import send_test
-    # One test per account per minute is enough to check settings and keeps the button from mailing in bulk.
-    if not cache.add(f'email-test:{account_id()}', 1, 60):
-        return Response({'sent': False, 'message': 'Testno sporočilo lahko pošljete enkrat na minuto.'}, status=429)
-    return Response(send_test())
+    kind = request.data.get('kind', 'connection')
+    if kind not in ('connection', 'daily', 'weekly'):
+        return Response({'message': 'Izberite test povezave, dnevnega ali tedenskega pregleda.'}, status=400)
+    # Allow each preview once per minute, so daily and weekly can be checked together.
+    if not cache.add(f'email-test:{account_id()}:{kind}', 1, 60):
+        return Response({'sent': False, 'message': 'Vsako vrsto testnega sporočila lahko pošljete enkrat na minuto.'}, status=429)
+    return Response(send_test(kind))
 
 
 @api_view(['GET', 'PUT'])
