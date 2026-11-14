@@ -47,7 +47,9 @@ def index_document(document, pages=None):
                     h.update(block)
             digest = h.hexdigest()
     identity = hashlib.sha256(f'{digest}:{EXTRACTOR_VERSION}'.encode()).hexdigest()
-    content = IndexedContent.objects.filter(pk=identity).first()
+    from .ocr_policy import preferred_ocr_content
+    content = preferred_ocr_content(digest) if pages is None else None
+    content = content or IndexedContent.objects.filter(pk=identity).first()
     if content is None:
         if pages is not None:
             kind = 'txt'
@@ -71,7 +73,7 @@ def index_document(document, pages=None):
     document.status = 'processed'
     document.error = ''
     document.extraction = {'mode': 'unprocessed', **document.extraction, 'format': content.format,
-                           'index_version': EXTRACTOR_VERSION}
+                           'index_version': content.extractor_version}
     document.save(update_fields=['indexed_content', 'sha256', 'pages', 'status', 'error', 'extraction'])
     return content
 

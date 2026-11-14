@@ -126,3 +126,28 @@
 .contract-links small { color: var(--muted, #667085); }
 .expected-count { display: flex; align-items: center; gap: .5rem; margin: 1rem 0 .5rem; }
 .incumbent-summary p { margin: .25rem 0; }
+.contracts-navigation { display:flex; flex-wrap:wrap; gap:24px; margin:0 0 24px; border-bottom:1px solid var(--line); }
+.contracts-navigation a { padding:12px 0; color:var(--muted); text-decoration:none; border-bottom:2px solid transparent; }
+.contracts-navigation a[aria-current="page"] { color:var(--ink); border-color:var(--slate); font-weight:600; }
+.contracts-navigation a:focus-visible { outline:2px solid var(--slate); outline-offset:4px; }
+.contract-register-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin:0 0 28px; padding:0 0 24px; border-bottom:1px solid var(--line); }
+.contract-register-metrics dt { color:var(--muted); font-size:13px; }
+.contract-register-metrics dd { margin:8px 0 0; color:var(--ink); font-size:28px; font-weight:650; font-variant-numeric:tabular-nums; }
+.contract-register-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; align-items:end; margin-bottom:28px; }
+.contract-register-search { grid-column:span 2; }
+.contract-filter-actions { display:flex; flex-wrap:wrap; gap:8px; grid-column:span 2; }
+.contract-result-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+.contract-result-heading h2, .contract-result-heading > span { display:flex; align-items:center; gap:8px; margin:0; }
+.contract-result-heading h2 { font-size:18px; }
+.contract-result-heading h2 span { color:var(--muted); font-weight:400; font-variant-numeric:tabular-nums; }
+.contract-result-heading > span { color:var(--muted); font-size:13px; }
+@media (max-width:800px) {
+  .contract-register-filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:480px) {
+  .contract-register-metrics { grid-template-columns:1fr; gap:16px; }
+  .contract-register-metrics > div { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .contract-register-metrics dd { margin:0; font-size:24px; }
+  .contract-register-filters { grid-template-columns:1fr; }
+  .contract-register-search, .contract-filter-actions { grid-column:auto; }
+}

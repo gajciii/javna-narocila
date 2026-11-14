@@ -502,7 +502,11 @@ export interface SignedContract {
 }
 export interface ContractDataset {
     attribution: string; contracts: number; with_end: number;
+    addenda?: number; expiring_12m?: number;
     coverage_from: string | null; coverage_to: string | null; register_synced_until: string | null;
+}
+export interface ContractRegister {
+    results: SignedContract[]; count: number; page: number; page_size: number; dataset: ContractDataset;
 }
 export interface Incumbents {
     mode: 'data' | 'empty'; message: string; buyers: string[]; synced_at: string | null; complete: boolean; total?: number;

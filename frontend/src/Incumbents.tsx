@@ -11,7 +11,7 @@ const levels: Record<number, string> = { 8: 'enak CPV', 5: 'ista kategorija CPV'
 const statusLabel = { active: 'V veljavi', ended: 'Potekla', unknown: 'Rok ni objavljen' };
 
 export function ContractEnd({ contract }: { contract: SignedContract }) {
-    if (!contract.effective_end) return <span>Velja do izpolnitve obveznosti (rok ni objavljen)</span>;
+    if (!contract.effective_end) return <span>Rok veljavnosti ni objavljen</span>;
     return <span>Velja do {contractDay(contract.effective_end)}{contract.extended && ` · podaljšano z aneksom (prvotno ${contractDay(contract.valid_to)})`}{contract.days_left != null && contract.days_left >= 0 && ` · še ${contract.days_left} dni`}</span>;
 }
 

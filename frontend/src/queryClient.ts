@@ -26,6 +26,7 @@ export const queryKeys = {
     buyerHistory: (tenderId: string, query: string) => ['buyer-history', tenderId, query] as const,
     incumbents: (tenderId: string) => ['incumbents', tenderId] as const,
     expectedTenders: (query: string) => ['expected-tenders', query] as const,
+    contracts: (query: string) => ['contracts', query] as const,
     tenderPartners: (tenderId: string, companyId: string) => ['tender-partners', tenderId, companyId] as const,
     partnerSuggestions: (tenderId: string, companyId: string) => ['tender-partners', 'suggestions', tenderId, companyId] as const,
     attachmentOpportunities: (tenderId: string, revision: string) => ['attachment-opportunities', tenderId, revision] as const,

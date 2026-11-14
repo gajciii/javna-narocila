@@ -3,6 +3,7 @@ from tenders import views, partner_views, espd_views, opportunities, pipeline_ad
 from tenders.health import health_view
 from tenders.overview_views import overview_view
 from tenders.submission_views import submission_review_view
+from tenders.contract_register import contracts_view
 
 urlpatterns = [
     path('api/auth/session', auth_views.session_view),
@@ -35,6 +36,7 @@ urlpatterns = [
     path('api/tenders/<slug:tender_id>/similar-awards', views.similar_awards_view),
     path('api/tenders/<slug:tender_id>/incumbents', views.incumbents_view),
     path('api/expected-tenders', views.expected_tenders_view),
+    path('api/contracts', contracts_view),
     path('api/tenders/<slug:tender_id>/attachment-opportunities', opportunities.attachment_opportunities_view),
     path('api/certifications', partner_views.certifications_view),
     path('api/bootstrap', views.bootstrap_view),

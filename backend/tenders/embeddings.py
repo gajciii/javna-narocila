@@ -115,9 +115,11 @@ def store(model, rows, texts, digests=None):
 
 
 def embed_chunks(limit=BATCH):
+    from .ocr_policy import OCR_IMPORT_PREFIX
     with transaction.atomic():
         # skip_locked lets several workers fill vectors without embedding the same passage twice.
-        rows = list(DocumentChunk.objects.select_for_update(skip_locked=True).filter(embedding__isnull=True)
+        rows = list(DocumentChunk.objects.select_for_update(skip_locked=True, of=('self',)).filter(embedding__isnull=True)
+                    .exclude(content__extractor_version__startswith=OCR_IMPORT_PREFIX)
                     .exclude(pk__in=_rejected[DocumentChunk]).order_by('pk').values_list('pk', 'text')[:limit])
         return store(DocumentChunk, [r[0] for r in rows], [r[1] for r in rows]) if rows else 0
 
@@ -169,6 +171,7 @@ def embed_pending(limit=BATCH):
 
 
 def pending_counts():
+    from .ocr_policy import OCR_IMPORT_PREFIX
     return {'tenders': len(stale_tenders(limit=10**6)),
-            'chunks': DocumentChunk.objects.filter(embedding__isnull=True).count(),
+            'chunks': DocumentChunk.objects.filter(embedding__isnull=True).exclude(content__extractor_version__startswith=OCR_IMPORT_PREFIX).count(),
             'awards': PastAward.objects.filter(embedding__isnull=True).count()}

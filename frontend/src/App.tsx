@@ -15,6 +15,7 @@ import PastAwardsPanel from './PastAwards';
 import BuyerHistoryPanel from './BuyerHistory';
 import IncumbentsPanel from './Incumbents';
 import ExpectedTendersPage from './ExpectedTenders';
+import ContractsPage from './Contracts';
 import AwardReferencesPanel from './AwardReferences';
 import AttachmentOpportunities from './AttachmentOpportunities';
 import TenderOverview from './TenderOverview';
@@ -184,7 +185,7 @@ export default function App({ user, signOut }: { user: { username: string; is_st
     const isAdministration = route.startsWith('/administracija');
     useEffect(() => {
         const page = route.split('?')[0];
-        if (!isAdministration && !page.startsWith('/razpisi/') && !['/razpisi', '/profil', '/profil/uredi', '/obvestila', '/racun'].includes(page)) {
+        if (!isAdministration && !page.startsWith('/razpisi/') && !['/razpisi', '/profil', '/profil/uredi', '/obvestila', '/racun', '/pogodbe', '/pricakovani'].includes(page)) {
             window.location.replace('#/razpisi');
         }
     }, [route, isAdministration]);
@@ -221,7 +222,7 @@ export default function App({ user, signOut }: { user: { username: string; is_st
         return <div className="boot-screen"><div className="boot-brand"><Radar size={36}/><strong>Razp<span>Izi</span></strong></div>{error ? <><h2>Povezava še ni pripravljena</h2><p>{error}</p><p className="muted">Preverite, ali Django strežnik deluje na vratih 8001.</p><button className="button primary" onClick={() => void bootstrap.refetch()}><RefreshCw size={16}/>Poskusi ponovno</button></> : <><Spinner /><p>Pripravljamo vaše priložnosti …</p></>}</div>;
     const unread = data.notifications.filter(n => !n.read).length;
     const shared: Shared = { data, refresh, notify };
-    const section = route.startsWith('/profil') ? 'Profil podjetja' : route.startsWith('/obvestila') ? 'Obvestila' : route.startsWith('/racun') ? 'Moj račun' : route.startsWith('/pricakovani') ? 'Pričakovani razpisi' : 'Razpisi';
+    const section = route.startsWith('/profil') ? 'Profil podjetja' : route.startsWith('/obvestila') ? 'Obvestila' : route.startsWith('/racun') ? 'Moj račun' : ['/pogodbe', '/pricakovani'].includes(route) ? 'Pogodbe' : 'Razpisi';
     return <div className="app-shell">
     <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); document.getElementById('main-content')?.focus(); }}>Preskoči na vsebino</a>
     {mobileNav && <div className="nav-scrim" onClick={() => setMobileNav(false)}/>}
@@ -229,6 +230,7 @@ export default function App({ user, signOut }: { user: { username: string; is_st
       <a className="brand topbar-brand" href="#/" aria-label="RazpIzi, domača stran"><Radar size={28} strokeWidth={1.8}/><span>Razp<span>Izi</span></span></a>
       <nav id="main-navigation" className={`main-nav ${mobileNav ? 'open' : ''}`} aria-label="Glavna navigacija">
         <a href="#/razpisi" aria-current={section === 'Razpisi' ? 'page' : undefined} className={section === 'Razpisi' ? 'active' : ''} onClick={() => setFilters(f => ({ ...f, view: 'recommended' }))}>Razpisi</a>
+        <a href="#/pogodbe" aria-current={section === 'Pogodbe' ? 'page' : undefined} className={section === 'Pogodbe' ? 'active' : ''}>Pogodbe</a>
         <a href="#/obvestila" aria-current={section === 'Obvestila' ? 'page' : undefined} className={section === 'Obvestila' ? 'active' : ''}>Obvestila{unread > 0 && <span className="nav-count notification-count">{unread}</span>}</a>
         <a href="#/profil" aria-current={section === 'Profil podjetja' ? 'page' : undefined} className={section === 'Profil podjetja' ? 'active' : ''}>Podjetje</a>
         {user.is_staff && <a href="#/administracija">Administracija</a>}
@@ -238,7 +240,7 @@ export default function App({ user, signOut }: { user: { username: string; is_st
     <div className="workspace">
       <main id="main-content" className="main-content" tabIndex={-1}>
         <div className="page-transition" key={`${route}:${data.profile.id}`}>
-        {route.startsWith('/razpisi/') ? <TenderDetail key={route} {...shared} id={decodeURIComponent(route.split('/')[2].split('?')[0])}/> : route === '/profil' ? <ProfileOverview {...shared}/> : route.startsWith('/profil/uredi') ? <ProfilePage {...shared}/> : route === '/obvestila' ? <NotificationsPage {...shared}/> : route === '/racun' ? <AccountPage user={user} signOut={signOut}/> : route === '/pricakovani' ? <ExpectedTendersPage profileVersion={`${data.profile.id}:${data.profile.updated_at}`}/> : <TendersPage {...shared} filters={filters} setFilters={setFilters}/>}
+        {route.startsWith('/razpisi/') ? <TenderDetail key={route} {...shared} id={decodeURIComponent(route.split('/')[2].split('?')[0])}/> : route === '/profil' ? <ProfileOverview {...shared}/> : route.startsWith('/profil/uredi') ? <ProfilePage {...shared}/> : route === '/obvestila' ? <NotificationsPage {...shared}/> : route === '/racun' ? <AccountPage user={user} signOut={signOut}/> : route === '/pogodbe' ? <ContractsPage/> : route === '/pricakovani' ? <ExpectedTendersPage profileVersion={`${data.profile.id}:${data.profile.updated_at}`}/> : <TendersPage {...shared} filters={filters} setFilters={setFilters}/>}
         </div>
       </main>
 

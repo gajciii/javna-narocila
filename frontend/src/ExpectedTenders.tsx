@@ -5,6 +5,7 @@ import { api } from './api';
 import { queryKeys } from './queryClient';
 import { ContractCard, contractDay } from './Incumbents';
 import type { ExpectedTenders } from './types';
+import { ContractsNavigation } from './Contracts';
 
 export default function ExpectedTendersPage({ profileVersion }: { profileVersion: string }) {
     const [draft, setDraft] = useState({ months: '12', cpv: '', terms: '' });
@@ -16,6 +17,7 @@ export default function ExpectedTendersPage({ profileVersion }: { profileVersion
     const apply = (e: FormEvent) => { e.preventDefault(); setFilters({ ...draft, page: 1 }); };
     return <>
         <section className="page-intro simple-intro" aria-labelledby="expected-title"><div className="page-heading"><div><h1 id="expected-title">Pričakovani razpisi</h1><p>Podpisane pogodbe, ki kmalu potečejo in se ujemajo z vašim profilom. Naročnik bo storitev ali blago verjetno potreboval znova, zato se lahko na razpis pripravite pravočasno.</p></div></div></section>
+        <ContractsNavigation expected/>
         <section className="surface detail-section expected-tenders" aria-busy={loading}>
             <form className="buyer-history-filters" onSubmit={apply}>
                 <label className="field"><span>Pogodba poteče v</span><select value={draft.months} onChange={e => setDraft(old => ({ ...old, months: e.target.value }))}>{['3', '6', '12', '24'].map(m => <option key={m} value={m}>{m} mesecih</option>)}</select></label>

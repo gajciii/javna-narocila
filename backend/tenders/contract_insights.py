@@ -4,7 +4,7 @@ import re
 import unicodedata
 from datetime import timedelta
 
-from django.db.models import Count, Max, Min
+from django.db.models import Count, Max, Min, Q
 from rest_framework.exceptions import ValidationError
 
 from .models import Contract, ContractSyncState
@@ -53,11 +53,15 @@ def serialize(contract, on):
 
 
 def dataset_info():
+    on = today()
     stats = Contract.objects.filter(is_addendum=False).aggregate(
-        contracts=Count('pk'), first=Min('published_at'), last=Max('published_at'))
+        contracts=Count('pk'), first=Min('published_at'), last=Max('published_at'),
+        with_end=Count('pk', filter=Q(effective_end__isnull=False)),
+        expiring=Count('pk', filter=Q(effective_end__gte=on, effective_end__lte=on + timedelta(days=365))))
     state = ContractSyncState.objects.filter(pk='list').first()
     return {'attribution': SOURCE, 'contracts': stats['contracts'],
-            'with_end': Contract.objects.filter(is_addendum=False, effective_end__isnull=False).count(),
+            'with_end': stats['with_end'], 'addenda': Contract.objects.filter(is_addendum=True).count(),
+            'expiring_12m': stats['expiring'],
             'coverage_from': stats['first'].date().isoformat() if stats['first'] else None,
             'coverage_to': stats['last'].date().isoformat() if stats['last'] else None,
             'register_synced_until': state.synced_until.isoformat() if state and state.synced_until else None}
