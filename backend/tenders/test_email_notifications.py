@@ -7,7 +7,7 @@ import requests
 
 from django.core import mail
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -61,6 +61,12 @@ class EmailNotificationTests(TestCase):
         self.assertIn('https://razpizi.example.com/#/razpisi/email-test?tab=changes', message.body)
         self.assertIn('https://razpizi.example.com/#/racun', message.body)
         self.assertIn('Občina Primer', message.body)
+        self.assertEqual(message.message().get_content_type(), 'multipart/alternative')
+        html, mimetype = message.alternatives[0]
+        self.assertEqual(mimetype, 'text/html')
+        self.assertIn('Preglej spremembe', html)
+        self.assertIn('Občina Primer', html)
+        self.assertIn('email-test?tab=changes', html)
         self.assertIn('Sprememba roka', mail.outbox[1].subject)
         self.assertEqual(status()['pending'], 0)
         self.assertIsNotNone(status()['last_sent_at'])
@@ -172,7 +178,7 @@ class EmailNotificationTests(TestCase):
     def test_failures_retry_without_blocking_or_exposing_smtp_error(self):
         self.enable()
         self.notification()
-        with patch('tenders.email_notifications.EmailMessage.send', side_effect=SMTPException('private credentials')):
+        with patch('tenders.email_notifications.EmailMultiAlternatives.send', side_effect=SMTPException('private credentials')):
             self.assertEqual(process(), 0)
         delivery = NotificationEmail.objects.get()
         self.assertEqual((delivery.state, delivery.attempts), ('pending', 1))
@@ -194,12 +200,12 @@ class EmailNotificationTests(TestCase):
         delivery = NotificationEmail.objects.get()
         delivery.attempts = 4
         delivery.save()
-        with patch('tenders.email_notifications.EmailMessage.send', return_value=0):
+        with patch('tenders.email_notifications.EmailMultiAlternatives.send', return_value=0):
             self.assertEqual(process(), 0)
         delivery.refresh_from_db()
         self.assertEqual((delivery.state, delivery.attempts), ('failed', 5))
         self.assertEqual(status()['failed'], 1)
-        with patch('tenders.email_notifications.EmailMessage.send') as send:
+        with patch('tenders.email_notifications.EmailMultiAlternatives.send') as send:
             self.assertEqual(process(), 0)
             send.assert_not_called()
 
@@ -207,14 +213,30 @@ class EmailNotificationTests(TestCase):
         self.enable()
         self.tender.data['title'] = 'Razpis\r\nBcc: attacker@example.com'
         self.tender.save()
-        n = self.notification()
+        n = self.notification(body='<script>alert(1)</script>\nRok: 1. 12.')
         enqueue()
+        original_html = NotificationEmail.objects.get().html_body
         n.body = 'Poznejše besedilo'
         n.save()
         self.assertEqual(process(), 1)
         self.assertNotIn('\n', mail.outbox[0].subject)
         self.assertNotIn('Poznejše besedilo', mail.outbox[0].body)
         self.assertIn('1. 12.', mail.outbox[0].body)
+        html = mail.outbox[0].alternatives[0].content
+        self.assertEqual(html, original_html)
+        self.assertNotIn('Poznejše besedilo', html)
+        self.assertNotIn('<script>', html)
+        self.assertIn('&lt;script&gt;', html)
+        self.assertIn('<br>', html)
+
+    def test_existing_plain_text_outbox_messages_still_send(self):
+        self.enable()
+        self.notification()
+        enqueue()
+        NotificationEmail.objects.update(html_body='')
+        self.assertEqual(process(), 1)
+        self.assertEqual(mail.outbox[0].alternatives, [])
+        self.assertEqual(mail.outbox[0].message().get_content_type(), 'text/plain')
 
     def test_command_processes_outbox(self):
         from django.core.management import call_command
@@ -240,7 +262,7 @@ class ResendNotificationTests(TestCase):
         return response
 
     @patch('tenders.email_notifications.requests.post')
-    @patch('tenders.email_notifications.EmailMessage.send')
+    @patch('tenders.email_notifications.EmailMultiAlternatives.send')
     def test_resend_sends_with_server_key_and_without_smtp(self, smtp, post):
         post.return_value = self.response()
         self.assertTrue(transport_ready())  # SMTP host/TLS settings are irrelevant to Resend.
@@ -257,6 +279,8 @@ class ResendNotificationTests(TestCase):
         self.assertEqual(args['json']['from'], 'RazpIzi <notice@example.com>')
         self.assertEqual(args['json']['to'], ['user@example.com'])
         self.assertIn(n.body, args['json']['text'])
+        self.assertIn(n.body, args['json']['html'])
+        self.assertEqual(args['json']['html'], NotificationEmail.objects.get().html_body)
         self.assertEqual(args['timeout'], 10)
         self.assertFalse(args['allow_redirects'])
 
@@ -289,7 +313,7 @@ class ResendNotificationTests(TestCase):
         self.assertEqual(NotificationEmail.objects.get().state, 'sent')
 
     @patch('tenders.email_notifications.requests.post')
-    @patch('tenders.email_notifications.EmailMessage.send')
+    @patch('tenders.email_notifications.EmailMultiAlternatives.send')
     def test_error_redirect_or_invalid_success_is_not_recorded_as_sent(self, smtp, post):
         self.enable()
         http_error = self.response(status=500)
@@ -342,6 +366,7 @@ class TestEmailTests(TestCase):
         self.assertEqual((response.status_code, response.data['sent']), (200, True))
         self.assertEqual(mail.outbox[0].to, ['user@example.com'])
         self.assertIn('Testno', mail.outbox[0].subject)
+        self.assertIn('Vaša povezava deluje.', mail.outbox[0].alternatives[0].content)
         self.assertEqual(client.post(self.url).status_code, 429)
         self.assertEqual(len(mail.outbox), 1)
         self.assertFalse(NotificationEmail.objects.exists())
@@ -355,6 +380,10 @@ class TestEmailTests(TestCase):
             message = mail.outbox[-1]
             self.assertIn(f'[TEST] RazpIzi · {label} pregled', message.subject)
             self.assertIn('ni novih primernih razpisov', message.body)
+            html = message.alternatives[0].content
+            self.assertIn('Testni pregled', html)
+            self.assertIn('ni novih primernih razpisov', html)
+            self.assertIn('24 ur' if kind == 'daily' else '7 dni', html)
             self.assertEqual(message.to, ['user@example.com'])
             self.assertEqual(client.post(self.url, {'kind': kind}, format='json').status_code, 429)
         self.assertEqual(len(mail.outbox), 2)
@@ -448,6 +477,9 @@ class TenderDigestTests(TestCase):
                 self.assertNotIn(hidden.pk, digest.tender_ids)
             message = next(message for message in mail.outbox if message.to == [user.email])
             self.assertIn(f'/#/razpisi/{expected}', message.body)
+            self.assertEqual(message.alternatives[0].content, digest.html_body)
+            self.assertIn(f'/#/razpisi/{expected}', digest.html_body)
+            self.assertIn('Preglej vse razpise', digest.html_body)
             self.assertNotIn('zaključene', message.body)
             self.assertNotIn('demo', message.body)
 
@@ -528,13 +560,27 @@ class TenderDigestTests(TestCase):
         self.assertEqual(TenderDigestEmail.objects.get(state='sent').tender_ids, [tender.pk])
         self.assertEqual(process(), 0)
 
+    def test_digest_html_keeps_queued_content_when_tender_changes(self):
+        self.enable(self.ana)
+        tender = self.tender('web-html', 'Razvoj spletne platforme')
+        self.due(self.ana)
+        self.assertEqual(enqueue_digests(), 1)
+        digest = TenderDigestEmail.objects.get()
+        original = digest.html_body
+        self.assertIn('Razvoj spletne platforme', original)
+        tender.data['title'] = 'Pozneje spremenjeno ime'
+        tender.save()
+        self.assertTrue(deliver_digest(digest.pk))
+        self.assertEqual(mail.outbox[0].alternatives[0].content, original)
+        self.assertNotIn('Pozneje spremenjeno ime', mail.outbox[0].body)
+
     def test_digest_delivery_retries_and_can_be_disabled(self):
         self.enable(self.ana)
         self.tender('web', 'Razvoj spletne platforme')
         self.due(self.ana)
         enqueue_digests()
         digest = TenderDigestEmail.objects.get(owner=self.ana)
-        with patch('tenders.email_notifications.EmailMessage.send', side_effect=SMTPException('private details')):
+        with patch('tenders.email_notifications.EmailMultiAlternatives.send', side_effect=SMTPException('private details')):
             self.assertFalse(deliver_digest(digest.pk))
         digest.refresh_from_db()
         self.assertEqual((digest.state, digest.attempts), ('pending', 1))
@@ -564,3 +610,27 @@ class TenderDigestTests(TestCase):
         before = datetime(2026, 3, 28, 9, tzinfo=slovenia)
         self.assertEqual(next_digest_at(before, 'daily'), datetime(2026, 3, 29, 8, tzinfo=slovenia))
         self.assertEqual(next_digest_at(before, 'weekly'), datetime(2026, 3, 30, 8, tzinfo=slovenia))
+
+
+@override_settings(PUBLIC_APP_URL='https://razpizi.example.com')
+class EmailHtmlTests(SimpleTestCase):
+    def test_digest_escapes_external_content_and_encodes_tender_links(self):
+        from .email_rendering import digest_html
+        html = digest_html([{'id': 'id"<>&/?', 'title': '<img src=x onerror=alert(1)>',
+                             'buyer': '<script>bad()</script>'}], 'daily')
+        self.assertNotIn('<img', html)
+        self.assertNotIn('<script>', html)
+        self.assertIn('&lt;img', html)
+        self.assertIn('&lt;script&gt;', html)
+        self.assertIn('/#/razpisi/id%22%3C%3E%26%2F%3F', html)
+        self.assertIn('Dnevni pregled', html)
+        self.assertNotIn('Testni pregled', html)
+
+    def test_digest_limits_cards_but_links_to_all_results(self):
+        from .email_rendering import digest_html
+        matches = [{'id': f'tender-{i}', 'title': f'Razpis {i}', 'buyer': 'Občina'} for i in range(101)]
+        html = digest_html(matches, 'weekly')
+        self.assertIn('/#/razpisi/tender-99', html)
+        self.assertNotIn('/#/razpisi/tender-100', html)
+        self.assertIn('prvih 100 od 101', html)
+        self.assertIn('Tedenski pregled', html)

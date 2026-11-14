@@ -10,13 +10,14 @@ import requests
 
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMultiAlternatives
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Max, Min
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from .email_rendering import connection_html, digest_html, notification_html
 from .accounts import account_id
 from .models import (EMAIL_TYPES, EmailNotificationSettings, Notification, NotificationEmail,
                      Tender, TenderDigestEmail, TenderFollow)
@@ -164,7 +165,8 @@ def enqueue(limit=100):
         for notification in notifications:
             subject, body = message(notification)
             _, created = NotificationEmail.objects.get_or_create(notification=notification, owner_id=config.owner_id,
-                defaults={'recipient': config.email, 'sender': settings.DEFAULT_FROM_EMAIL, 'subject': subject, 'body': body})
+                defaults={'recipient': config.email, 'sender': settings.DEFAULT_FROM_EMAIL, 'subject': subject, 'body': body,
+                          'html_body': notification_html(notification)})
             count += created
     return count
 
@@ -232,6 +234,7 @@ def enqueue_digests(now=None):
             subject, body = digest_message(matches, config.digest_frequency)
             TenderDigestEmail.objects.create(owner_id=config.owner_id, recipient=config.email,
                 sender=settings.DEFAULT_FROM_EMAIL, subject=subject, body=body,
+                html_body=digest_html(matches, config.digest_frequency),
                 period_start=config.digest_cursor_at, period_end=now,
                 tender_ids=[item['id'] for item in matches])
             count += 1
@@ -248,11 +251,14 @@ class ProviderRejected(RuntimeError):
         self.detail = detail
 
 
-def transmit(sender, recipient, subject, body, headers, idempotency_key):
+def transmit(sender, recipient, subject, body, headers, idempotency_key, html_body=''):
     if settings.EMAIL_PROVIDER == 'resend':
+        payload = {'from': sender, 'to': [recipient], 'subject': subject, 'text': body, 'headers': headers}
+        if html_body:
+            payload['html'] = html_body
         response = requests.post('https://api.resend.com/emails',
             headers={'Authorization': f'Bearer {settings.RESEND_API_KEY}', 'Idempotency-Key': idempotency_key},
-            json={'from': sender, 'to': [recipient], 'subject': subject, 'text': body, 'headers': headers},
+            json=payload,
             timeout=settings.EMAIL_TIMEOUT, allow_redirects=False)
         if response.status_code >= 400:
             try:
@@ -267,7 +273,10 @@ def transmit(sender, recipient, subject, body, headers, idempotency_key):
         if not isinstance(data, dict) or not isinstance(data.get('id'), str) or not data['id'].strip():
             raise RuntimeError('Resend did not return a message identifier')
     else:
-        sent = EmailMessage(subject, body, sender, [recipient], headers=headers).send(fail_silently=False)
+        email = EmailMultiAlternatives(subject, body, sender, [recipient], headers=headers)
+        if html_body:
+            email.attach_alternative(html_body, 'text/html')
+        sent = email.send(fail_silently=False)
         if sent != 1:
             raise RuntimeError('SMTP did not accept the message')
 
@@ -276,14 +285,14 @@ def send(delivery):
     host = urlsplit(settings.PUBLIC_APP_URL).hostname
     transmit(delivery.sender, delivery.recipient, delivery.subject, delivery.body,
              {'Message-ID': f'<razpizi-notification-{delivery.notification_id}@{host}>'},
-             f'notification/{delivery.delivery_key}/{delivery.pk}')
+             f'notification/{delivery.delivery_key}/{delivery.pk}', html_body=delivery.html_body)
 
 
 def send_digest(delivery):
     host = urlsplit(settings.PUBLIC_APP_URL).hostname
     transmit(delivery.sender, delivery.recipient, delivery.subject, delivery.body,
              {'Message-ID': f'<razpizi-digest-{delivery.pk}@{host}>'},
-             f'digest/{delivery.delivery_key}/{delivery.pk}')
+             f'digest/{delivery.delivery_key}/{delivery.pk}', html_body=delivery.html_body)
 
 
 def missing_settings():
@@ -323,13 +332,15 @@ def send_test(kind='connection'):
     token = uuid4().hex
     provider = 'Resend' if settings.EMAIL_PROVIDER == 'resend' else 'SMTP'
     body = (f'To je testno sporočilo iz aplikacije RazpIzi.\n\n'
-            f'Če ga berete, pošiljanje prek {provider} deluje in boste prejemali izbrana obvestila '
-            f'o spremembah in novih primernih razpisih.\n\nNastavitve: {settings.PUBLIC_APP_URL}/#/racun\n')
+            f'Če ga berete, pošiljanje prek {provider} deluje. Redna obvestila se pošiljajo '
+            f'glede na vaše shranjene nastavitve.\n\nNastavitve: {settings.PUBLIC_APP_URL}/#/racun\n')
     subject = 'RazpIzi · Testno sporočilo'
+    html_body = connection_html()
     if kind in DIGEST_FREQUENCIES:
         now = timezone.now()
         matches = digest_matches(now - timedelta(days=1 if kind == 'daily' else 7), now)
         subject, body = digest_message(matches, kind)
+        html_body = digest_html(matches, kind, test=True)
         subject = f'[TEST] {subject}'
         body = ('To je testni pregled za zadnjih ' + ('24 ur' if kind == 'daily' else '7 dni')
                 + '. Redni urnik pošiljanja ostaja nespremenjen.\n\n' + body)
@@ -337,7 +348,7 @@ def send_test(kind='connection'):
             body += '\n\nV tem obdobju ni novih primernih razpisov za vaš aktivni profil. Redni pregled se v tem primeru ne pošlje.'
     try:
         transmit(settings.DEFAULT_FROM_EMAIL, recipient, subject, body,
-                 {'Message-ID': f'<razpizi-test-{token}@{host}>'}, f'test/{token}')
+                 {'Message-ID': f'<razpizi-test-{token}@{host}>'}, f'test/{token}', html_body=html_body)
     except requests.HTTPError as exc:
         status_code = exc.response.status_code if exc.response is not None else ''
         detail = exc.response.reason if exc.response is not None else ''
