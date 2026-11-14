@@ -153,3 +153,27 @@ class SubmissionReviewTests(TestCase):
         response = APIClient().post('/api/tenders/review-test/submission-review', {'submission_files': SimpleUploadedFile('bid.txt', BID.encode())}, format='multipart')
         self.assertEqual(response.status_code, 503)
         self.assertNotIn('items', response.data)
+
+    def test_espd_xml_source_is_reduced_to_readable_criteria(self):
+        from .submission_review import tender_sources
+        tender = Tender.objects.create(id='review-xml', data={'version': 1})
+        xml = ('<ns3:TenderingCriterion><cbc:Name>Reference</cbc:Name><cbc:Description>Najmanj dve (2) '
+               'reference &amp; vrednost nad 50.000 EUR</cbc:Description><cbc:ID schemeID="x">abc-123</cbc:ID>'
+               '</ns3:TenderingCriterion>')
+        Document.objects.create(id='espd', tender=tender, title='espd_request.xml', status='processed', path='x',
+                                pages=[{'page': 1, 'text': xml}, {'page': 2, 'text': '<cbc:ID>only-markup</cbc:ID>'}])
+        docs, issues = tender_sources(tender)
+        self.assertEqual(issues, [])
+        self.assertEqual(docs[0]['pages'], [{'page': 1, 'text': 'Reference\nNajmanj dve (2) reference & vrednost nad 50.000 EUR'}])
+
+    @patch('tenders.submission_review.provider', return_value='openrouter')
+    @patch('tenders.submission_review.structured_call')
+    def test_long_tender_documentation_is_reviewed(self, call, provider):
+        tender = Tender.objects.create(id='review-long', data={'version': 1})
+        long_pages = documents('source', SOURCE)[0]['pages'] + [{'page': 2, 'text': 'Tehnična navodila. ' * 15000}]
+        Document.objects.create(id='source', tender=tender, title='Navodila.pdf', status='processed', path='x', pages=long_pages)
+        call.side_effect = [
+            {'requirements': [{k: v for k, v in requirement().items() if k != 'id'}]},
+            {'items': [{'requirement_id': 'r1', 'status': 'covered', 'explanation': 'Dokaz je prisoten.', 'action': '', 'evidence': [evidence('bid-1', BID)]}]}]
+        response = APIClient().post('/api/tenders/review-long/submission-review', {'submission_files': SimpleUploadedFile('prijava.txt', BID.encode())}, format='multipart')
+        self.assertEqual(response.status_code, 200)
