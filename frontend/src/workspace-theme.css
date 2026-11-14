@@ -392,7 +392,9 @@ input[type=range] { accent-color: var(--accent); }
 .chat-context .chat-context-option > input:checked + span,
 .chat-context-option:has(input:checked) > small { color: #fff; }
 .condition-state.met, .match-badge.high { color: var(--accent); }
-.condition-state.unknown, .match-badge.medium { color: var(--amber); }
+.match-badge.medium { color: var(--amber); }
+/* Orange keeps "needs completion" visibly distinct from red "not met". */
+.condition-state.unknown { color: #b85f00; }
 .condition-state.unmet, .open-question.unmet, .error-banner,
 .danger-hover:hover { color: var(--danger); }
 .info-box.amber, .partner-gaps, .remaining-conditions { background: #fff; border-color: var(--amber); color: var(--amber); }
