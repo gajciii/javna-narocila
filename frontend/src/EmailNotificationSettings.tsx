@@ -63,12 +63,14 @@ export default function EmailNotificationSettings() {
         {error && <p role="alert" className="error-banner">{error}{!settings && <button className="button small" onClick={() => setRevision(old => old + 1)}>Poskusi znova</button>}</p>}
         {!settings && !error && <p role="status"><LoaderCircle size={16} className="spin"/> Nalagamo nastavitve …</p>}
         {settings && <form onSubmit={save}>
+            <div className="email-cols"><div className="email-col">
             <label className="checkbox-row email-master"><input type="checkbox" checked={enabled} disabled={busy} onChange={e => { setEnabled(e.target.checked); setMessage(''); }}/><span><strong>Pošiljaj e-poštna obvestila</strong></span></label>
             <div className="email-recipient"><label className="field"><span>E-poštni naslov prejemnika</span><input type="email" autoComplete="email" maxLength={254} required={enabled} value={email} disabled={busy} onChange={e => { setEmail(e.target.value); setMessage(''); }} placeholder="ime@podjetje.si"/></label><button type="button" className="button ghost small email-test" disabled={busy || testing || (!settings.email && !settings.account_email)} onClick={() => void sendTest()} title={`Pošlje sporočilo na ${settings.email || settings.account_email}`}>{testing ? <LoaderCircle size={16} className="spin"/> : <Send size={16}/>}Pošlji test</button></div>
             <fieldset className="email-types" disabled={busy || !enabled}>
                 <legend>Sprotna obvestila o spremljanih razpisih</legend>
                 {TYPES.map(type => <label className="checkbox-row" key={type.value}><input type="checkbox" checked={types.includes(type.value)} onChange={e => toggleType(type.value, e.target.checked)}/><span><strong>{type.label}</strong><small>{type.help}</small></span></label>)}
             </fieldset>
+            </div><div className="email-col">
             <fieldset className="email-types" disabled={busy || !enabled}>
                 <legend>Novi primerni razpisi</legend>
                 <label className="checkbox-row"><input type="checkbox" checked={digestEnabled} onChange={e => { setDigestEnabled(e.target.checked); setMessage(''); }}/><span>Pošiljaj zbirni pregled novih primernih razpisov</span></label>
@@ -85,6 +87,7 @@ export default function EmailNotificationSettings() {
             {settings.pending > 0 && <p className="section-help">V čakalni vrsti: {settings.pending}.</p>}
                         {settings.last_sent_at && <p className="section-help">Zadnje obvestilo predano v pošiljanje: {new Date(settings.last_sent_at).toLocaleString('sl-SI')}.</p>}
             </details>
+            </div></div>
             <div className="email-actions">
                 <button className="button primary small" disabled={busy || (enabled && !types.length && !digestEnabled)}>{busy ? <LoaderCircle size={16} className="spin"/> : <Save size={16}/>}Shrani nastavitve</button>
             </div>

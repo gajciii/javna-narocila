@@ -1,15 +1,17 @@
-import { useState, type FormEvent } from 'react';
-import { BarChart3, ExternalLink, LoaderCircle } from 'lucide-react';
+import { useState, type FormEvent, type ReactNode } from 'react';
+import { BarChart3, Building2, ChevronDown, LoaderCircle, X } from 'lucide-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { queryKeys } from './queryClient';
+import { HistoricalAward } from './PastAwards';
 import type { BuyerHistory } from './types';
+import './buyer-history.css';
 
 const day = (value: string | null) => value ? new Date(value).toLocaleDateString('sl-SI') : 'Ni podatka';
-const money = (value: number | null, currency = 'EUR') => value == null ? 'Ni podatka' : new Intl.NumberFormat('sl-SI', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+const money = (value: number | null) => value == null ? 'Ni podatka' : new Intl.NumberFormat('sl-SI', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
 const percent = (value: number | null) => value == null ? 'Ni podatka' : `${(value * 100).toLocaleString('sl-SI', { maximumFractionDigits: 1 })} %`;
 
-export default function BuyerHistoryPanel({ tenderId }: { tenderId: string }) {
+export default function BuyerHistoryPanel({ tenderId, children }: { tenderId: string; children?: ReactNode }) {
     const [draft, setDraft] = useState({ from: '', to: '', cpv: '' });
     const [filters, setFilters] = useState({ from: '', to: '', cpv: '', buyer: '0', supplier: '', page: 1 });
     const [sort, setSort] = useState<'wins' | 'value'>('wins');
@@ -18,48 +20,65 @@ export default function BuyerHistoryPanel({ tenderId }: { tenderId: string }) {
     const data = history.data ?? null;
     const loading = history.isFetching;
     const error = history.isFetching ? '' : history.error?.message ?? '';
-    const apply = (e: FormEvent) => { e.preventDefault(); setFilters(old => ({ ...old, ...draft, supplier: '', page: 1 })); };
+    const apply = (event: FormEvent) => { event.preventDefault(); setFilters(old => ({ ...old, ...draft, supplier: '', page: 1 })); };
+    const reset = () => { setDraft({ from: '', to: '', cpv: '' }); setFilters(old => ({ ...old, from: '', to: '', cpv: '', supplier: '', page: 1 })); };
     const selectSupplier = (supplier: string) => setFilters(old => ({ ...old, supplier, page: 1 }));
     const ranked = [...(data?.suppliers || [])].sort((a, b) => sort === 'value' ? b.value_eur - a.value_eur || b.wins - a.wins : b.wins - a.wins || b.value_eur - a.value_eur);
-    const selected = data?.suppliers.find(s => s.key === filters.supplier);
+    const selected = data?.suppliers.find(supplier => supplier.key === filters.supplier);
     const s = data?.summary;
+    const hasFilters = Boolean(filters.from || filters.to || filters.cpv);
     return <section className="surface detail-section buyer-history" aria-busy={loading}>
-        <div className="section-heading"><div><h2><BarChart3 size={19}/>Zgodovina naročnika</h2><p className="section-help">Kdo prejema posle pri tem naročniku, kakšni so deleži in koliko konkurence je pri oddajah.</p></div></div>
-        {data?.buyer && <p><strong>{data.buyer.name}</strong>{data.buyer.registration_number && ` · MŠ ${data.buyer.registration_number}`}</p>}
-        <form className="buyer-history-filters" onSubmit={apply}>
-            {(data?.buyers.length || 0) > 1 && <label className="field"><span>Naročnik</span><select value={filters.buyer} disabled={loading} onChange={e => setFilters(old => ({ ...old, buyer: e.target.value, supplier: '', page: 1 }))}>{data?.buyers.map((b, i) => <option key={i} value={i}>{b.name}</option>)}</select></label>}
-            <label className="field"><span>Objave od</span><input type="date" value={draft.from} onChange={e => setDraft(old => ({ ...old, from: e.target.value }))}/></label>
-            <label className="field"><span>Objave do</span><input type="date" min={draft.from || undefined} value={draft.to} onChange={e => setDraft(old => ({ ...old, to: e.target.value }))}/></label>
-            <label className="field"><span>Področje CPV</span><input inputMode="numeric" pattern="[0-9]{2,8}" maxLength={8} placeholder="Npr. 72 za IT" value={draft.cpv} onChange={e => setDraft(old => ({ ...old, cpv: e.target.value }))}/></label>
-            <button className="button small" disabled={loading}>Uporabi</button>
-            <button className="text-link" type="button" disabled={loading} onClick={() => { setDraft({ from: '', to: '', cpv: '' }); setFilters(old => ({ ...old, from: '', to: '', cpv: '', supplier: '', page: 1 })); }}>Celotna zbirka</button>
-        </form>
+        <div className="section-heading"><div><h2><BarChart3 size={20}/>Zgodovina naročnika</h2><p className="section-help">Komu je naročnik oddal posle in za kakšno vrednost? Izberite ponudnika in preglejte njegove pretekle posle.</p></div></div>
+        {data?.buyer && <div className="buyer-identity"><Building2 size={20}/><div><strong>{data.buyer.name}</strong>{data.buyer.registration_number && <span>MŠ {data.buyer.registration_number}</span>}</div></div>}
+        {(data?.buyers.length || 0) > 1 && <label className="field buyer-picker"><span>Izberite naročnika</span><select value={filters.buyer} disabled={loading} onChange={event => setFilters(old => ({ ...old, buyer: event.target.value, supplier: '', page: 1 }))}>{data?.buyers.map((buyer, index) => <option key={index} value={index}>{buyer.name}</option>)}</select></label>}
+        <details className="buyer-filter-disclosure"><summary>Filtriraj obdobje in področje{hasFilters && <span className="buyer-filter-active">Filtri vključeni</span>}<ChevronDown size={17}/></summary>
+            <form className="buyer-history-filters" onSubmit={apply}>
+                <label className="field"><span>Objave od</span><input type="date" value={draft.from} onChange={event => setDraft(old => ({ ...old, from: event.target.value }))}/></label>
+                <label className="field"><span>Objave do</span><input type="date" min={draft.from || undefined} value={draft.to} onChange={event => setDraft(old => ({ ...old, to: event.target.value }))}/></label>
+                <label className="field"><span>Področje CPV</span><input inputMode="numeric" pattern="[0-9]{2,8}" maxLength={8} placeholder="Npr. 72 za IT" value={draft.cpv} onChange={event => setDraft(old => ({ ...old, cpv: event.target.value }))}/></label>
+                <button className="button small" disabled={loading}>Uporabi filtre</button><button className="text-link" type="button" disabled={loading} onClick={reset}>Ponastavi</button>
+            </form>
+        </details>
+        {hasFilters && <div className="buyer-applied-filters"><span>{filters.from && `Od ${day(filters.from)}`}{filters.from && filters.to && ' · '}{filters.to && `Do ${day(filters.to)}`}{filters.cpv && `${filters.from || filters.to ? ' · ' : ''}CPV ${filters.cpv}`}</span><button className="text-link" disabled={loading} onClick={reset}>Počisti filtre<X size={14}/></button></div>}
         {loading && <p role="status" className="past-awards-loading"><LoaderCircle className="spin"/>Pripravljamo zgodovino naročnika …</p>}
         {error && <div role="alert" className="error-banner">{error}<button className="button small" onClick={() => history.refetch()}>Poskusi znova</button></div>}
         {data && !loading && !error && <>
             {data.message && <p role="status" className="info-box">{data.message}</p>}
             {s && s.lots > 0 && <>
-                <p className="section-help">Zbrana zgodovina: {day(s.coverage_from)} – {day(s.coverage_to)}. Štejemo oddane sklope, zato ima lahko en razpis več poslov.</p>
-                <div className="past-awards-stats">
-                    <div><strong>{s.awarded_lots}</strong><span>oddanih sklopov · {s.not_awarded_lots} brez potrjene izbire</span></div>
-                    <div><strong>{s.supplier_count}</strong><span>različnih prejemnikov</span></div>
-                    <div><strong>{percent(s.single_bid_share)}</strong><span>z eno ponudbo · {s.single_bid_lots}/{s.known_bid_lots} oddaj z znanim številom ponudb</span></div>
-                    <div><strong>{s.value_lots ? money(s.total_value_eur) : 'Ni podatka'}</strong><span>znana vrednost samostojnih oddaj v EUR · {s.value_lots}/{s.awarded_lots} sklopov</span></div>
+                <div className="buyer-overview" aria-label="Povzetek zgodovine naročnika">
+                    <div><strong>{s.awarded_lots}</strong><span>oddanih poslov</span></div>
+                    <div><strong>{s.supplier_count}</strong><span>različnih izbranih ponudnikov</span></div>
+                    <div><strong>{s.value_lots ? money(s.total_value_eur) : 'Ni podatka'}</strong><span>znana pogodbena vrednost<small>Za {s.value_lots} od {s.awarded_lots} poslov; brez skupnih ponudb in okvirnih sporazumov.</small></span></div>
                 </div>
-                <div className="buyer-signals"><strong>Signali za podrobnejši pregled</strong>{data.signals.map(signal => <p key={signal.kind}>{signal.text}</p>)}<p>Koncentracija poslov in ena sama ponudba sami po sebi ne dokazujeta favoriziranja. Preverite primerljiva področja, pogoje razpisov, velikost vzorca in izvorna obvestila. Zbirka ni popolna.</p></div>
-                <div className="buyer-ranking-head"><h3>Največji prejemniki poslov</h3><label className="field"><span>Razvrsti po</span><select value={sort} onChange={e => setSort(e.target.value as typeof sort)}><option value="wins">Številu oddanih sklopov</option><option value="value">Znani vrednosti v EUR</option></select></label></div>
-                <div className="buyer-bars" aria-label={sort === 'wins' ? 'Delež oddanih sklopov največjih prejemnikov' : 'Znana vrednost oddaj največjim prejemnikom'}>{ranked.slice(0, 8).map(supplier => {
-                    const ratio = sort === 'wins' ? supplier.share || 0 : s.total_value_eur ? supplier.value_eur / s.total_value_eur : 0;
-                    return <button className="buyer-bar" key={supplier.key} aria-pressed={filters.supplier === supplier.key} onClick={() => selectSupplier(filters.supplier === supplier.key ? '' : supplier.key)}><span>{supplier.name}</span><span className="buyer-bar-track" aria-hidden="true"><i style={{ width: `${ratio * 100}%` }}/></span><strong>{sort === 'wins' ? `${supplier.wins} · ${percent(supplier.share)}` : supplier.value_count ? money(supplier.value_eur) : 'Ni podatka'}</strong></button>;
-                })}</div>
-                <p className="section-help">Klik na prejemnika prikaže njegove posle spodaj. Pri skupni ponudbi se sklop šteje vsakemu prejemniku; deleži se zato lahko seštejejo nad 100 %.</p>
-                <div className="buyer-table-scroll"><table className="buyer-table"><caption>Prejemniki v izbranem obdobju in področju</caption><thead><tr><th>Prejemnik</th><th>Sklopi / delež</th><th>Skupne ponudbe</th><th>Znana vrednost EUR / delež</th></tr></thead><tbody>{ranked.map(supplier => <tr key={supplier.key}><td><button className="text-link" aria-pressed={filters.supplier === supplier.key} onClick={() => selectSupplier(filters.supplier === supplier.key ? '' : supplier.key)}>{supplier.name}</button><small>{supplier.registration_number ? `MŠ ${supplier.registration_number}` : 'MŠ ni podatka · združeno po imenu'}</small></td><td>{supplier.wins} / {percent(supplier.share)}</td><td>{supplier.joint_wins}</td><td>{supplier.value_count ? <>{money(supplier.value_eur)}<small>{percent(supplier.value_share)} znane vrednosti · {supplier.value_count} sklopov</small></> : 'Ni podatka'}</td></tr>)}</tbody></table></div>
-                <details className="buyer-methodology"><summary>Kako so izračunani deleži in vrednosti?</summary><p>Signal koncentracije izpostavimo pri prejemniku z vsaj 50 % oddanih sklopov in vzorcu vsaj 10 oddaj. Signal ene ponudbe izpostavimo pri vsaj 50 % takih oddaj in vsaj 10 oddajah z znanim številom ponudb. To sta orientacijska praga za pregled.</p><p>Delež prejemnika je število oddanih sklopov, pri katerih je naveden kot izbrani ponudnik, deljeno z vsemi oddanimi sklopi v izboru. Število ponudb je znano pri {s.known_bid_lots}/{s.awarded_lots} oddajah. Manjkajoče število ponudb ne pomeni ene ponudbe.</p><p>Vrednosti vključujejo samo znane pogodbene vrednosti v EUR za enega prejemnika, brez okvirnih sporazumov. To niso podatki o dejanskih izplačilih. Iz vrednostnih deležev je izključenih {s.excluded_value_lots} sklopov; v izboru je {s.joint_lots} skupnih oddaj in {s.framework_lots} okvirnih sporazumov.</p><p>Starejši zapis izločimo, kadar novejša objava izrecno navede prejšnjo objavo in se ime sklopa ujema. Izločenih je {s.superseded_lots} povezanih starejših zapisov pred filtrom obdobja. Popravkov brez povezave ali s spremenjenim imenom sklopa ne moremo zanesljivo združiti; ti lahko povečajo število poslov. Zapisi brez datuma ({s.undated_lots} v izboru) so ob filtru obdobja izključeni.</p><p>Naročnike povezujemo po matični številki, kadar je na voljo; sicer po točnem imenu. Prejemnike brez matične številke združujemo samo po imenu.{data.buyer?.matched_by === 'name' && ' Ta naročnik je povezan samo po imenu.'}</p></details>
-                <div className="buyer-ranking-head"><h3>{selected ? `Posli: ${selected.name}` : 'Zgodovina vseh oddaj'} ({data.history_count})</h3>{filters.supplier && <button className="button small" onClick={() => selectSupplier('')}>Vsi prejemniki</button>}</div>
-                <div className="past-awards-list">{data.results.map(award => <article className="past-award" key={award.id}><h4>{award.title}</h4>{award.lot_title && <p>{award.lot_title}</p>}<p className="section-help">{day(award.published_on)} · {award.procedure || 'Postopek ni naveden'}{award.framework && ' · okvirni sporazum'}</p><p><strong>{award.awarded ? award.winners.map(w => w.name).join(' · ') : 'Brez potrjene izbire'}</strong></p><p>Pogodbena vrednost: {award.awarded_value != null && award.currency ? money(award.awarded_value, award.currency) : 'Ni podatka'} · Prejetih ponudb: {award.tenders_received ?? 'Ni podatka'}</p><a className="text-link" href={award.notice_url} target="_blank" rel="noreferrer">Izvorno obvestilo {award.notice_number}<ExternalLink size={13}/></a></article>)}</div>
-                <div className="buyer-pagination"><button className="button small" disabled={data.page <= 1} onClick={() => setFilters(old => ({ ...old, page: old.page - 1 }))}>Prejšnja</button><span>Stran {data.page} / {Math.max(1, Math.ceil(data.history_count / data.page_size))}</span><button className="button small" disabled={data.page * data.page_size >= data.history_count} onClick={() => setFilters(old => ({ ...old, page: old.page + 1 }))}>Naslednja</button></div>
+                <p className="buyer-coverage">Obdobje: {day(s.coverage_from)} – {day(s.coverage_to)}. Posel pomeni posamezen oddan sklop naročila.</p>
+                {ranked.length > 0 && <>
+                    <div className="buyer-ranking-head"><div><h3>{sort === 'wins' ? 'Najpogosteje izbrani ponudniki' : 'Kdo je prejel največjo znano vrednost poslov?'}</h3><p>Klik na ponudnika prikaže njegove posle spodaj.</p></div><label className="similar-awards-sort"><span>Razvrsti</span><select value={sort} onChange={event => setSort(event.target.value as typeof sort)}><option value="wins">Po številu poslov</option><option value="value">Po znani vrednosti</option></select></label></div>
+                    <div className="buyer-supplier-list">{ranked.slice(0, 5).map(supplier => {
+                        const share = sort === 'wins' ? supplier.share || 0 : s.total_value_eur ? supplier.value_eur / s.total_value_eur : 0;
+                        return <button className="buyer-supplier" key={supplier.key} aria-pressed={filters.supplier === supplier.key} onClick={() => selectSupplier(filters.supplier === supplier.key ? '' : supplier.key)}>
+                            <span className="buyer-supplier-name"><strong>{supplier.name}</strong><span className="buyer-supplier-track" aria-hidden="true"><i style={{ width: `${Math.min(100, Math.max(0, share * 100))}%` }}/></span></span>
+                            <span className="buyer-supplier-count"><strong>{supplier.wins}</strong><span>poslov · {percent(supplier.share)}</span></span>
+                            <span className="buyer-supplier-value"><strong>{supplier.value_count ? money(supplier.value_eur) : 'Ni podatka'}</strong><span>znana vrednost</span></span>
+                        </button>;
+                    })}</div>
+                    <details className="similar-awards-disclosure buyer-all-suppliers"><summary>Vsi ponudniki in podrobnosti ({ranked.length})<ChevronDown size={18}/></summary><div className="buyer-table-scroll"><table className="buyer-table"><caption>Izbrani ponudniki v izbranem obdobju in področju</caption><thead><tr><th>Ponudnik</th><th>Posli / delež</th><th>Skupne ponudbe</th><th>Znana vrednost EUR / delež</th></tr></thead><tbody>{ranked.map(supplier => <tr key={supplier.key}><td><button className="text-link" aria-pressed={filters.supplier === supplier.key} onClick={() => selectSupplier(filters.supplier === supplier.key ? '' : supplier.key)}>{supplier.name}</button><small>{supplier.registration_number ? `MŠ ${supplier.registration_number}` : 'MŠ ni podatka · združeno po imenu'}</small></td><td>{supplier.wins} / {percent(supplier.share)}</td><td>{supplier.joint_wins}</td><td>{supplier.value_count ? <>{money(supplier.value_eur)}<small>{percent(supplier.value_share)} znane vrednosti · {supplier.value_count} poslov</small></> : 'Ni podatka'}</td></tr>)}</tbody></table></div></details>
+                </>}
+                <div className="buyer-history-list-heading"><div><h3>Pretekli posli{selected ? ' izbranega ponudnika' : ''} <span>({data.history_count})</span></h3>{selected && <p>{selected.name}</p>}</div>{filters.supplier && <button className="button small" onClick={() => selectSupplier('')}>Prikaži vse posle<X size={14}/></button>}</div>
+                <p className="buyer-list-help">Klik na posel odpre uradno objavo v novem zavihku.</p>
+                {data.results.length ? <div className="similar-tenders-list">{data.results.map(award => <HistoricalAward key={award.id} award={award}/>)}</div> : <p className="empty-state compact">Za ta izbor ni poslov. Izberite drugega ponudnika ali počistite filtre.</p>}
+                {data.history_count > data.page_size && <div className="buyer-pagination"><button className="button small" disabled={data.page <= 1} onClick={() => setFilters(old => ({ ...old, page: old.page - 1 }))}>Prejšnja</button><span>Stran {data.page} / {Math.max(1, Math.ceil(data.history_count / data.page_size))}</span><button className="button small" disabled={data.page * data.page_size >= data.history_count} onClick={() => setFilters(old => ({ ...old, page: old.page + 1 }))}>Naslednja</button></div>}
+                <details className="similar-awards-disclosure buyer-method"><summary>Viri in način izračuna<ChevronDown size={18}/></summary><div className="similar-awards-method">
+                    <div><h4>Konkurenca pri oddajah</h4><p>{s.single_bid_lots} od {s.known_bid_lots} oddaj z znanim številom ponudb je prejelo eno ponudbo ({percent(s.single_bid_share)}). Manjkajoče število ponudb ne pomeni ene ponudbe.</p></div>
+                    {data.signals.length > 0 && <div><h4>Podatki za podrobnejši pregled</h4>{data.signals.map(signal => <p key={signal.kind}>{signal.text}</p>)}<p>Koncentracija poslov in ena ponudba sami po sebi ne dokazujeta favoriziranja.</p></div>}
+                    <p>Delež ponudnika je število njegovih oddanih sklopov, deljeno z vsemi oddanimi sklopi v izboru. Pri skupni ponudbi se posel šteje vsakemu izbranemu ponudniku, zato se lahko deleži seštejejo nad 100 %.</p>
+                    <p>Vrednosti vključujejo samo znane pogodbene vrednosti v EUR za enega prejemnika, brez okvirnih sporazumov. To niso dejanska izplačila. Iz vrednosti je izključenih {s.excluded_value_lots} poslov; v izboru je {s.joint_lots} skupnih oddaj in {s.framework_lots} okvirnih sporazumov.</p>
+                    <p>Starejši zapis izločimo, kadar novejša objava izrecno navede prejšnjo objavo in se ime sklopa ujema. Izločenih je {s.superseded_lots} povezanih starejših zapisov pred filtrom obdobja. Drugih popravkov ne moremo zanesljivo združiti. Zapisi brez datuma ({s.undated_lots}) so ob filtru obdobja izključeni.</p>
+                    <p>Naročnike povezujemo po matični številki, sicer po točnem imenu. Ponudnike brez matične številke združujemo po imenu.{data.buyer?.matched_by === 'name' && ' Ta naročnik je povezan samo po imenu.'} Signala koncentracije in ene ponudbe izpostavimo pri najmanj 50-odstotnem deležu in vzorcu vsaj 10 ustreznih oddaj.</p>
+                </div></details>
             </>}
-            <p className="past-awards-source">Vir: {data.dataset.attribution} · {data.dataset.license}. Zbirka: {data.dataset.lots} sklopov iz objav {day(data.dataset.coverage_from)} – {day(data.dataset.coverage_to)}. Podatki se dopolnjujejo z rednim zajemom preteklih oddaj.</p>
+            {!s?.lots && !data.message && <p className="empty-state compact">Za izbrano obdobje in področje ni shranjenih poslov.</p>}
+            <p className="buyer-data-source">Vir: {data.dataset.attribution} · {data.dataset.license}. Zbirka zajema {data.dataset.lots} sklopov, objavljenih {day(data.dataset.coverage_from)} – {day(data.dataset.coverage_to)}, in se dopolnjuje z rednim zajemom.</p>
         </>}
+        {children && <details className="similar-awards-disclosure buyer-contracts"><summary>Pogodbe in trenutni izvajalci<ChevronDown size={18}/></summary><p className="buyer-list-help">Podpisane pogodbe in aneksi za soroden predmet pri tem naročniku.</p>{children}</details>}
     </section>;
 }
