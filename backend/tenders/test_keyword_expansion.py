@@ -159,6 +159,10 @@ class VectorPassageTests(TestCase):
         self.text = 'Sistem pnevmatskega transporta vzorcev povezuje laboratorij in oddelke.'
         self.chunk = DocumentChunk.objects.create(content=content, ordinal=0, page=2, locator='stran 2', text=self.text,
                                                   normalized_text=fold(self.text), embedding=[0.5] * 1024)
+        from django.db import connection
+        if connection.vendor == 'postgresql':
+            from django.contrib.postgres.search import SearchVector
+            content.chunks.update(search_vector=SearchVector('normalized_text', config='simple'))
         self.award = PastAward.objects.create(id='a1', notice_id='77', data={'title': 'Dograditev sistema cevne zračne pošte',
                                               'notice_number': 'JN000077/2025', 'buyer': 'SB Novo mesto'})
 

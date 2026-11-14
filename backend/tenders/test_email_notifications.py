@@ -220,7 +220,9 @@ class EmailNotificationTests(TestCase):
         from django.core.management import call_command
         self.enable()
         self.notification()
-        call_command('send_notification_emails', verbosity=0)
+        # TestCase owns an outer transaction; the long-running command normally owns its connection.
+        with patch('tenders.management.commands.send_notification_emails.close_old_connections'):
+            call_command('send_notification_emails', verbosity=0)
         self.assertEqual(NotificationEmail.objects.get().state, 'sent')
 
 
