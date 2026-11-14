@@ -26,6 +26,8 @@ MAX_TEXT = 220_000
 # Tender documentation goes only into the checklist call; the model has a ~1M token context.
 MAX_SOURCE_TEXT = 600_000
 # ESPD/UBL XML is mostly markup; the human-readable criteria live in Name/Description elements.
+# Data exports and schemas (e.g. sample measurements) never state bid requirements but can hold millions of characters.
+DATA_FORMATS = {'csv', 'tsv', 'json', 'xsd'}
 XML_TEXT = re.compile(r'<(?:[\w-]+:)?(?:Name|Description)\b[^>]*>([^<]+)</')
 SUPPORTED = {'.pdf', '.docx', '.xlsx', '.pptx', '.odt', '.ods', '.txt', '.csv', '.xml', '.json'}
 
@@ -142,6 +144,9 @@ def tender_sources(tender):
         if record.extraction.get('mode') == 'archive':
             if record.status != 'processed':
                 issues.append({'name': record.title, 'message': 'Razpisni arhiv ni v celoti obdelan.'})
+            continue
+        fmt = record.indexed_content.format if record.indexed_content_id else ''
+        if fmt in DATA_FORMATS or Path(record.title).suffix.lower().lstrip('.') in DATA_FORMATS:
             continue
         pages = readable_pages(record, record.indexed_content.pages if record.indexed_content_id else record.pages)
         if not pages or record.status != 'processed':

@@ -177,3 +177,14 @@ class SubmissionReviewTests(TestCase):
             {'items': [{'requirement_id': 'r1', 'status': 'covered', 'explanation': 'Dokaz je prisoten.', 'action': '', 'evidence': [evidence('bid-1', BID)]}]}]
         response = APIClient().post('/api/tenders/review-long/submission-review', {'submission_files': SimpleUploadedFile('prijava.txt', BID.encode())}, format='multipart')
         self.assertEqual(response.status_code, 200)
+
+    def test_data_files_are_not_tender_sources(self):
+        from .submission_review import tender_sources
+        tender = Tender.objects.create(id='review-data', data={'version': 1})
+        Document.objects.create(id='source', tender=tender, title='Navodila.pdf', status='processed', path='x', pages=documents('source', SOURCE)[0]['pages'])
+        Document.objects.create(id='meritve', tender=tender, title='AGEN-LETNI.csv', status='processed', path='x',
+                                pages=[{'page': 1, 'text': '2025-01-01;12,5\n' * 100000}])
+        Document.objects.create(id='shema', tender=tender, title='ponudbe-shema.xsd', status='processed', path='x', pages=[])
+        docs, issues = tender_sources(tender)
+        self.assertEqual([d['id'] for d in docs], ['source'])
+        self.assertEqual(issues, [])
